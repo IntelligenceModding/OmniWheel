@@ -1,0 +1,19 @@
+{
+  "key.categories.omniwheel": "OmniWheel",
+  "key.omniwheel.open_wheel": "Open OmniWheel",
+  "key.omniwheel.open_manager": "Open OmniWheel Manager",
+  "key.omniwheel.radial_top_left": "Radial Top Left",
+  "key.omniwheel.radial_top": "Radial Top",
+  "key.omniwheel.radial_top_right": "Radial Top Right",
+  "key.omniwheel.radial_left": "Radial Left",
+  "key.omniwheel.radial_center": "Radial Center / Back",
+  "key.omniwheel.radial_right": "Radial Right",
+  "key.omniwheel.radial_bottom_left": "Radial Bottom Left",
+  "key.omniwheel.radial_bottom": "Radial Bottom",
+  "key.omniwheel.radial_bottom_right": "Radial Bottom Right",
+  "config.omniwheel.wheel_radius": "Wheel Radius",
+  "config.omniwheel.deadzone_radius": "Deadzone Radius",
+  "config.omniwheel.segment_gap_degrees": "Segment Gap Degrees",
+  "config.omniwheel.background_alpha": "Background Alpha",
+  "config.omniwheel.show_debug_selection": "Show Debug Selection"
+}
