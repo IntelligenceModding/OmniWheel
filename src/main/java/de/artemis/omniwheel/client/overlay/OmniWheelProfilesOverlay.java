@@ -3902,7 +3902,7 @@ public final class OmniWheelProfilesOverlay {
         List<IconPickerOption> options = new ArrayList<>();
         options.addAll(loadParticleIconOptions());
         for (ResourceLocation id : BuiltInRegistries.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id);
+            MobEffect effect = BuiltInRegistries.MOB_EFFECT.getOptional(id).orElse(null);
             if (effect == null) {
                 continue;
             }
@@ -3954,7 +3954,7 @@ public final class OmniWheelProfilesOverlay {
         addIconPickerOption(options, "gui:icon/ping_4", "ui icon ping network four");
         addIconPickerOption(options, "gui:icon/ping_5", "ui icon ping network five");
         for (ResourceLocation id : BuiltInRegistries.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            Item item = BuiltInRegistries.ITEM.get(id);
+            Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
             if (item == null || item == Items.AIR) {
                 continue;
             }
