@@ -16,5 +16,6 @@ public final class OmniWheelClient {
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onRenderGuiLayerPre);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseButton);
+        NeoForge.EVENT_BUS.addListener(ClientModEvents::onScreenOpening);
     }
 }

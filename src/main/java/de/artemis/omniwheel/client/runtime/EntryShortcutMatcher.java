@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public final class EntryShortcutMatcher {
         return keys.isEmpty() ? null : new ShortcutSpec(ctrl, shift, alt, Set.copyOf(keys));
     }
 
-    public static String captureShortcutText(long windowHandle, int keyCode, int modifiers) {
+    public static String captureShortcutText(Window window, int keyCode, int modifiers) {
         if (isModifierOnlyKey(keyCode)
                 || keyCode == GLFW.GLFW_KEY_ESCAPE
                 || keyCode == GLFW.GLFW_KEY_ENTER
@@ -65,7 +66,7 @@ public final class EntryShortcutMatcher {
             parts.add("Alt");
         }
 
-        Set<Integer> pressedKeys = collectPressedKeys(windowHandle, keyCode);
+        Set<Integer> pressedKeys = collectPressedKeys(window, keyCode);
         if (pressedKeys.isEmpty()) {
             return null;
         }
@@ -178,13 +179,13 @@ public final class EntryShortcutMatcher {
                 || keyCode == GLFW.GLFW_KEY_RIGHT_SUPER;
     }
 
-    private static Set<Integer> collectPressedKeys(long windowHandle, int keyCode) {
+    private static Set<Integer> collectPressedKeys(Window window, int keyCode) {
         Set<Integer> keys = new LinkedHashSet<>();
         for (int candidate = GLFW.GLFW_KEY_SPACE; candidate <= GLFW.GLFW_KEY_LAST; candidate++) {
             if (isModifierOnlyKey(candidate)) {
                 continue;
             }
-            if (InputConstants.isKeyDown(windowHandle, candidate)) {
+            if (InputConstants.isKeyDown(window, candidate)) {
                 keys.add(candidate);
             }
         }
@@ -258,12 +259,12 @@ public final class EntryShortcutMatcher {
     }
 
     public record ShortcutSpec(boolean ctrl, boolean shift, boolean alt, Set<Integer> keys) {
-        public boolean matches(long windowHandle) {
-            if (ctrl != isCtrlDown(windowHandle) || shift != isShiftDown(windowHandle) || alt != isAltDown(windowHandle)) {
+        public boolean matches(Window window) {
+            if (ctrl != isCtrlDown(window) || shift != isShiftDown(window) || alt != isAltDown(window)) {
                 return false;
             }
             for (int key : keys) {
-                if (!InputConstants.isKeyDown(windowHandle, key)) {
+                if (!InputConstants.isKeyDown(window, key)) {
                     return false;
                 }
             }
@@ -274,19 +275,19 @@ public final class EntryShortcutMatcher {
             return keys.size() + (ctrl ? 1 : 0) + (shift ? 1 : 0) + (alt ? 1 : 0);
         }
 
-        private static boolean isCtrlDown(long windowHandle) {
-            return InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_CONTROL)
-                    || InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_CONTROL);
+        private static boolean isCtrlDown(Window window) {
+            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL)
+                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_CONTROL);
         }
 
-        private static boolean isShiftDown(long windowHandle) {
-            return InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT)
-                    || InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        private static boolean isShiftDown(Window window) {
+            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
+                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
         }
 
-        private static boolean isAltDown(long windowHandle) {
-            return InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_ALT)
-                    || InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_ALT);
+        private static boolean isAltDown(Window window) {
+            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_ALT)
+                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_ALT);
         }
     }
 }

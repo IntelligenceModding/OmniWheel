@@ -507,9 +507,8 @@ public final class OmniWheelOverlay {
     }
 
     private boolean isHotkeyDown(Minecraft minecraft, String hotkey) {
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
         for (int keyCode : hotkeyCodes(hotkey)) {
-            if (InputConstants.isKeyDown(windowHandle, keyCode)) {
+            if (InputConstants.isKeyDown(minecraft.getWindow(), keyCode)) {
                 return true;
             }
         }
@@ -517,9 +516,8 @@ public final class OmniWheelOverlay {
     }
 
     private boolean isShiftDown(Minecraft minecraft) {
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
-        return InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
     private void activateEntry(int index, List<WheelEntry> visibleEntries) {
@@ -537,21 +535,7 @@ public final class OmniWheelOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputConstants.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
-    }
-
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+        InputConstants.grabOrReleaseMouse(minecraft.getWindow(), 212993, rawX, rawY);
     }
 
     private void drawEntry(
@@ -1349,11 +1333,11 @@ public final class OmniWheelOverlay {
     }
 
     private static boolean isLeftMouseDown(Minecraft minecraft) {
-        return GLFW.glfwGetMouseButton(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+        return GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
     }
 
     private static boolean isRightMouseDown(Minecraft minecraft) {
-        return GLFW.glfwGetMouseButton(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+        return GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
     }
 
     private static String shorten(String text, int maxLength) {
@@ -1514,26 +1498,15 @@ public final class OmniWheelOverlay {
             return false;
         }
 
+        var window = minecraft.getWindow();
         InputConstants.Key key = OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).getKey();
-        long windowHandle = resolveWindowHandleStatic(minecraft.getWindow());
+        long windowHandle = window.handle();
         return switch (key.getType()) {
-            case KEYSYM, SCANCODE -> InputConstants.isKeyDown(windowHandle, key.getValue());
+            case KEYSYM -> InputConstants.isKeyDown(window, key.getValue());
+            case SCANCODE -> GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+            case MOUSE -> GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
             default -> OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).isDown();
         };
-    }
-
-    private static long resolveWindowHandleStatic(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
     }
 
     private static int radialPositionTargetIndex(int positionIndex, int segmentCount) {

@@ -2,13 +2,14 @@ package de.artemis.omniwheel.client.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
 public final class OmniWheelKeyMappings {
-    public static final String CATEGORY = "key.categories.omniwheel";
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("omniwheel", "main"));
     public static final KeyMapping OPEN_WHEEL = new KeyMapping(
             "key.omniwheel.open_wheel",
             InputConstants.Type.KEYSYM,

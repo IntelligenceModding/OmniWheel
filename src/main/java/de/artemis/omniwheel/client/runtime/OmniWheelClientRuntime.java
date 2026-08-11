@@ -17,7 +17,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -144,7 +143,6 @@ public final class OmniWheelClientRuntime {
             return;
         }
 
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
         List<ShortcutCandidate> candidates = collectShortcutCandidates(profile);
         Set<String> downShortcutIds = new HashSet<>();
         ShortcutCandidate nextTrigger = null;
@@ -152,7 +150,7 @@ public final class OmniWheelClientRuntime {
 
         for (ShortcutCandidate candidate : candidates) {
             EntryShortcutMatcher.ShortcutSpec shortcut = EntryShortcutMatcher.parse(candidate.entry().shortcut());
-            if (shortcut == null || !shortcut.matches(windowHandle)) {
+            if (shortcut == null || !shortcut.matches(minecraft.getWindow())) {
                 continue;
             }
 
@@ -279,20 +277,6 @@ public final class OmniWheelClientRuntime {
         }
 
         profileManager.setActiveProfile(profiles.get(Math.floorMod(currentIndex + delta, profiles.size())).id());
-    }
-
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
     }
 
     private record ShortcutCandidate(String id, WheelEntry entry, List<String> openPath) {
