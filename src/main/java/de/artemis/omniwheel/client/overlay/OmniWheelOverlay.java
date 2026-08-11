@@ -221,12 +221,6 @@ public final class OmniWheelOverlay {
         float ringInnerRadius = innerRadius + 18.0F;
         float ringOuterRadius = outerRadius;
         double gapWidth = segmentGapWidth(ringOuterRadius, segmentCount);
-        boolean showingCenterBack = canGoBack();
-
-        if (!showingCenterBack) {
-            GeometryRenderer.fillCircle(graphics, centerX, centerY, innerRadius + 22.0F, PANEL_COLOR);
-        }
-
         for (int index = 0; index < segmentCount; index++) {
             WheelEntry entry = visibleEntries.get(index);
             boolean selected = index == hoveredIndex;

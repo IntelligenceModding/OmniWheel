@@ -98,8 +98,8 @@ public final class ContextValueFormatter {
 
     private static Component copyableLiteral(String display, String raw, String hoverText) {
         return Component.literal(display).withStyle(COPY_STYLE
-                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, raw))
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(hoverText + ": " + raw))));
+                .withClickEvent(new ClickEvent.CopyToClipboard(raw))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hoverText + ": " + raw))));
     }
 
     private static String resolveLiteral(String raw, Minecraft minecraft) {
