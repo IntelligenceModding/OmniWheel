@@ -24,7 +24,7 @@ public final class ClientModEvents {
     }
 
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.EXPERIENCE_BAR, OVERLAY_ID, (graphics, deltaTracker) ->
+        event.registerAbove(VanillaGuiLayers.EXPERIENCE_LEVEL, OVERLAY_ID, (graphics, deltaTracker) ->
                 OmniWheelClientRuntime.getInstance().renderOverlay(graphics));
     }
 

@@ -493,8 +493,8 @@ public final class OmniWheelProfilesOverlay {
         int height = uiHeight(minecraft);
         if (screenHosted) {
             float inverseScale = (float) screenHostedRenderScale(minecraft);
-            graphics.pose().pushPose();
-            graphics.pose().scale(inverseScale, inverseScale, 1.0F);
+            graphics.pose().pushMatrix();
+            graphics.pose().scale(inverseScale, inverseScale);
         }
 
         int leftX = 18;
@@ -542,8 +542,9 @@ public final class OmniWheelProfilesOverlay {
         if (!tutorialActive && !iconPickerOpen && textEntryActive && focusedCommandFieldIndex >= 0 && commandSuggestions != null) {
             boolean renderWrappedUsage = shouldRenderWrappedCommandUsage();
             alignCommandUsageToField();
-            graphics.pose().pushPose();
-            graphics.pose().translate(0.0F, commandSuggestionsYOffset, 200.0F);
+            graphics.nextStratum();
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(0.0F, commandSuggestionsYOffset);
             if (!renderWrappedUsage) {
                 commandSuggestions.render(
                         graphics,
@@ -551,7 +552,7 @@ public final class OmniWheelProfilesOverlay {
                         (int) currentMouseY(minecraft) - commandSuggestionsYOffset
                 );
             }
-            graphics.pose().popPose();
+            graphics.pose().popMatrix();
             if (renderWrappedUsage) {
                 renderWrappedCommandUsage(graphics, minecraft);
             }
@@ -559,7 +560,7 @@ public final class OmniWheelProfilesOverlay {
         drawEditorButtonTooltip(graphics, minecraft);
         drawManagerTutorial(graphics, minecraft);
         if (screenHosted) {
-            graphics.pose().popPose();
+            graphics.pose().popMatrix();
         }
     }
 
@@ -1989,11 +1990,9 @@ public final class OmniWheelProfilesOverlay {
         int boxX = clamp(x, 6, Math.max(6, maxX));
         int boxY = clamp(y, 6, Math.max(6, maxY));
 
-        graphics.pose().pushPose();
-        graphics.pose().translate(0.0F, 0.0F, 250.0F);
+        graphics.nextStratum();
         drawPanel(graphics, boxX, boxY, boxWidth, boxHeight, false);
         graphics.drawString(minecraft.font, text, boxX + paddingX, boxY + paddingY, TEXT, false);
-        graphics.pose().popPose();
     }
 
     private void drawManagerTutorial(GuiGraphics graphics, Minecraft minecraft) {
@@ -2013,8 +2012,7 @@ public final class OmniWheelProfilesOverlay {
         int boxX = Math.max(8, Math.min(tutorialStep.x(), Math.max(8, uiWidth(minecraft) - boxWidth - 8)));
         int boxY = Math.max(8, Math.min(tutorialStep.y(), Math.max(8, uiHeight(minecraft) - boxHeight - 8)));
 
-        graphics.pose().pushPose();
-        graphics.pose().translate(0.0F, 0.0F, 260.0F);
+        graphics.nextStratum();
         drawPanel(graphics, boxX, boxY, boxWidth, boxHeight, false);
         String stepLabel = (Math.min(managerTutorialStepIndex, MANAGER_TUTORIAL_STEP_COUNT - 1) + 1) + "/" + MANAGER_TUTORIAL_STEP_COUNT;
         graphics.drawString(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
@@ -2039,7 +2037,6 @@ public final class OmniWheelProfilesOverlay {
         if (!lastStep) {
             drawTutorialButton(graphics, minecraft, tutorialSkipAllButtonX, tutorialSkipAllButtonY, tutorialSkipAllButtonWidth, tutorialSkipAllButtonHeight, "Skip All");
         }
-        graphics.pose().popPose();
     }
 
     private void drawTutorialButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height, String label) {
