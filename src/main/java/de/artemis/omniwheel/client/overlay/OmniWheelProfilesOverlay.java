@@ -1,6 +1,8 @@
 package de.artemis.omniwheel.client.overlay;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
+import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.runtime.EntryShortcutMatcher;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
@@ -349,6 +351,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
+        persistPendingEdits();
         open = false;
         actions.clear();
         tooltipRegions.clear();
@@ -421,8 +424,7 @@ public final class OmniWheelProfilesOverlay {
         if (!open) {
             return;
         }
-        commitProfileRename();
-        commitWheelRename();
+        persistPendingEdits();
         clearProfileDrag();
         clearWheelDrag();
         closeIconPicker();
@@ -4489,36 +4491,16 @@ public final class OmniWheelProfilesOverlay {
         InputConstants.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
     }
 
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private long resolveWindowHandle(Window window) {
+        return window.getWindow();
     }
 
     private static boolean isEscapeDown(Minecraft minecraft) {
         return InputConstants.isKeyDown(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_KEY_ESCAPE);
     }
 
-    private static long resolveWindowHandleStatic(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private static long resolveWindowHandleStatic(Window window) {
+        return window.getWindow();
     }
 
     private float currentMouseX(Minecraft minecraft) {
@@ -5860,6 +5842,7 @@ public final class OmniWheelProfilesOverlay {
         if (focusedField == EditorField.WHEEL_TITLE && fieldId != EditorField.WHEEL_TITLE) {
             commitWheelRename();
         }
+        persistFocusedEntryDraft();
         clearFocus();
         activeList = navigationListForField(fieldId);
         focusedField = fieldId;
@@ -5867,6 +5850,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void focusCommandField(int index) {
+        persistFocusedEntryDraft();
         clearFocus();
         activeList = NavigationList.EDITOR;
         focusedCommandFieldIndex = index;
@@ -5887,6 +5871,14 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void deactivateTextEntry() {
+        applyFocusedFieldDraft();
+        if (focusedField == EditorField.PROFILE_NAME) {
+            commitProfileRename();
+        } else if (focusedField == EditorField.WHEEL_TITLE) {
+            commitWheelRename();
+        } else {
+            persistFocusedEntryDraft();
+        }
         textEntryActive = false;
         if (commandInput != null) {
             commandInput.setFocused(false);
@@ -5899,6 +5891,13 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void clearFocus() {
+        if (focusedField == EditorField.PROFILE_NAME) {
+            commitProfileRename();
+        } else if (focusedField == EditorField.WHEEL_TITLE) {
+            commitWheelRename();
+        } else {
+            persistFocusedEntryDraft();
+        }
         if (focusedField != null) {
             textFields.get(focusedField).focused = false;
             focusedField = null;
@@ -6040,6 +6039,7 @@ public final class OmniWheelProfilesOverlay {
         if (index < 0 || index >= actions.size() || !actions.get(index).enabled) {
             return;
         }
+        persistFocusedEntryDraft();
         if (focusedField != null) {
             textFields.get(focusedField).focused = false;
             focusedField = null;
@@ -7101,8 +7101,21 @@ public final class OmniWheelProfilesOverlay {
     private void restoreGameplayInput(Minecraft minecraft) {
         long handle = resolveWindowHandle(minecraft.getWindow());
         for (KeyMapping keyMapping : gameplayKeyMappings(minecraft)) {
-            if (keyMapping.getKey().getType() == InputConstants.Type.KEYSYM) {
-                keyMapping.setDown(InputConstants.isKeyDown(handle, keyMapping.getKey().getValue()));
+            InputConstants.Key key = OmniWheelKeyMappings.currentKey(keyMapping);
+            if (key.getType() == InputConstants.Type.KEYSYM) {
+                keyMapping.setDown(InputConstants.isKeyDown(handle, key.getValue()));
+            }
+        }
+    }
+
+    private void persistFocusedEntryDraft() {
+        if (focusedField == EditorField.ENTRY_LABEL
+                || focusedField == EditorField.ENTRY_DESCRIPTION
+                || focusedField == EditorField.ENTRY_VALUE
+                || focusedCommandFieldIndex >= 0) {
+            WheelEntry entry = selectedEntry();
+            if (entry != null && isEntryDraftDirty(entry)) {
+                saveCurrentEntry();
             }
         }
     }

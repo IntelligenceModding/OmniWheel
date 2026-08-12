@@ -15,5 +15,8 @@
   "config.omniwheel.deadzone_radius": "Deadzone Radius",
   "config.omniwheel.segment_gap_degrees": "Segment Gap Degrees",
   "config.omniwheel.background_alpha": "Background Alpha",
-  "config.omniwheel.show_debug_selection": "Show Debug Selection"
+  "config.omniwheel.show_debug_selection": "Show Debug Selection",
+  "omniwheel.link.discord": "Discord",
+  "omniwheel.link.github": "GitHub",
+  "omniwheel.link.youtube": "YouTube"
 }

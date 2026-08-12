@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.world.level.storage.LevelResource;
-import net.neoforged.fml.loading.FMLPaths;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,7 +19,7 @@ import java.util.Map;
 public final class TutorialProgressStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
-    private final Path storagePath = FMLPaths.CONFIGDIR.get().resolve("omniwheel").resolve("tutorials.json");
+    private final Path storagePath = FabricLoader.getInstance().getConfigDir().resolve("omniwheel").resolve("tutorials.json");
     private StoreState state;
 
     public boolean isCompleted(TutorialType tutorialType) {

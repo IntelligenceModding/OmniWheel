@@ -3,36 +3,21 @@ package de.artemis.omniwheel.client;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-
-import static de.artemis.omniwheel.OmniWheel.MOD_ID;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
 public final class ClientModEvents {
-    private static final ResourceLocation OVERLAY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "wheel");
-
     private ClientModEvents() {
     }
 
-    public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
-        OmniWheelKeyMappings.register(event);
-    }
-
-    public static void registerGuiLayers(RegisterGuiLayersEvent event) {
-        event.wrapLayer(VanillaGuiLayers.CROSSHAIR, original -> (graphics, deltaTracker) -> {
-            if (!OmniWheelClientRuntime.getInstance().isOverlayUiOpen()) {
-                original.render(graphics, deltaTracker);
-            }
-        });
-        event.registerAbove(VanillaGuiLayers.EXPERIENCE_BAR, OVERLAY_ID, (graphics, deltaTracker) ->
+    public static void register() {
+        OmniWheelKeyMappings.register();
+        HudRenderCallback.EVENT.register((graphics, deltaTracker) ->
                 OmniWheelClientRuntime.getInstance().renderOverlay(graphics));
+        ClientTickEvents.END_CLIENT_TICK.register(ignored -> onClientTick());
     }
 
-    public static void onClientTick(ClientTickEvent.Post event) {
+    private static void onClientTick() {
         Minecraft minecraft = Minecraft.getInstance();
         while (OmniWheelKeyMappings.OPEN_MANAGER.consumeClick()) {
             OmniWheelClientRuntime.getInstance().openProfileManagerShortcut();
@@ -43,17 +28,5 @@ public final class ClientModEvents {
         }
 
         OmniWheelClientRuntime.getInstance().tick();
-    }
-
-    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
-        if (OmniWheelClientRuntime.getInstance().handleMouseScroll(event.getScrollDeltaX(), event.getScrollDeltaY())) {
-            event.setCanceled(true);
-        }
-    }
-
-    public static void onMouseButton(InputEvent.MouseButton.Pre event) {
-        if (OmniWheelClientRuntime.getInstance().handleMouseButton(event.getButton(), event.getAction())) {
-            event.setCanceled(true);
-        }
     }
 }

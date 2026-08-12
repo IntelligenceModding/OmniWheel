@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.overlay;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.render.GeometryRenderer;
@@ -546,18 +547,8 @@ public final class OmniWheelOverlay {
         InputConstants.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
     }
 
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private long resolveWindowHandle(Window window) {
+        return window.getWindow();
     }
 
     private void drawEntry(
@@ -1520,7 +1511,7 @@ public final class OmniWheelOverlay {
             return false;
         }
 
-        InputConstants.Key key = OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).getKey();
+        InputConstants.Key key = OmniWheelKeyMappings.currentKey(OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position));
         long windowHandle = resolveWindowHandleStatic(minecraft.getWindow());
         return switch (key.getType()) {
             case KEYSYM, SCANCODE -> InputConstants.isKeyDown(windowHandle, key.getValue());
@@ -1528,18 +1519,8 @@ public final class OmniWheelOverlay {
         };
     }
 
-    private static long resolveWindowHandleStatic(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private static long resolveWindowHandleStatic(Window window) {
+        return window.getWindow();
     }
 
     private static int radialPositionTargetIndex(int positionIndex, int segmentCount) {

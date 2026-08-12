@@ -1,5 +1,6 @@
 package de.artemis.omniwheel.client.runtime;
 
+import com.mojang.blaze3d.platform.Window;
 import de.artemis.omniwheel.client.overlay.OmniWheelOverlay;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.profile.OmniWheelProfileManager;
@@ -17,7 +18,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -281,18 +281,8 @@ public final class OmniWheelClientRuntime {
         profileManager.setActiveProfile(profiles.get(Math.floorMod(currentIndex + delta, profiles.size())).id());
     }
 
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private long resolveWindowHandle(Window window) {
+        return window.getWindow();
     }
 
     private record ShortcutCandidate(String id, WheelEntry entry, List<String> openPath) {

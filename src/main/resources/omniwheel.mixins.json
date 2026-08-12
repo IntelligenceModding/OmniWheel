@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "de.artemis.omniwheel.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "GuiMixin",
+    "KeyMappingAccessor",
+    "MouseHandlerMixin",
+    "ParticleEngineAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

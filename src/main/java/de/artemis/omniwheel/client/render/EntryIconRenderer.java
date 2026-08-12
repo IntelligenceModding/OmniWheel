@@ -1,9 +1,11 @@
 package de.artemis.omniwheel.client.render;
 
+import de.artemis.omniwheel.mixin.client.ParticleEngineAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -19,7 +21,6 @@ import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,7 +34,6 @@ public final class EntryIconRenderer {
     private static final String PARTICLE_PREFIX = "particle:";
     private static final String SYMBOL_PREFIX = "symbol:";
     private static final String TEXTURE_PREFIX = "texture:";
-    private static final Field PARTICLE_TEXTURE_ATLAS_FIELD = findParticleTextureAtlasField();
     private static final Map<String, ResourceLocation> GUI_SPRITES = new LinkedHashMap<>();
     private static final Map<ResourceLocation, List<ResourceLocation>> PARTICLE_FRAMES = new LinkedHashMap<>();
     private static final Map<String, String> SYMBOLS = new LinkedHashMap<>();
@@ -259,30 +259,15 @@ public final class EntryIconRenderer {
     }
 
     private static TextureAtlasSprite resolveParticleSprite(Minecraft minecraft, ResourceLocation frameId) {
-        if (PARTICLE_TEXTURE_ATLAS_FIELD == null || minecraft.particleEngine == null) {
+        if (minecraft.particleEngine == null) {
             return null;
         }
 
-        try {
-            Object atlas = PARTICLE_TEXTURE_ATLAS_FIELD.get(minecraft.particleEngine);
-            if (atlas instanceof net.minecraft.client.renderer.texture.TextureAtlas textureAtlas) {
-                return textureAtlas.getSprite(frameId);
-            }
-        } catch (IllegalAccessException ignored) {
-        }
-
-        return null;
-    }
-
-    private static Field findParticleTextureAtlasField() {
-        try {
-            Class<?> type = Minecraft.class.getDeclaredField("particleEngine").getType();
-            Field field = type.getDeclaredField("textureAtlas");
-            field.setAccessible(true);
-            return field;
-        } catch (ReflectiveOperationException ignored) {
+        TextureAtlas textureAtlas = ((ParticleEngineAccessor) minecraft.particleEngine).omniwheel$getTextureAtlas();
+        if (textureAtlas == null) {
             return null;
         }
+        return textureAtlas.getSprite(frameId);
     }
 
     private static boolean drawSymbolIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {

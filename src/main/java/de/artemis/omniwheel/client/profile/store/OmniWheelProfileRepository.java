@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.profile.store;
 
 import de.artemis.omniwheel.OmniWheel;
 import de.artemis.omniwheel.client.profile.DefaultProfiles;
-import net.neoforged.fml.loading.FMLPaths;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +14,7 @@ public final class OmniWheelProfileRepository {
     private static final String MISSING_TOKEN = "missing";
 
     private final ProfileJsonCodec codec = new ProfileJsonCodec();
-    private final Path storagePath = FMLPaths.CONFIGDIR.get().resolve("omniwheel").resolve("profiles.json");
+    private final Path storagePath = FabricLoader.getInstance().getConfigDir().resolve("omniwheel").resolve("profiles.json");
 
     public ProfileCollection loadOrCreate() {
         if (Files.notExists(storagePath)) {

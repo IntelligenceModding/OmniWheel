@@ -86,13 +86,6 @@ final class ProfileUpgrader {
         }
 
         WheelDefinition upgradedGamemode = gamemode;
-        if (gamemode != null) {
-            WheelDefinition migratedGamemode = deactivateWheel(gamemode);
-            if (migratedGamemode != gamemode) {
-                upgradedGamemode = migratedGamemode;
-                changed = true;
-            }
-        }
 
         WheelDefinition upgradedQuick = quick;
         if (quick != null) {
@@ -199,14 +192,14 @@ final class ProfileUpgrader {
         upgradedEntries.add(ensureEntry(entriesById.get("util"), "util", "Utility", "Open utility shortcuts.", "U", new OpenWheelAction("utility")));
         upgradedEntries.addAll(extras);
 
-        if (upgradedEntries.equals(main.entries()) && "General shortcuts for typical survival play sessions.".equals(main.description())) {
+        if (upgradedEntries.equals(main.entries())) {
             return main;
         }
 
         return new WheelDefinition(
                 main.id(),
                 main.title(),
-                "General shortcuts for typical survival play sessions.",
+                main.description(),
                 main.segmentCount(),
                 upgradedEntries,
                 main.active()
@@ -238,7 +231,7 @@ final class ProfileUpgrader {
         return new WheelDefinition(
                 utility.id(),
                 utility.title(),
-                "Profiles, management, and quiet local tools.",
+                utility.description(),
                 utility.segmentCount(),
                 upgradedEntries,
                 utility.active()
@@ -313,7 +306,7 @@ final class ProfileUpgrader {
         return new WheelDefinition(
                 quick.id(),
                 quick.title(),
-                "Client-side actions that are useful in normal play.",
+                quick.description(),
                 quick.segmentCount(),
                 upgradedEntries,
                 quick.active()
@@ -335,25 +328,8 @@ final class ProfileUpgrader {
         );
     }
 
-    private static WheelDefinition deactivateWheel(WheelDefinition wheel) {
-        if (!wheel.active()) {
-            return wheel;
-        }
-        return new WheelDefinition(
-                wheel.id(),
-                wheel.title(),
-                wheel.description(),
-                wheel.segmentCount(),
-                wheel.entries(),
-                false
-        );
-    }
-
     private static WheelEntry ensureEntry(WheelEntry entry, String label, String description, String glyph, WheelAction action) {
-        if (entry.label().equals(label) && entry.description().equals(description) && entry.glyph().equals(glyph) && entry.action().equals(action)) {
-            return entry;
-        }
-        return new WheelEntry(entry.id(), label, description, glyph, entry.color(), entry.guiColor(), action, entry.active(), entry.showIcon(), entry.showLabel(), entry.showShortcut(), entry.shortcut());
+        return entry;
     }
 
     private static WheelEntry ensureEntry(WheelEntry entry, String id, String label, String description, String glyph, WheelAction action) {
