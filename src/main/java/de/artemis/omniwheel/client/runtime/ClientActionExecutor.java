@@ -86,17 +86,11 @@ public final class ClientActionExecutor {
         }
 
         if (ContextValueFormatter.extractCopyValues(action.message(), minecraft).isEmpty()) {
-            minecraft.player.displayClientMessage(
-                    Component.literal(PlaceholderResolver.resolve(action.message(), minecraft)),
-                    true
-            );
+            minecraft.player.sendOverlayMessage(Component.literal(PlaceholderResolver.resolve(action.message(), minecraft)));
             return;
         }
 
-        minecraft.player.displayClientMessage(
-                ContextValueFormatter.buildInteractiveComponent(action.message(), minecraft),
-                false
-        );
+        minecraft.player.sendSystemMessage(ContextValueFormatter.buildInteractiveComponent(action.message(), minecraft));
     }
 
     private void executeOpenChat(OpenChatAction action) {
@@ -116,14 +110,14 @@ public final class ClientActionExecutor {
 
         String resolved = PlaceholderResolver.resolve(action.text(), minecraft);
         minecraft.keyboardHandler.setClipboard(resolved);
-        minecraft.player.displayClientMessage(Component.literal("Copied to clipboard"), true);
+        minecraft.player.sendOverlayMessage(Component.literal("Copied to clipboard"));
     }
 
     private void executeSwitchProfile(SwitchProfileAction action) {
         Minecraft minecraft = Minecraft.getInstance();
         runtime().profileManager().setActiveProfile(action.profileId());
         if (minecraft.player != null) {
-            minecraft.player.displayClientMessage(Component.literal("Active profile: " + runtime().activeProfile().displayName()), true);
+            minecraft.player.sendOverlayMessage(Component.literal("Active profile: " + runtime().activeProfile().displayName()));
         }
     }
 

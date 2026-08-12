@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.render;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -92,7 +92,7 @@ public final class EntryIconRenderer {
     private EntryIconRenderer() {
     }
 
-    public static boolean drawIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
+    public static boolean drawIcon(GuiGraphicsExtractor graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
         ItemStack stack = resolveItemStack(icon);
         if (!stack.isEmpty()) {
             float iconSize = 16.0F * scale;
@@ -100,7 +100,7 @@ public final class EntryIconRenderer {
             graphics.pose().pushMatrix();
             graphics.pose().translate(centerX - (iconSize * 0.5F), centerY - (iconSize * 0.5F));
             graphics.pose().scale(scale, scale);
-            graphics.renderItem(stack, 0, 0);
+            graphics.item(stack, 0, 0);
             graphics.pose().popMatrix();
             return true;
         }
@@ -189,7 +189,7 @@ public final class EntryIconRenderer {
         return blockItem == Items.AIR ? ItemStack.EMPTY : new ItemStack(blockItem);
     }
 
-    private static boolean drawEffectIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
+    private static boolean drawEffectIcon(GuiGraphicsExtractor graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
         Identifier effectId = resolveEffectId(icon);
         if (effectId == null) {
             return false;
@@ -207,7 +207,7 @@ public final class EntryIconRenderer {
         return true;
     }
 
-    private static boolean drawGuiSpriteIcon(GuiGraphics graphics, String icon, float centerX, float centerY, float scale) {
+    private static boolean drawGuiSpriteIcon(GuiGraphicsExtractor graphics, String icon, float centerX, float centerY, float scale) {
         Identifier spriteId = resolveGuiSprite(icon);
         if (spriteId == null) {
             return false;
@@ -220,7 +220,7 @@ public final class EntryIconRenderer {
         return true;
     }
 
-    private static boolean drawTextureIcon(GuiGraphics graphics, String icon, float centerX, float centerY, float scale) {
+    private static boolean drawTextureIcon(GuiGraphicsExtractor graphics, String icon, float centerX, float centerY, float scale) {
         TextureIcon textureIcon = resolveTextureIcon(icon);
         if (textureIcon == null) {
             return false;
@@ -246,7 +246,7 @@ public final class EntryIconRenderer {
         return true;
     }
 
-    private static boolean drawParticleIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
+    private static boolean drawParticleIcon(GuiGraphicsExtractor graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
         Identifier particleId = resolveParticleId(icon);
         if (particleId == null) {
             return false;
@@ -353,7 +353,7 @@ public final class EntryIconRenderer {
         return resolved;
     }
 
-    private static boolean drawSymbolIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
+    private static boolean drawSymbolIcon(GuiGraphicsExtractor graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
         String symbol = resolveSymbol(icon);
         if (symbol == null) {
             return false;
@@ -366,7 +366,7 @@ public final class EntryIconRenderer {
         graphics.nextStratum();
         graphics.pose().pushMatrix();
         graphics.pose().scale(symbolScale, symbolScale);
-        graphics.drawString(minecraft.font, symbol, x, y, 0xFFF2F5F8, false);
+        graphics.text(minecraft.font, symbol, x, y, 0xFFF2F5F8, false);
         graphics.pose().popMatrix();
         return true;
     }

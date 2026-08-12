@@ -2,11 +2,11 @@ package de.artemis.omniwheel.client.render;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.GuiElementRenderState;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2f;
 
@@ -26,11 +26,11 @@ public final class GeometryRenderer {
     private GeometryRenderer() {
     }
 
-    public static void fillCircle(GuiGraphics graphics, float centerX, float centerY, float radius, int color) {
+    public static void fillCircle(GuiGraphicsExtractor graphics, float centerX, float centerY, float radius, int color) {
         fillRingSegment(graphics, centerX, centerY, 0.0F, radius, 0.0D, FULL_CIRCLE, 0.0D, FULL_CIRCLE, color);
     }
 
-    public static void fillDisc(GuiGraphics graphics, float centerX, float centerY, float radius, int color) {
+    public static void fillDisc(GuiGraphicsExtractor graphics, float centerX, float centerY, float radius, int color) {
         if (radius <= 0.0F) {
             return;
         }
@@ -55,7 +55,7 @@ public final class GeometryRenderer {
     }
 
     public static void fillRingSegment(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float centerX,
             float centerY,
             float innerRadius,
@@ -68,7 +68,7 @@ public final class GeometryRenderer {
     }
 
     public static void fillRingSegment(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float centerX,
             float centerY,
             float innerRadius,
@@ -214,7 +214,6 @@ public final class GeometryRenderer {
         private static final RenderPipeline PIPELINE = RenderPipeline.builder(RenderPipelines.GUI_SNIPPET)
                 .withLocation(Identifier.fromNamespaceAndPath(MOD_ID, "gui_polygon"))
                 .withCull(false)
-                .withDepthWrite(false)
                 .build();
         private static final TextureSetup TEXTURE_SETUP = TextureSetup.noTexture();
 

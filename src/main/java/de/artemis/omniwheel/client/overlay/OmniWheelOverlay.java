@@ -19,7 +19,7 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
@@ -196,7 +196,7 @@ public final class OmniWheelOverlay {
         rightMouseDown = rightPressed;
     }
 
-    public void render(GuiGraphics graphics) {
+    public void render(GuiGraphicsExtractor graphics) {
         if (!open) {
             return;
         }
@@ -539,7 +539,7 @@ public final class OmniWheelOverlay {
     }
 
     private void drawEntry(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Minecraft minecraft,
             WheelEntry entry,
             float centerX,
@@ -604,12 +604,12 @@ public final class OmniWheelOverlay {
         if (showIcon) {
             if (!EntryIconRenderer.drawIcon(graphics, minecraft, entry.glyph(), labelX, iconCenterY, iconScale)) {
                 int glyphY = Math.round(iconCenterY - (showLabel || showShortcut ? 4.0F : 8.0F));
-                graphics.drawCenteredString(minecraft.font, entry.glyph(), labelX, glyphY, glyphColor);
+                graphics.centeredText(minecraft.font, entry.glyph(), labelX, glyphY, glyphColor);
             }
         }
         if (showLabel) {
             String label = fitPlainText(minecraft.font, entry.label(), maxTextWidth);
-            graphics.drawCenteredString(minecraft.font, label, labelX, labelTextY, textColor);
+            graphics.centeredText(minecraft.font, label, labelX, labelTextY, textColor);
         }
         if (showShortcut) {
             float shortcutScale = showLabel ? 0.8F : 0.88F;
@@ -626,7 +626,7 @@ public final class OmniWheelOverlay {
         }
     }
 
-    private void drawCenterPanel(GuiGraphics graphics, Minecraft minecraft, int width, int height, WheelDefinition wheel, List<WheelEntry> entries) {
+    private void drawCenterPanel(GuiGraphicsExtractor graphics, Minecraft minecraft, int width, int height, WheelDefinition wheel, List<WheelEntry> entries) {
         WheelEntry hovered = hoveredIndex >= 0 && hoveredIndex < entries.size() ? entries.get(hoveredIndex) : null;
         int panelRadius = Math.round(CLIENT.deadzoneRadius.get().floatValue() + 18.0F);
         int contentWidth = Math.max(72, (panelRadius * 2) - 10);
@@ -698,12 +698,12 @@ public final class OmniWheelOverlay {
         );
     }
 
-    private void drawAdaptiveCenteredText(GuiGraphics graphics, Minecraft minecraft, TextLayout layout, int centerX, int topY, int color) {
+    private void drawAdaptiveCenteredText(GuiGraphicsExtractor graphics, Minecraft minecraft, TextLayout layout, int centerX, int topY, int color) {
         int lineY = topY;
         for (FormattedCharSequence line : layout.lines()) {
             graphics.pose().pushMatrix();
             graphics.pose().scale(layout.scale(), layout.scale());
-            graphics.drawCenteredString(
+            graphics.centeredText(
                     minecraft.font,
                     line,
                     Math.round(centerX / layout.scale()),
@@ -749,7 +749,7 @@ public final class OmniWheelOverlay {
         return new TextLayout(fallbackLines, fallbackScale, fallbackLineHeight, fallbackLines.size() * fallbackLineHeight);
     }
 
-    private void drawCenterBackButton(GuiGraphics graphics, Minecraft minecraft, int centerX, int centerY, int panelRadius) {
+    private void drawCenterBackButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int centerX, int centerY, int panelRadius) {
         float buttonRadius = centerBackButtonRadius();
         int fill = centerBackHovered ? SELECTED_COLOR : CENTER_BUTTON_COLOR;
         int outline = centerBackHovered ? SELECTED_OUTLINE : 0;
@@ -770,11 +770,11 @@ public final class OmniWheelOverlay {
             );
         }
 
-        graphics.drawCenteredString(minecraft.font, "\u2190", centerX, centerY - 9, TEXT_PRIMARY);
-        graphics.drawCenteredString(minecraft.font, "Back", centerX, centerY + 4, TEXT_PRIMARY);
+        graphics.centeredText(minecraft.font, "\u2190", centerX, centerY - 9, TEXT_PRIMARY);
+        graphics.centeredText(minecraft.font, "Back", centerX, centerY + 4, TEXT_PRIMARY);
     }
 
-    private void drawRadialTutorial(GuiGraphics graphics, Minecraft minecraft, int width, int height, float centerX, float centerY, float outerRadius) {
+    private void drawRadialTutorial(GuiGraphicsExtractor graphics, Minecraft minecraft, int width, int height, float centerX, float centerY, float outerRadius) {
         TutorialStep tutorialStep = currentRadialTutorialStep(width, height, centerX, centerY, outerRadius);
         if (tutorialStep == null) {
             return;
@@ -795,7 +795,7 @@ public final class OmniWheelOverlay {
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, TUTORIAL_PANEL);
         drawTutorialFrame(graphics, boxX, boxY, boxWidth, boxHeight);
         String stepLabel = (Math.min(radialTutorialStepIndex, RADIAL_TUTORIAL_STEP_COUNT - 1) + 1) + "/" + RADIAL_TUTORIAL_STEP_COUNT;
-        graphics.drawString(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
         drawAdaptiveCenteredText(graphics, minecraft, title, boxX + (boxWidth / 2), boxY + 10, TEXT_PRIMARY);
         drawWrappedTutorialBody(graphics, minecraft, bodyLines, boxX + 10, boxY + 18 + title.height(), TEXT_SECONDARY);
 
@@ -815,22 +815,22 @@ public final class OmniWheelOverlay {
         }
     }
 
-    private void drawWrappedTutorialBody(GuiGraphics graphics, Minecraft minecraft, List<FormattedCharSequence> bodyLines, int x, int y, int color) {
+    private void drawWrappedTutorialBody(GuiGraphicsExtractor graphics, Minecraft minecraft, List<FormattedCharSequence> bodyLines, int x, int y, int color) {
         int lineY = y;
         for (FormattedCharSequence line : bodyLines) {
-            graphics.drawString(minecraft.font, line, x, lineY, color, false);
+            graphics.text(minecraft.font, line, x, lineY, color, false);
             lineY += 9;
         }
     }
 
-    private void drawTutorialFrame(GuiGraphics graphics, int x, int y, int width, int height) {
+    private void drawTutorialFrame(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + 1, TUTORIAL_EDGE);
         graphics.fill(x, y + height - 1, x + width, y + height, TUTORIAL_EDGE);
         graphics.fill(x, y, x + 1, y + height, TUTORIAL_EDGE);
         graphics.fill(x + width - 1, y, x + width, y + height, TUTORIAL_EDGE);
     }
 
-    private void drawTutorialButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height, String label) {
+    private void drawTutorialButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height, String label) {
         boolean highlighted = contains(tutorialMouseX(minecraft), tutorialMouseY(minecraft), x, y, width, height);
         int fill = highlighted ? TUTORIAL_BUTTON_HIGHLIGHT : TUTORIAL_BUTTON;
         graphics.fill(x, y, x + width, y + height, fill);
@@ -841,7 +841,7 @@ public final class OmniWheelOverlay {
             graphics.fill(x, y, x + 1, y + height, SELECTED_OUTLINE);
             graphics.fill(x + width - 1, y, x + width, y + height, SELECTED_OUTLINE);
         }
-        graphics.drawCenteredString(minecraft.font, label, x + (width / 2), y + 6, TEXT_PRIMARY);
+        graphics.centeredText(minecraft.font, label, x + (width / 2), y + 6, TEXT_PRIMARY);
     }
 
     private TutorialStep currentRadialTutorialStep(int width, int height, float centerX, float centerY, float outerRadius) {
@@ -983,7 +983,7 @@ public final class OmniWheelOverlay {
 
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player != null) {
-                minecraft.player.displayClientMessage(Component.literal("Missing wheel: " + openWheelAction.wheelId()), true);
+                minecraft.player.sendOverlayMessage(Component.literal("Missing wheel: " + openWheelAction.wheelId()));
             }
             close();
             return;
@@ -1367,7 +1367,7 @@ public final class OmniWheelOverlay {
     }
 
     private static void drawScaledCenteredString(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Font font,
             String text,
             int centerX,
@@ -1377,7 +1377,7 @@ public final class OmniWheelOverlay {
     ) {
         graphics.pose().pushMatrix();
         graphics.pose().scale(scale, scale);
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 font,
                 text,
                 Math.round(centerX / scale),
