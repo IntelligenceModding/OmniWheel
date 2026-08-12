@@ -4,7 +4,7 @@ import de.artemis.omniwheel.client.compat.PatchedModListScreen;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
@@ -17,7 +17,7 @@ import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import static de.artemis.omniwheel.OmniWheel.MOD_ID;
 
 public final class ClientModEvents {
-    private static final ResourceLocation OVERLAY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "wheel");
+    private static final Identifier OVERLAY_ID = Identifier.fromNamespaceAndPath(MOD_ID, "wheel");
 
     private ClientModEvents() {
     }

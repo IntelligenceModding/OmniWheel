@@ -25,7 +25,7 @@ public final class PlaceholderResolver {
         replacements.put("{x}", Integer.toString(pos.getX()));
         replacements.put("{y}", Integer.toString(pos.getY()));
         replacements.put("{z}", Integer.toString(pos.getZ()));
-        replacements.put("{dimension}", minecraft.level.dimension().location().toString());
+        replacements.put("{dimension}", minecraft.level.dimension().identifier().toString());
         replacements.put("{server}", currentServer != null ? currentServer.name : "singleplayer");
         replacements.put("{profile}", OmniWheelClientRuntime.getInstance().activeProfile().displayName());
         replacements.put("{gamemode}", minecraft.gameMode != null && minecraft.gameMode.getPlayerMode() != null

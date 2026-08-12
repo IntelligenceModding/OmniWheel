@@ -33,7 +33,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.CreativeModeTab;
@@ -109,7 +109,7 @@ public final class OmniWheelProfilesOverlay {
             0xFFA7B6C6
     };
     private static final int[] POLLED_KEYS = createPolledKeys();
-    private static Map<ResourceLocation, String> CREATIVE_TAB_SEARCH_TERMS = Map.of();
+    private static Map<Identifier, String> CREATIVE_TAB_SEARCH_TERMS = Map.of();
     private static boolean CREATIVE_TAB_SEARCH_TERMS_LOADED;
 
     private final OmniWheelClientRuntime runtime;
@@ -3902,7 +3902,7 @@ public final class OmniWheelProfilesOverlay {
         }
         List<IconPickerOption> options = new ArrayList<>();
         options.addAll(loadParticleIconOptions());
-        for (ResourceLocation id : BuiltInRegistries.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+        for (Identifier id : BuiltInRegistries.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(Identifier::toString)).toList()) {
             MobEffect effect = BuiltInRegistries.MOB_EFFECT.getOptional(id).orElse(null);
             if (effect == null) {
                 continue;
@@ -3954,7 +3954,7 @@ public final class OmniWheelProfilesOverlay {
         addIconPickerOption(options, "gui:icon/ping_3", "ui icon ping network three");
         addIconPickerOption(options, "gui:icon/ping_4", "ui icon ping network four");
         addIconPickerOption(options, "gui:icon/ping_5", "ui icon ping network five");
-        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+        for (Identifier id : BuiltInRegistries.ITEM.keySet().stream().sorted(Comparator.comparing(Identifier::toString)).toList()) {
             Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
             if (item == null || item == Items.AIR) {
                 continue;
@@ -3970,7 +3970,7 @@ public final class OmniWheelProfilesOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         List<IconPickerOption> options = new ArrayList<>();
         Set<String> seenVisualSignatures = new HashSet<>();
-        for (ResourceLocation id : BuiltInRegistries.PARTICLE_TYPE.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+        for (Identifier id : BuiltInRegistries.PARTICLE_TYPE.keySet().stream().sorted(Comparator.comparing(Identifier::toString)).toList()) {
             String iconId = "particle:" + id;
             String path = id.getPath();
             if (path.equals("ash")
@@ -4028,8 +4028,8 @@ public final class OmniWheelProfilesOverlay {
         return options;
     }
 
-    private static boolean particleDefinitionExists(Minecraft minecraft, ResourceLocation particleId) {
-        ResourceLocation definitionId = ResourceLocation.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
+    private static boolean particleDefinitionExists(Minecraft minecraft, Identifier particleId) {
+        Identifier definitionId = Identifier.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
         return definitionId != null && minecraft.getResourceManager().getResource(definitionId).isPresent();
     }
 
@@ -4037,13 +4037,13 @@ public final class OmniWheelProfilesOverlay {
         options.add(new IconPickerOption(id, (id + " " + searchTerms).toLowerCase(java.util.Locale.ROOT)));
     }
 
-    private static String iconPickerItemSearchText(ResourceLocation id, Item item, ItemStack stack) {
+    private static String iconPickerItemSearchText(Identifier id, Item item, ItemStack stack) {
         StringBuilder search = new StringBuilder()
                 .append(id)
                 .append(' ')
                 .append(stack.getHoverName().getString());
         for (TagKey<Item> tag : item.builtInRegistryHolder().tags().toList()) {
-            ResourceLocation tagId = tag.location();
+            Identifier tagId = tag.location();
             search.append(' ')
                     .append(tagId)
                     .append(' ')
@@ -4066,9 +4066,9 @@ public final class OmniWheelProfilesOverlay {
         return search.toString().toLowerCase(java.util.Locale.ROOT);
     }
 
-    private static String creativeTabSearchTerms(ResourceLocation itemId) {
+    private static String creativeTabSearchTerms(Identifier itemId) {
         if (!CREATIVE_TAB_SEARCH_TERMS_LOADED) {
-            Map<ResourceLocation, String> loadedTerms = loadCreativeTabSearchTerms();
+            Map<Identifier, String> loadedTerms = loadCreativeTabSearchTerms();
             if (!loadedTerms.isEmpty()) {
                 CREATIVE_TAB_SEARCH_TERMS = loadedTerms;
                 CREATIVE_TAB_SEARCH_TERMS_LOADED = true;
@@ -4077,9 +4077,9 @@ public final class OmniWheelProfilesOverlay {
         return CREATIVE_TAB_SEARCH_TERMS.getOrDefault(itemId, "");
     }
 
-    private static Map<ResourceLocation, String> loadCreativeTabSearchTerms() {
+    private static Map<Identifier, String> loadCreativeTabSearchTerms() {
         ensureCreativeTabContentsBuilt();
-        Map<ResourceLocation, LinkedHashSet<String>> termsByItem = new HashMap<>();
+        Map<Identifier, LinkedHashSet<String>> termsByItem = new HashMap<>();
         for (CreativeModeTab tab : BuiltInRegistries.CREATIVE_MODE_TAB) {
             String tabName = tab.getDisplayName().getString();
             if (tabName.isBlank()) {
@@ -4090,7 +4090,7 @@ public final class OmniWheelProfilesOverlay {
                 if (stack.isEmpty()) {
                     continue;
                 }
-                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 if (itemId == null) {
                     continue;
                 }
@@ -4098,8 +4098,8 @@ public final class OmniWheelProfilesOverlay {
             }
         }
 
-        Map<ResourceLocation, String> result = new HashMap<>();
-        for (Map.Entry<ResourceLocation, LinkedHashSet<String>> entry : termsByItem.entrySet()) {
+        Map<Identifier, String> result = new HashMap<>();
+        for (Map.Entry<Identifier, LinkedHashSet<String>> entry : termsByItem.entrySet()) {
             result.put(entry.getKey(), String.join(" ", entry.getValue()));
         }
         return result;
@@ -4232,7 +4232,7 @@ public final class OmniWheelProfilesOverlay {
         if (!trimmed.contains(":")) {
             trimmed = "minecraft:" + trimmed;
         }
-        ResourceLocation id = ResourceLocation.tryParse(trimmed);
+        Identifier id = Identifier.tryParse(trimmed);
         if (id == null) {
             return "";
         }

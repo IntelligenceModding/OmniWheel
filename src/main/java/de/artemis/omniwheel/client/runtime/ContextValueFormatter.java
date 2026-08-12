@@ -76,7 +76,7 @@ public final class ContextValueFormatter {
     }
 
     public static String currentDimensionRaw(Minecraft minecraft) {
-        return minecraft.level.dimension().location().toString();
+        return minecraft.level.dimension().identifier().toString();
     }
 
     public static String currentDimensionDisplay(Minecraft minecraft) {

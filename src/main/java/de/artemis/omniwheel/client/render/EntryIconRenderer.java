@@ -7,7 +7,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.effect.MobEffect;
@@ -38,9 +38,9 @@ public final class EntryIconRenderer {
     private static final Field PARTICLE_RESOURCE_MANAGER_FIELD = findField(Minecraft.class, "particleEngine", "resourceManager");
     private static final Field PARTICLE_SPRITE_SETS_FIELD = findField(PARTICLE_RESOURCE_MANAGER_FIELD == null ? null : PARTICLE_RESOURCE_MANAGER_FIELD.getType(), "spriteSets");
     private static final Field PARTICLE_SPRITES_FIELD = findField(PARTICLE_RESOURCE_MANAGER_FIELD == null ? null : findMutableSpriteSetType(PARTICLE_RESOURCE_MANAGER_FIELD.getType()), "sprites");
-    private static final Map<String, ResourceLocation> GUI_SPRITES = new LinkedHashMap<>();
-    private static final Map<ResourceLocation, List<ResourceLocation>> PARTICLE_FRAMES = new LinkedHashMap<>();
-    private static final Map<ResourceLocation, List<TextureAtlasSprite>> PARTICLE_SPRITES = new LinkedHashMap<>();
+    private static final Map<String, Identifier> GUI_SPRITES = new LinkedHashMap<>();
+    private static final Map<Identifier, List<Identifier>> PARTICLE_FRAMES = new LinkedHashMap<>();
+    private static final Map<Identifier, List<TextureAtlasSprite>> PARTICLE_SPRITES = new LinkedHashMap<>();
     private static final Map<String, String> SYMBOLS = new LinkedHashMap<>();
     private static final Map<String, TextureIcon> TEXTURE_ICONS = new LinkedHashMap<>();
 
@@ -153,7 +153,7 @@ public final class EntryIconRenderer {
     }
 
     public static String particleVisualSignature(Minecraft minecraft, String icon) {
-        ResourceLocation particleId = resolveParticleId(icon);
+        Identifier particleId = resolveParticleId(icon);
         if (particleId == null) {
             return "";
         }
@@ -170,7 +170,7 @@ public final class EntryIconRenderer {
             trimmed = "minecraft:" + trimmed;
         }
 
-        ResourceLocation id = ResourceLocation.tryParse(trimmed);
+        Identifier id = Identifier.tryParse(trimmed);
         if (id == null) {
             return ItemStack.EMPTY;
         }
@@ -190,7 +190,7 @@ public final class EntryIconRenderer {
     }
 
     private static boolean drawEffectIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
-        ResourceLocation effectId = resolveEffectId(icon);
+        Identifier effectId = resolveEffectId(icon);
         if (effectId == null) {
             return false;
         }
@@ -208,7 +208,7 @@ public final class EntryIconRenderer {
     }
 
     private static boolean drawGuiSpriteIcon(GuiGraphics graphics, String icon, float centerX, float centerY, float scale) {
-        ResourceLocation spriteId = resolveGuiSprite(icon);
+        Identifier spriteId = resolveGuiSprite(icon);
         if (spriteId == null) {
             return false;
         }
@@ -247,7 +247,7 @@ public final class EntryIconRenderer {
     }
 
     private static boolean drawParticleIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
-        ResourceLocation particleId = resolveParticleId(icon);
+        Identifier particleId = resolveParticleId(icon);
         if (particleId == null) {
             return false;
         }
@@ -267,7 +267,7 @@ public final class EntryIconRenderer {
         return true;
     }
 
-    private static List<TextureAtlasSprite> resolveParticleSprites(Minecraft minecraft, ResourceLocation particleId) {
+    private static List<TextureAtlasSprite> resolveParticleSprites(Minecraft minecraft, Identifier particleId) {
         List<TextureAtlasSprite> cached = PARTICLE_SPRITES.get(particleId);
         if (cached != null && !cached.isEmpty()) {
             return cached;
@@ -281,7 +281,7 @@ public final class EntryIconRenderer {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<TextureAtlasSprite> loadBoundParticleSprites(Minecraft minecraft, ResourceLocation particleId) {
+    private static List<TextureAtlasSprite> loadBoundParticleSprites(Minecraft minecraft, Identifier particleId) {
         if (minecraft.particleEngine == null
                 || PARTICLE_RESOURCE_MANAGER_FIELD == null
                 || PARTICLE_SPRITE_SETS_FIELD == null
@@ -372,14 +372,14 @@ public final class EntryIconRenderer {
     }
 
     private static MobEffect resolveEffect(String icon) {
-        ResourceLocation effectId = resolveEffectId(icon);
+        Identifier effectId = resolveEffectId(icon);
         if (effectId == null) {
             return null;
         }
         return BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
     }
 
-    private static ResourceLocation resolveEffectId(String icon) {
+    private static Identifier resolveEffectId(String icon) {
         String trimmed = icon == null ? "" : icon.trim();
         if (!trimmed.regionMatches(true, 0, EFFECT_PREFIX, 0, EFFECT_PREFIX.length())) {
             return null;
@@ -392,14 +392,14 @@ public final class EntryIconRenderer {
         if (!effectPart.contains(":")) {
             effectPart = "minecraft:" + effectPart;
         }
-        ResourceLocation effectId = ResourceLocation.tryParse(effectPart);
+        Identifier effectId = Identifier.tryParse(effectPart);
         if (effectId == null) {
             return null;
         }
         return BuiltInRegistries.MOB_EFFECT.containsKey(effectId) ? effectId : null;
     }
 
-    private static ResourceLocation resolveGuiSprite(String icon) {
+    private static Identifier resolveGuiSprite(String icon) {
         String trimmed = icon == null ? "" : icon.trim();
         if (!trimmed.regionMatches(true, 0, GUI_PREFIX, 0, GUI_PREFIX.length())) {
             return null;
@@ -417,7 +417,7 @@ public final class EntryIconRenderer {
         return TEXTURE_ICONS.get(key);
     }
 
-    private static ResourceLocation resolveParticleId(String icon) {
+    private static Identifier resolveParticleId(String icon) {
         String trimmed = icon == null ? "" : icon.trim();
         if (!trimmed.regionMatches(true, 0, PARTICLE_PREFIX, 0, PARTICLE_PREFIX.length())) {
             return null;
@@ -430,25 +430,25 @@ public final class EntryIconRenderer {
         if (!particlePart.contains(":")) {
             particlePart = "minecraft:" + particlePart;
         }
-        ResourceLocation particleId = ResourceLocation.tryParse(particlePart);
+        Identifier particleId = Identifier.tryParse(particlePart);
         if (particleId == null) {
             return null;
         }
         return BuiltInRegistries.PARTICLE_TYPE.containsKey(particleId) ? particleId : null;
     }
 
-    private static List<ResourceLocation> resolveParticleFrames(Minecraft minecraft, ResourceLocation particleId) {
-        List<ResourceLocation> cached = PARTICLE_FRAMES.get(particleId);
+    private static List<Identifier> resolveParticleFrames(Minecraft minecraft, Identifier particleId) {
+        List<Identifier> cached = PARTICLE_FRAMES.get(particleId);
         if (cached != null) {
             return cached;
         }
 
-        List<ResourceLocation> frames = loadParticleFrames(minecraft, particleId);
+        List<Identifier> frames = loadParticleFrames(minecraft, particleId);
         PARTICLE_FRAMES.put(particleId, frames);
         return frames;
     }
 
-    private static String particleVisualSignature(Minecraft minecraft, ResourceLocation particleId) {
+    private static String particleVisualSignature(Minecraft minecraft, Identifier particleId) {
         List<TextureAtlasSprite> sprites = resolveParticleSprites(minecraft, particleId);
         if (sprites.isEmpty()) {
             return "";
@@ -463,8 +463,8 @@ public final class EntryIconRenderer {
         return signature.toString();
     }
 
-    private static List<ResourceLocation> loadParticleFrames(Minecraft minecraft, ResourceLocation particleId) {
-        ResourceLocation definitionId = ResourceLocation.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
+    private static List<Identifier> loadParticleFrames(Minecraft minecraft, Identifier particleId) {
+        Identifier definitionId = Identifier.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
         if (definitionId == null) {
             return List.of();
         }
@@ -481,10 +481,10 @@ public final class EntryIconRenderer {
                 return List.of();
             }
 
-            List<ResourceLocation> frames = new ArrayList<>();
+            List<Identifier> frames = new ArrayList<>();
             for (int index = 0; index < textures.size(); index++) {
                 String textureId = GsonHelper.convertToString(textures.get(index), "texture");
-                ResourceLocation frameId = ResourceLocation.tryParse(textureId);
+                Identifier frameId = Identifier.tryParse(textureId);
                 if (frameId != null) {
                     frames.add(frameId);
                 }
@@ -505,19 +505,19 @@ public final class EntryIconRenderer {
     }
 
     private static void registerGuiSprite(String path) {
-        ResourceLocation id = ResourceLocation.tryParse("minecraft:" + path);
+        Identifier id = Identifier.tryParse("minecraft:" + path);
         if (id != null) {
             GUI_SPRITES.put(path.toLowerCase(Locale.ROOT), id);
         }
     }
 
     private static void registerTextureIcon(String key, String textureId, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
-        ResourceLocation id = ResourceLocation.tryParse(textureId);
+        Identifier id = Identifier.tryParse(textureId);
         if (id != null) {
             TEXTURE_ICONS.put(key.toLowerCase(Locale.ROOT), new TextureIcon(id, textureWidth, textureHeight, u, v, srcWidth, srcHeight));
         }
     }
 
-    private record TextureIcon(ResourceLocation texture, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
+    private record TextureIcon(Identifier texture, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
     }
 }
