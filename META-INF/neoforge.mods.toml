@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="MIT License"
+
+[[mods]]
+modId="omniwheel"
+version="1.0r"
+displayName="OmniWheel"
+displayURL="https://www.curseforge.com/minecraft/mc-mods/omni-wheel"
+issueTrackerURL="https://github.com/IntelligenceModding/OmniWheel/issues"
+bannerFile="banner.png"
+iconFile="icon.png"
+authors="DoomedArtemis"
+description='''Client-side radial quick-action menu with configurable wheels, profiles, shortcuts, and multiplayer-safe command and keybind access.'''
+
+[[dependencies.omniwheel]]
+    modId="neoforge"
+    type="required"
+    versionRange="[26.2.0.59,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.omniwheel]]
+    modId="minecraft"
+    type="required"
+    versionRange="[26.2]"
+    ordering="NONE"
+    side="BOTH"

@@ -92,6 +92,7 @@ public final class OmniWheelKeyMappings {
     }
 
     public static void register(RegisterKeyMappingsEvent event) {
+        event.registerCategory(CATEGORY);
         event.register(OPEN_WHEEL);
         event.register(OPEN_MANAGER);
         for (KeyMapping keyMapping : RADIAL_POSITION_KEYS) {

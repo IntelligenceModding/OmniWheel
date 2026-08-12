@@ -53,8 +53,8 @@ public final class GameplayFunctionController {
             case OMNI_NEXT_PROFILE -> cycleProfile(1);
             case OMNI_PREVIOUS_PROFILE -> cycleProfile(-1);
             case OPEN_INVENTORY -> openInventory(minecraft);
-            case OPEN_CHAT -> minecraft.setScreen(new ChatScreen("", false));
-            case OPEN_COMMAND_CHAT -> minecraft.setScreen(new ChatScreen("/", false));
+            case OPEN_CHAT -> minecraft.gui.setScreen(new ChatScreen("", false));
+            case OPEN_COMMAND_CHAT -> minecraft.gui.setScreen(new ChatScreen("/", false));
             case OPEN_ADVANCEMENTS -> openAdvancements(minecraft);
             case OPEN_SOCIAL_INTERACTIONS -> openSocialInteractions(minecraft);
             case ATTACK -> invokeMinecraftPrivate(minecraft, "startAttack");
@@ -157,7 +157,7 @@ public final class GameplayFunctionController {
     }
 
     private static void openInventory(Minecraft minecraft) {
-        if (minecraft.screen != null) {
+        if (minecraft.gui.screen() != null) {
             return;
         }
         if (minecraft.gameMode != null && minecraft.gameMode.isServerControlledInventory()) {
@@ -165,14 +165,14 @@ public final class GameplayFunctionController {
             return;
         }
         minecraft.getTutorial().onOpenInventory();
-        minecraft.setScreen(new InventoryScreen(minecraft.player));
+        minecraft.gui.setScreen(new InventoryScreen(minecraft.player));
     }
 
     private static void openAdvancements(Minecraft minecraft) {
         if (minecraft.player.connection == null) {
             return;
         }
-        minecraft.setScreen(new AdvancementsScreen(minecraft.player.connection.getAdvancements()));
+        minecraft.gui.setScreen(new AdvancementsScreen(minecraft.player.connection.getAdvancements()));
     }
 
     private static void openSocialInteractions(Minecraft minecraft) {
@@ -180,7 +180,7 @@ public final class GameplayFunctionController {
             minecraft.player.sendOverlayMessage(Component.translatable("multiplayer.socialInteractions.not_available"));
             return;
         }
-        minecraft.setScreen(new SocialInteractionsScreen());
+        minecraft.gui.setScreen(new SocialInteractionsScreen());
     }
 
     private static boolean isSocialInteractionsAvailable(Minecraft minecraft) {
@@ -218,14 +218,13 @@ public final class GameplayFunctionController {
         if (previous.isFirstPerson() != next.isFirstPerson()) {
             minecraft.gameRenderer.checkEntityPostEffect(next.isFirstPerson() ? minecraft.getCameraEntity() : null);
         }
-        minecraft.levelRenderer.needsUpdate();
     }
 
     private static void takeScreenshot(Minecraft minecraft) {
         Screenshot.grab(
                 minecraft.gameDirectory,
-                minecraft.getMainRenderTarget(),
-                message -> minecraft.execute(() -> minecraft.gui.getChat().addClientSystemMessage(message))
+                minecraft.gameRenderer.mainRenderTarget(),
+                message -> minecraft.execute(() -> minecraft.gui.hud.getChat().addClientSystemMessage(message))
         );
     }
 

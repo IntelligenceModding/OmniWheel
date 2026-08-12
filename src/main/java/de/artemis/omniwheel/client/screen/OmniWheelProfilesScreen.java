@@ -49,7 +49,7 @@ public final class OmniWheelProfilesScreen extends Screen {
     public void onClose() {
         if (this.minecraft != null) {
             editor.persistPendingEdits();
-            this.minecraft.setScreen(parent);
+            this.minecraft.gui.setScreen(parent);
         }
     }
 

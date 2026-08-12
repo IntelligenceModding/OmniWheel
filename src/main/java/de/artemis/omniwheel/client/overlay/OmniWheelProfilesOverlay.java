@@ -368,7 +368,7 @@ public final class OmniWheelProfilesOverlay {
 
         if (mouseReleased) {
             mouseReleased = false;
-            if (minecraft.screen == null && minecraft.player != null && minecraft.level != null) {
+            if (minecraft.gui.screen() == null && minecraft.player != null && minecraft.level != null) {
                 minecraft.mouseHandler.grabMouse();
             }
         }
@@ -444,7 +444,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
+        if (minecraft.player == null || minecraft.level == null || minecraft.gui.screen() != null) {
             close();
             return;
         }
@@ -2243,7 +2243,7 @@ public final class OmniWheelProfilesOverlay {
     private void openControlsMenu() {
         Minecraft minecraft = Minecraft.getInstance();
         Screen parent = hostScreen();
-        if (minecraft.screen == null || minecraft.options == null) {
+        if (minecraft.gui.screen() == null || minecraft.options == null) {
             return;
         }
 
@@ -2258,14 +2258,14 @@ public final class OmniWheelProfilesOverlay {
                     if (parameterTypes.length == 2
                             && Screen.class.isAssignableFrom(parameterTypes[0])
                             && parameterTypes[1].isInstance(minecraft.options)) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options));
+                        minecraft.gui.setScreen((Screen) constructor.newInstance(parent, minecraft.options));
                         return;
                     }
                     if (parameterTypes.length == 3
                             && Screen.class.isAssignableFrom(parameterTypes[0])
                             && parameterTypes[1].isInstance(minecraft.options)
                             && Component.class.isAssignableFrom(parameterTypes[2])) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options, Component.translatable("controls.keybinds.title")));
+                        minecraft.gui.setScreen((Screen) constructor.newInstance(parent, minecraft.options, Component.translatable("controls.keybinds.title")));
                         return;
                     }
                 }
@@ -7071,7 +7071,7 @@ public final class OmniWheelProfilesOverlay {
 
     private Screen hostScreen() {
         Minecraft minecraft = Minecraft.getInstance();
-        return screenHosted && minecraft.screen instanceof Screen screen ? screen : null;
+        return screenHosted && minecraft.gui.screen() instanceof Screen screen ? screen : null;
     }
 
     private void clearCommandInput() {

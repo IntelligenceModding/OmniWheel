@@ -91,7 +91,7 @@ public final class OmniWheelOverlay {
     public void tick() {
         Minecraft minecraft = Minecraft.getInstance();
         boolean triggerDown = OmniWheelKeyMappings.OPEN_WHEEL.isDown();
-        boolean canOpen = minecraft.player != null && minecraft.level != null && minecraft.screen == null;
+        boolean canOpen = minecraft.player != null && minecraft.level != null && minecraft.gui.screen() == null;
 
         if (!canOpen) {
             close();
@@ -303,7 +303,7 @@ public final class OmniWheelOverlay {
 
         if (mouseReleased) {
             mouseReleased = false;
-            if (minecraft.screen == null && minecraft.player != null && minecraft.level != null) {
+            if (minecraft.gui.screen() == null && minecraft.player != null && minecraft.level != null) {
                 minecraft.mouseHandler.grabMouse();
             }
         }
@@ -315,7 +315,7 @@ public final class OmniWheelOverlay {
 
     public void openWheelPath(List<String> wheelIds) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
+        if (minecraft.player == null || minecraft.level == null || minecraft.gui.screen() != null) {
             return;
         }
 

@@ -1,6 +1,5 @@
 package de.artemis.omniwheel.client;
 
-import de.artemis.omniwheel.client.compat.PatchedModListScreen;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.Minecraft;
@@ -11,7 +10,6 @@ import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.client.gui.ModListScreen;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 import static de.artemis.omniwheel.OmniWheel.MOD_ID;
@@ -63,8 +61,5 @@ public final class ClientModEvents {
     }
 
     public static void onScreenOpening(ScreenEvent.Opening event) {
-        if (event.getNewScreen() instanceof ModListScreen && !(event.getNewScreen() instanceof PatchedModListScreen)) {
-            event.setNewScreen(new PatchedModListScreen(event.getCurrentScreen()));
-        }
     }
 }
