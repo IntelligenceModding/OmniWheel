@@ -3,6 +3,7 @@ package de.artemis.omniwheel.client.render;
 import de.artemis.omniwheel.mixin.client.ParticleEngineAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.renderer.texture.TextureAtlas;
@@ -189,7 +190,7 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        Holder<MobEffect> effectHolder = BuiltInRegistries.MOB_EFFECT.getHolder(effectId).orElse(null);
+        Holder<MobEffect> effectHolder = BuiltInRegistries.MOB_EFFECT.get(effectId).orElse(null);
         if (effectHolder == null) {
             return false;
         }
@@ -202,7 +203,7 @@ public final class EntryIconRenderer {
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blit(x, y, 0, size, size, sprite);
+        graphics.blitSprite(RenderType::guiTextured, sprite, x, y, size, size);
         return true;
     }
 
@@ -215,7 +216,7 @@ public final class EntryIconRenderer {
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blitSprite(spriteId, x, y, size, size);
+        graphics.blitSprite(RenderType::guiTextured, spriteId, x, y, size, size);
         return true;
     }
 
@@ -228,7 +229,7 @@ public final class EntryIconRenderer {
         graphics.pose().pushPose();
         graphics.pose().translate(centerX - (8.0F * scale), centerY - (8.0F * scale), 200.0F);
         graphics.pose().scale(scale, scale, 1.0F);
-        graphics.blit(textureIcon.texture(), 0, 0, 0, (float) textureIcon.u(), (float) textureIcon.v(), 16, 16, textureIcon.textureWidth(), textureIcon.textureHeight());
+        graphics.blit(RenderType::guiTextured, textureIcon.texture(), 0, 0, (float) textureIcon.u(), (float) textureIcon.v(), 16, 16, textureIcon.textureWidth(), textureIcon.textureHeight());
         graphics.pose().popPose();
         return true;
     }
@@ -254,7 +255,7 @@ public final class EntryIconRenderer {
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blit(x, y, 0, size, size, sprite);
+        graphics.blitSprite(RenderType::guiTextured, sprite, x, y, size, size);
         return true;
     }
 

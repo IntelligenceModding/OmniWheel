@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.CoreShaders;
 import org.joml.Matrix4f;
 
 public final class GeometryRenderer {
@@ -17,7 +17,7 @@ public final class GeometryRenderer {
     public static void fillCircle(GuiGraphics graphics, float centerX, float centerY, float radius, int color) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
 
         Matrix4f pose = graphics.pose().last().pose();
         Tesselator tesselator = Tesselator.getInstance();
@@ -87,7 +87,7 @@ public final class GeometryRenderer {
     ) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
 
         Matrix4f pose = graphics.pose().last().pose();
         Tesselator tesselator = Tesselator.getInstance();
