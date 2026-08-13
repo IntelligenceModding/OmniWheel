@@ -3,7 +3,7 @@ package de.artemis.omniwheel.client.input;
 import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.mixin.client.KeyMappingAccessor;
 import net.minecraft.client.KeyMapping;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
@@ -93,10 +93,10 @@ public final class OmniWheelKeyMappings {
     }
 
     public static void register() {
-        KeyBindingHelper.registerKeyBinding(OPEN_WHEEL);
-        KeyBindingHelper.registerKeyBinding(OPEN_MANAGER);
+        KeyMappingHelper.registerKeyMapping(OPEN_WHEEL);
+        KeyMappingHelper.registerKeyMapping(OPEN_MANAGER);
         for (KeyMapping keyMapping : RADIAL_POSITION_KEYS) {
-            KeyBindingHelper.registerKeyBinding(keyMapping);
+            KeyMappingHelper.registerKeyMapping(keyMapping);
         }
     }
 

@@ -127,7 +127,7 @@ public final class GameplayFunctionController {
 
     private void notifyToggle(Minecraft minecraft, GameplayFunction function, boolean enabled) {
         if (minecraft.player != null) {
-            minecraft.player.displayClientMessage(Component.literal(function.displayName() + ": " + (enabled ? "On" : "Off")), true);
+            minecraft.player.sendOverlayMessage(Component.literal(function.displayName() + ": " + (enabled ? "On" : "Off")));
         }
     }
 
@@ -178,7 +178,7 @@ public final class GameplayFunctionController {
 
     private static void openSocialInteractions(Minecraft minecraft) {
         if (!isSocialInteractionsAvailable(minecraft)) {
-            minecraft.player.displayClientMessage(Component.translatable("multiplayer.socialInteractions.not_available"), true);
+            minecraft.player.sendOverlayMessage(Component.translatable("multiplayer.socialInteractions.not_available"));
             return;
         }
         minecraft.setScreen(new SocialInteractionsScreen());
@@ -226,7 +226,7 @@ public final class GameplayFunctionController {
         Screenshot.grab(
                 minecraft.gameDirectory,
                 minecraft.getMainRenderTarget(),
-                message -> minecraft.execute(() -> minecraft.gui.getChat().addMessage(message))
+                message -> minecraft.execute(() -> minecraft.gui.getChat().addClientSystemMessage(message))
         );
     }
 

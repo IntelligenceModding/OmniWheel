@@ -14,7 +14,7 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.util.ArrayDeque;
@@ -84,7 +84,7 @@ public final class OmniWheelClientRuntime {
         overlay.tick();
     }
 
-    public void renderOverlay(GuiGraphics graphics) {
+    public void renderOverlay(GuiGraphicsExtractor graphics) {
         overlay.render(graphics);
         profilesOverlay.render(graphics);
     }

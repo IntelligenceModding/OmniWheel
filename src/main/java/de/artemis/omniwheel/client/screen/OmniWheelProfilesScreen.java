@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.screen;
 
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -67,7 +67,7 @@ public final class OmniWheelProfilesScreen extends Screen {
 
     @Override
     public boolean charTyped(CharacterEvent event) {
-        return editor.charTyped((char) event.codepoint(), event.modifiers()) || super.charTyped(event);
+        return editor.charTyped((char) event.codepoint(), 0) || super.charTyped(event);
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         editor.render(graphics);
     }
 }

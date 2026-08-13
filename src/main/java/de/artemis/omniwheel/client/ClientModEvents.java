@@ -4,7 +4,10 @@ import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.Minecraft;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.resources.Identifier;
+
+import static de.artemis.omniwheel.OmniWheel.MOD_ID;
 
 public final class ClientModEvents {
     private ClientModEvents() {
@@ -12,7 +15,7 @@ public final class ClientModEvents {
 
     public static void register() {
         OmniWheelKeyMappings.register();
-        HudRenderCallback.EVENT.register((graphics, deltaTracker) ->
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "wheel"), (graphics, deltaTracker) ->
                 OmniWheelClientRuntime.getInstance().renderOverlay(graphics));
         ClientTickEvents.END_CLIENT_TICK.register(ignored -> onClientTick());
     }

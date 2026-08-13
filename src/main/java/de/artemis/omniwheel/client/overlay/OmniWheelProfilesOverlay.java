@@ -27,7 +27,7 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -484,7 +484,7 @@ public final class OmniWheelProfilesOverlay {
         escapeDown = escapePressed;
     }
 
-    public void render(GuiGraphics graphics) {
+    public void render(GuiGraphicsExtractor graphics) {
         if (!open) {
             return;
         }
@@ -531,17 +531,17 @@ public final class OmniWheelProfilesOverlay {
 
         if (showProfilesPanel) {
             drawPanel(graphics, leftX, topY, profileWidth, panelHeight, !tutorialActive && activeList == NavigationList.PROFILES);
-            graphics.drawString(minecraft.font, "Profiles", leftX + 12, topY + 10, TEXT, false);
+            graphics.text(minecraft.font, "Profiles", leftX + 12, topY + 10, TEXT, false);
             drawProfilesPanel(graphics, minecraft, leftX + 10, topY + 30, profileWidth - 20, panelHeight - 40);
         }
         if (showEntriesPanel) {
             drawPanel(graphics, wheelX, topY, wheelWidth, panelHeight, !tutorialActive && activeList == NavigationList.WHEELS);
-            graphics.drawString(minecraft.font, "Entries", wheelX + 12, topY + 10, TEXT, false);
+            graphics.text(minecraft.font, "Entries", wheelX + 12, topY + 10, TEXT, false);
             drawWheelsPanel(graphics, minecraft, wheelX + 10, topY + 30, wheelWidth - 20, panelHeight - 40);
         }
         if (showEditorPanel) {
             drawPanel(graphics, editorX, topY, editorWidth, panelHeight, !tutorialActive && activeList == NavigationList.EDITOR);
-            graphics.drawString(minecraft.font, iconPickerOpen ? "Icon Browser" : "Editor", editorX + 12, topY + 10, TEXT, false);
+            graphics.text(minecraft.font, iconPickerOpen ? "Icon Browser" : "Editor", editorX + 12, topY + 10, TEXT, false);
             drawEditorPanel(graphics, minecraft, editorX + 12, topY + 30, editorWidth - 24, panelHeight - 40);
         }
         if (!tutorialActive && !iconPickerOpen && textEntryActive && focusedCommandFieldIndex >= 0 && commandSuggestions != null) {
@@ -551,7 +551,7 @@ public final class OmniWheelProfilesOverlay {
             graphics.pose().pushMatrix();
             graphics.pose().translate(0.0F, commandSuggestionsYOffset);
             if (!renderWrappedUsage) {
-                commandSuggestions.render(
+                commandSuggestions.extractRenderState(
                         graphics,
                         (int) currentMouseX(minecraft),
                         (int) currentMouseY(minecraft) - commandSuggestionsYOffset
@@ -1355,7 +1355,7 @@ public final class OmniWheelProfilesOverlay {
         return true;
     }
 
-    private void drawProfilesPanel(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawProfilesPanel(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         List<WheelProfile> profiles = runtime.profileManager().getProfiles();
         int actionY = y + height - 114;
         int contentHeight = listContentHeight(profiles.size());
@@ -1427,7 +1427,7 @@ public final class OmniWheelProfilesOverlay {
         addButton(graphics, minecraft, x, actionY + 90, width, "Activate", canActivate, () -> runtime.profileManager().setActiveProfile(selectedProfileId));
     }
 
-    private void drawProfileRow(GuiGraphics graphics, Minecraft minecraft, WheelProfile profile, int x, int y, int width, boolean dragged) {
+    private void drawProfileRow(GuiGraphicsExtractor graphics, Minecraft minecraft, WheelProfile profile, int x, int y, int width, boolean dragged) {
         boolean selected = profile.id().equals(selectedProfileId);
         boolean activeProfile = profile.id().equals(runtime.activeProfile().id());
         int rowColor = dragged ? 0xF43A4553 : selected ? ROW_SELECTED : ROW;
@@ -1455,20 +1455,20 @@ public final class OmniWheelProfilesOverlay {
         if (renaming) {
             drawInlineProfileNameField(graphics, minecraft, x + 8, y + 4, textWidth, 14);
         } else {
-            graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, profile.displayName(), textWidth), x + 10, y + 7, TEXT, false);
+            graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, profile.displayName(), textWidth), x + 10, y + 7, TEXT, false);
         }
-        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, profile.id(), textWidth), x + 10, y + 17, TEXT_SECONDARY, false);
-        graphics.drawString(minecraft.font, stateLabel, stateX, y + 11, stateColor, false);
+        graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, profile.id(), textWidth), x + 10, y + 17, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, stateLabel, stateX, y + 11, stateColor, false);
     }
 
-    private void drawProfileDropIndicator(GuiGraphics graphics, int x, int y, int width) {
+    private void drawProfileDropIndicator(GuiGraphicsExtractor graphics, int x, int y, int width) {
         int indicatorY = clamp(y - 4, profilesAreaY - 2, profilesActionY - 6);
         graphics.fill(x + 8, indicatorY, x + width - 8, indicatorY + 2, ACTION);
         graphics.fill(x + 8, indicatorY - 3, x + 16, indicatorY + 5, ACTION);
         graphics.fill(x + width - 16, indicatorY - 3, x + width - 8, indicatorY + 5, ACTION);
     }
 
-    private void drawProfilesScrollbar(GuiGraphics graphics, boolean visible) {
+    private void drawProfilesScrollbar(GuiGraphicsExtractor graphics, boolean visible) {
         if (!visible) {
             profilesScrollbarX = 0;
             profilesScrollbarY = 0;
@@ -1482,7 +1482,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(profilesScrollbarX, profilesScrollbarThumbY, profilesScrollbarX + SCROLLBAR_WIDTH, profilesScrollbarThumbY + profilesScrollbarThumbHeight, thumbColor);
     }
 
-    private void drawWheelRow(GuiGraphics graphics, Minecraft minecraft, WheelProfile profile, WheelDefinition wheel, int x, int y, int width, boolean dragged) {
+    private void drawWheelRow(GuiGraphicsExtractor graphics, Minecraft minecraft, WheelProfile profile, WheelDefinition wheel, int x, int y, int width, boolean dragged) {
         boolean selected = wheel.id().equals(selectedWheelId);
         boolean root = wheel.id().equals(profile.rootWheelId());
         boolean active = wheel.active();
@@ -1514,20 +1514,20 @@ public final class OmniWheelProfilesOverlay {
         if (renaming) {
             drawInlineWheelNameField(graphics, minecraft, x + 8, y + 4, textWidth, 14);
         } else {
-            graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, wheel.title(), textWidth), x + 10, y + 7, titleColor, false);
+            graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, wheel.title(), textWidth), x + 10, y + 7, titleColor, false);
         }
-        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, root ? "Root" : wheel.id(), textWidth), x + 10, y + 17, secondaryColor, false);
-        graphics.drawString(minecraft.font, metaCount, metaX, y + 11, metaColor, false);
+        graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, root ? "Root" : wheel.id(), textWidth), x + 10, y + 17, secondaryColor, false);
+        graphics.text(minecraft.font, metaCount, metaX, y + 11, metaColor, false);
     }
 
-    private void drawWheelDropIndicator(GuiGraphics graphics, int x, int y, int width) {
+    private void drawWheelDropIndicator(GuiGraphicsExtractor graphics, int x, int y, int width) {
         int indicatorY = clamp(y - 4, wheelsAreaY - 2, wheelsActionY - 6);
         graphics.fill(x + 8, indicatorY, x + width - 8, indicatorY + 2, ACTION);
         graphics.fill(x + 8, indicatorY - 3, x + 16, indicatorY + 5, ACTION);
         graphics.fill(x + width - 16, indicatorY - 3, x + width - 8, indicatorY + 5, ACTION);
     }
 
-    private void drawEntryListRow(GuiGraphics graphics, Minecraft minecraft, EntryListRow row, int x, int y, int width, boolean dragged) {
+    private void drawEntryListRow(GuiGraphicsExtractor graphics, Minecraft minecraft, EntryListRow row, int x, int y, int width, boolean dragged) {
         WheelEntry entry = row.entry();
         boolean selected = isEntryRowSelected(row.ownerWheelId(), entry.id());
         int rowColor = dragged ? 0xF43A4553 : !entry.active() ? ROW_DISABLED : selected ? ROW_SELECTED : ROW;
@@ -1547,7 +1547,7 @@ public final class OmniWheelProfilesOverlay {
 
         int arrowOffset = 0;
         if (row.expandable()) {
-            graphics.drawString(minecraft.font, row.expanded() ? "v" : ">", x + 8 + indent, y + 10, ACTION, false);
+            graphics.text(minecraft.font, row.expanded() ? "v" : ">", x + 8 + indent, y + 10, ACTION, false);
             arrowOffset = 10;
         }
 
@@ -1557,7 +1557,7 @@ public final class OmniWheelProfilesOverlay {
         int iconCenterY = y + (PROFILE_ROW_HEIGHT / 2);
         int glyphColor = !entry.active() ? ACTION_DISABLED : entry.action() instanceof OpenWheelAction ? ACTION : entry.color();
         if (!EntryIconRenderer.drawIcon(graphics, minecraft, entry.glyph(), iconCenterX, iconCenterY, 0.9F)) {
-            graphics.drawCenteredString(minecraft.font, clampPlainTextIcon(entry.glyph()), iconCenterX, y + 10, glyphColor);
+            graphics.centeredText(minecraft.font, clampPlainTextIcon(entry.glyph()), iconCenterX, y + 10, glyphColor);
         }
 
         int typeWidth = minecraft.font.width(entryTypeLabel(entry));
@@ -1565,12 +1565,12 @@ public final class OmniWheelProfilesOverlay {
         int textWidth = Math.max(48, x + width - textStartX - typeWidth - 14);
         int labelColor = entry.active() ? entry.color() : ACTION_DISABLED;
         int summaryColor = entry.active() ? TEXT_SECONDARY : ACTION_DISABLED;
-        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, entry.label(), textWidth), textStartX, y + 7, labelColor, false);
-        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, actionSummary(entry.action()), textWidth), textStartX, y + 17, summaryColor, false);
-        graphics.drawString(minecraft.font, entryTypeLabel(entry), x + width - typeWidth - 8, y + 11, !entry.active() ? ACTION_DISABLED : selected ? ACTION : TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, entry.label(), textWidth), textStartX, y + 7, labelColor, false);
+        graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, actionSummary(entry.action()), textWidth), textStartX, y + 17, summaryColor, false);
+        graphics.text(minecraft.font, entryTypeLabel(entry), x + width - typeWidth - 8, y + 11, !entry.active() ? ACTION_DISABLED : selected ? ACTION : TEXT_SECONDARY, false);
     }
 
-    private void drawWheelsScrollbar(GuiGraphics graphics, boolean visible) {
+    private void drawWheelsScrollbar(GuiGraphicsExtractor graphics, boolean visible) {
         if (!visible) {
             wheelsScrollbarX = 0;
             wheelsScrollbarY = 0;
@@ -1584,7 +1584,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(wheelsScrollbarX, wheelsScrollbarThumbY, wheelsScrollbarX + SCROLLBAR_WIDTH, wheelsScrollbarThumbY + wheelsScrollbarThumbHeight, thumbColor);
     }
 
-    private void drawFunctionListScrollbar(GuiGraphics graphics, boolean visible) {
+    private void drawFunctionListScrollbar(GuiGraphicsExtractor graphics, boolean visible) {
         if (!visible) {
             functionListScrollbarX = 0;
             functionListScrollbarY = 0;
@@ -1598,7 +1598,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(functionListScrollbarX, functionListScrollbarThumbY, functionListScrollbarX + SCROLLBAR_WIDTH, functionListScrollbarThumbY + functionListScrollbarThumbHeight, thumbColor);
     }
 
-    private void drawCommandListScrollbar(GuiGraphics graphics, boolean visible) {
+    private void drawCommandListScrollbar(GuiGraphicsExtractor graphics, boolean visible) {
         if (!visible) {
             commandListScrollbarX = 0;
             commandListScrollbarY = 0;
@@ -1612,7 +1612,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(commandListScrollbarX, commandListScrollbarThumbY, commandListScrollbarX + SCROLLBAR_WIDTH, commandListScrollbarThumbY + commandListScrollbarThumbHeight, thumbColor);
     }
 
-    private void drawIconPickerScrollbar(GuiGraphics graphics, boolean visible) {
+    private void drawIconPickerScrollbar(GuiGraphicsExtractor graphics, boolean visible) {
         if (!visible) {
             iconPickerScrollbarX = 0;
             iconPickerScrollbarY = 0;
@@ -1626,7 +1626,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(iconPickerScrollbarX, iconPickerScrollbarThumbY, iconPickerScrollbarX + SCROLLBAR_WIDTH, iconPickerScrollbarThumbY + iconPickerScrollbarThumbHeight, thumbColor);
     }
 
-    private void drawWheelsPanel(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawWheelsPanel(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         WheelDefinition wheel = activeWheelContext();
         List<EntryListRow> visibleRows = visibleEntryRows();
         int actionY = y + height - 114;
@@ -1679,7 +1679,7 @@ public final class OmniWheelProfilesOverlay {
         addButton(graphics, minecraft, x, actionY + 90, width, selectedThingToggleLabel(), canToggleSelection(), this::toggleSelectionActive);
     }
 
-    private void drawEditorPanel(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawEditorPanel(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         if (iconPickerOpen) {
             drawIconPicker(graphics, minecraft, x, y, width, height);
             return;
@@ -1690,12 +1690,12 @@ public final class OmniWheelProfilesOverlay {
         WheelEntry entry = selectedEntry();
 
         if (profile == null || wheel == null) {
-            graphics.drawString(minecraft.font, "No wheel selected.", x, y, TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, "No wheel selected.", x, y, TEXT_SECONDARY, false);
             return;
         }
 
         if (entry == null) {
-            graphics.drawString(minecraft.font, "Create or select an entry to edit it.", x, y, TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, "Create or select an entry to edit it.", x, y, TEXT_SECONDARY, false);
             return;
         }
 
@@ -1765,7 +1765,7 @@ public final class OmniWheelProfilesOverlay {
             drawShortcutControlsButton(graphics, minecraft, x + shortcutFieldWidth + shortcutToggleButtonGap + shortcutToggleButtonWidth + shortcutButtonGap, editorY + 140, shortcutButtonWidth, 22);
             String shortcutConflict = shortcutConflictMessage();
             if (shortcutConflict != null) {
-                graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, shortcutConflict, width), x, editorY + 166, WARNING, false);
+                graphics.text(minecraft.font, ellipsizeToWidth(minecraft.font, shortcutConflict, width), x, editorY + 166, WARNING, false);
             }
         }
 
@@ -1802,7 +1802,7 @@ public final class OmniWheelProfilesOverlay {
 
     }
 
-    private void drawIconPickerButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawIconPickerButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         iconButtonX = x;
         iconButtonY = y;
         iconButtonWidth = width;
@@ -1810,12 +1810,12 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "...", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
+        graphics.centeredText(minecraft.font, "...", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleIconPicker));
     }
 
     private void drawColorPalette(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Minecraft minecraft,
             String label,
             int x,
@@ -1826,7 +1826,7 @@ public final class OmniWheelProfilesOverlay {
             int selectedColorValue,
             IntConsumer onSelect
     ) {
-        graphics.drawString(minecraft.font, label, x, labelY, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, label, x, labelY, TEXT_SECONDARY, false);
         int swatchOuterSize = 22;
         int swatchInnerInset = 2;
         int swatchInnerSize = swatchOuterSize - (swatchInnerInset * 2);
@@ -1889,17 +1889,17 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawDefaultPaletteSwatch(GuiGraphics graphics, int x, int y, int size) {
+    private void drawDefaultPaletteSwatch(GuiGraphicsExtractor graphics, int x, int y, int size) {
         graphics.fill(x, y, x + size, y + size, 0xFF212831);
     }
 
-    private void drawSelectedPaletteOutline(GuiGraphics graphics, int x, int y, int size) {
+    private void drawSelectedPaletteOutline(GuiGraphicsExtractor graphics, int x, int y, int size) {
         graphics.fill(x, y, x + size, y + size, 0xFFD3DEE8);
         graphics.fill(x + 1, y + 1, x + size - 1, y + size - 1, 0xFF162029);
         graphics.fill(x + 2, y + 2, x + size - 2, y + size - 2, FIELD);
     }
 
-    private void drawIconVisibilityButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawIconVisibilityButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         iconToggleButtonX = x;
         iconToggleButtonY = y;
         iconToggleButtonWidth = width;
@@ -1909,11 +1909,11 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, fillColor, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "I", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
+        graphics.centeredText(minecraft.font, "I", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleEntryIconVisibility));
     }
 
-    private void drawLabelVisibilityButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawLabelVisibilityButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         labelToggleButtonX = x;
         labelToggleButtonY = y;
         labelToggleButtonWidth = width;
@@ -1923,11 +1923,11 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, fillColor, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "A", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
+        graphics.centeredText(minecraft.font, "A", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleEntryLabelVisibility));
     }
 
-    private void drawShortcutVisibilityButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawShortcutVisibilityButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         shortcutToggleButtonX = x;
         shortcutToggleButtonY = y;
         shortcutToggleButtonWidth = width;
@@ -1937,11 +1937,11 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, fillColor, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "S", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
+        graphics.centeredText(minecraft.font, "S", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleEntryShortcutVisibility));
     }
 
-    private void drawShortcutControlsButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawShortcutControlsButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         shortcutButtonX = x;
         shortcutButtonY = y;
         shortcutButtonWidth = width;
@@ -1949,11 +1949,11 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "K", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
+        graphics.centeredText(minecraft.font, "K", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
         actions.add(new ClickAction(x, y, width, height, true, this::openControlsMenu));
     }
 
-    private void drawEditorButtonTooltip(GuiGraphics graphics, Minecraft minecraft) {
+    private void drawEditorButtonTooltip(GuiGraphicsExtractor graphics, Minecraft minecraft) {
         if (iconPickerOpen || isManagerTutorialActive()) {
             return;
         }
@@ -1984,7 +1984,7 @@ public final class OmniWheelProfilesOverlay {
         drawTooltip(graphics, minecraft, tooltip, Math.round(mouseX) + 12, Math.round(mouseY) + 12);
     }
 
-    private void drawTooltip(GuiGraphics graphics, Minecraft minecraft, String text, int x, int y) {
+    private void drawTooltip(GuiGraphicsExtractor graphics, Minecraft minecraft, String text, int x, int y) {
         int paddingX = 8;
         int paddingY = 6;
         int textWidth = minecraft.font.width(text);
@@ -1997,10 +1997,10 @@ public final class OmniWheelProfilesOverlay {
 
         graphics.nextStratum();
         drawPanel(graphics, boxX, boxY, boxWidth, boxHeight, false);
-        graphics.drawString(minecraft.font, text, boxX + paddingX, boxY + paddingY, TEXT, false);
+        graphics.text(minecraft.font, text, boxX + paddingX, boxY + paddingY, TEXT, false);
     }
 
-    private void drawManagerTutorial(GuiGraphics graphics, Minecraft minecraft) {
+    private void drawManagerTutorial(GuiGraphicsExtractor graphics, Minecraft minecraft) {
         TutorialStep tutorialStep = currentManagerTutorialStep();
         if (tutorialStep == null) {
             return;
@@ -2020,11 +2020,11 @@ public final class OmniWheelProfilesOverlay {
         graphics.nextStratum();
         drawPanel(graphics, boxX, boxY, boxWidth, boxHeight, false);
         String stepLabel = (Math.min(managerTutorialStepIndex, MANAGER_TUTORIAL_STEP_COUNT - 1) + 1) + "/" + MANAGER_TUTORIAL_STEP_COUNT;
-        graphics.drawString(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
-        graphics.drawString(minecraft.font, tutorialStep.title(), boxX + 10, boxY + 10, TEXT, false);
+        graphics.text(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, tutorialStep.title(), boxX + 10, boxY + 10, TEXT, false);
         int lineY = boxY + 26;
         for (FormattedCharSequence line : bodyLines) {
-            graphics.drawString(minecraft.font, line, boxX + 10, lineY, TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, line, boxX + 10, lineY, TEXT_SECONDARY, false);
             lineY += 9;
         }
 
@@ -2044,10 +2044,10 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawTutorialButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height, String label) {
+    private void drawTutorialButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height, String label) {
         boolean highlighted = contains(currentMouseX(minecraft), currentMouseY(minecraft), x, y, width, height);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, label, x + (width / 2), y + 6, TEXT);
+        graphics.centeredText(minecraft.font, label, x + (width / 2), y + 6, TEXT);
     }
 
     private boolean handleManagerTutorialClick(float mouseX, float mouseY) {
@@ -2275,7 +2275,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawCommandValueFields(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawCommandValueFields(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         ensureCommandValueFields();
         int rowStep = 38;
         int buttonHeight = 24;
@@ -2336,12 +2336,12 @@ public final class OmniWheelProfilesOverlay {
         drawCommandListScrollbar(graphics, needsScrollbar);
     }
 
-    private void drawActiveCommandField(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, int index) {
+    private void drawActiveCommandField(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, String label, int index) {
         TextFieldState field = commandValueFields.get(index);
         field.visible = true;
         field.setBounds(x, y + 12, width, 22, 8);
 
-        graphics.drawString(minecraft.font, label, x, y, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, label, x, y, TEXT_SECONDARY, false);
         graphics.fill(x, y + 12, x + width, y + 34, FIELD);
         graphics.fill(x, y + 12, x + width, y + 13, FIELD_FOCUSED);
         graphics.fill(x, y + 33, x + width, y + 34, FIELD_FOCUSED);
@@ -2356,15 +2356,15 @@ public final class OmniWheelProfilesOverlay {
             commandInput.setVisible(true);
             commandInput.setFocused(true);
             commandSuggestionsYOffset = (y + 39) - 72;
-            commandInput.renderWidget(graphics, (int) currentMouseX(minecraft), (int) currentMouseY(minecraft), 0.0F);
+            commandInput.extractWidgetRenderState(graphics, (int) currentMouseX(minecraft), (int) currentMouseY(minecraft), 0.0F);
         }
     }
 
-    private void drawCommandRemoveButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height, int index) {
+    private void drawCommandRemoveButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height, int index) {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "-", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
+        graphics.centeredText(minecraft.font, "-", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
         tooltipRegions.add(new TooltipRegion(x, y, width, height, "Delete this command entirely."));
         actions.add(new ClickAction(x, y, width, height, true, () -> removeCommandValueField(index)));
     }
@@ -2389,7 +2389,7 @@ public final class OmniWheelProfilesOverlay {
         return !usage.isEmpty() && commandUsageWidth() > commandInput.getWidth();
     }
 
-    private void renderWrappedCommandUsage(GuiGraphics graphics, Minecraft minecraft) {
+    private void renderWrappedCommandUsage(GuiGraphicsExtractor graphics, Minecraft minecraft) {
         if (commandInput == null) {
             return;
         }
@@ -2420,7 +2420,7 @@ public final class OmniWheelProfilesOverlay {
             int y = lineY + (index * 12);
             int width = minecraft.font.width(line);
             graphics.fill(lineX - 1, y, lineX + width + 1, y + 12, Integer.MIN_VALUE);
-            graphics.drawString(minecraft.font, line, lineX, y + 2, 0xFFFF8080);
+            graphics.text(minecraft.font, line, lineX, y + 2, 0xFFFF8080);
         }
     }
 
@@ -2468,7 +2468,7 @@ public final class OmniWheelProfilesOverlay {
         return builder.toString();
     }
 
-    private void drawFunctionSelector(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawFunctionSelector(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         List<GameplayFunction> functions = selectableFunctions();
         int rowHeight = 34;
         int rowStep = 38;
@@ -2481,7 +2481,7 @@ public final class OmniWheelProfilesOverlay {
         functionListScrollOffset = clamp(functionListScrollOffset, 0, Math.max(0, contentHeight - functionListHeight));
         updateFunctionListScrollbarBounds(contentHeight);
 
-        graphics.drawString(minecraft.font, "Function", x, y, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, "Function", x, y, TEXT_SECONDARY, false);
         graphics.fill(functionListX, functionListY, functionListX + functionListWidth, functionListY + functionListHeight, FIELD);
 
         enableUiScissor(graphics, functionListX, functionListY, functionListX + functionListWidth, functionListY + functionListHeight);
@@ -2505,8 +2505,8 @@ public final class OmniWheelProfilesOverlay {
 
             String title = ellipsizeToWidth(minecraft.font, function.displayName(), functionListWidth - 18);
             String detail = ellipsizeToWidth(minecraft.font, function.category().label() + " | " + function.mode().name(), functionListWidth - 18);
-            graphics.drawString(minecraft.font, title, functionListX + 8, rowY + 7, TEXT, false);
-            graphics.drawString(minecraft.font, detail, functionListX + 8, rowY + 19, selected ? ACTION : TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, title, functionListX + 8, rowY + 7, TEXT, false);
+            graphics.text(minecraft.font, detail, functionListX + 8, rowY + 19, selected ? ACTION : TEXT_SECONDARY, false);
 
             final GameplayFunction selectedFunction = function;
             actions.add(new ClickAction(functionListX, rowY, functionListWidth, rowHeight, true, () -> {
@@ -2522,7 +2522,7 @@ public final class OmniWheelProfilesOverlay {
         drawFunctionListScrollbar(graphics, needsScrollbar);
     }
 
-    private void drawIconPicker(GuiGraphics graphics, Minecraft minecraft, int editorX, int editorY, int editorWidth, int editorHeight) {
+    private void drawIconPicker(GuiGraphicsExtractor graphics, Minecraft minecraft, int editorX, int editorY, int editorWidth, int editorHeight) {
         ensureIconPickerOptions();
         List<IconPickerOption> visibleOptions = filteredIconPickerOptions();
 
@@ -2624,7 +2624,7 @@ public final class OmniWheelProfilesOverlay {
                 drawFocusedActionOutline(graphics, cellX, cellY, cellSize, cellSize);
             }
             if (!EntryIconRenderer.drawIcon(graphics, minecraft, option.id(), cellX + (cellSize * 0.5F), cellY + (cellSize * 0.5F), 1.0F)) {
-                graphics.drawCenteredString(minecraft.font, "?", cellX + (cellSize / 2), cellY + 7, TEXT);
+                graphics.centeredText(minecraft.font, "?", cellX + (cellSize / 2), cellY + 7, TEXT);
             }
             final String selectedIcon = option.id();
             actions.add(new ClickAction(cellX, cellY, cellSize, cellSize, true, () -> selectIconFromPicker(selectedIcon)));
@@ -2642,7 +2642,7 @@ public final class OmniWheelProfilesOverlay {
         drawIconPickerScrollbar(graphics, needsScrollbar);
     }
 
-    private void drawEntriesGrid(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height, List<WheelEntry> entries) {
+    private void drawEntriesGrid(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height, List<WheelEntry> entries) {
         entriesAreaX = x;
         entriesAreaY = y;
         entriesAreaWidth = width;
@@ -2675,10 +2675,10 @@ public final class OmniWheelProfilesOverlay {
             boolean selected = wheelEntry.id().equals(selectedEntryId);
             graphics.fill(cardX, cardY, cardX + cardWidth, cardY + cardHeight, selected ? ROW_SELECTED : ROW);
             graphics.fill(cardX + 8, cardY + 9, cardX + 20, cardY + 21, wheelEntry.color());
-            graphics.drawString(minecraft.font, shorten(wheelEntry.label(), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 7, TEXT, false);
-            graphics.drawString(minecraft.font, shorten(actionSummary(wheelEntry.action()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 20, TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, shorten(wheelEntry.label(), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 7, TEXT, false);
+            graphics.text(minecraft.font, shorten(actionSummary(wheelEntry.action()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 20, TEXT_SECONDARY, false);
         if (!EntryIconRenderer.drawIcon(graphics, minecraft, wheelEntry.glyph(), cardX + cardWidth - 9.0F, cardY + 19.0F, 0.75F)) {
-            graphics.drawString(minecraft.font, wheelEntry.glyph(), cardX + cardWidth - 14, cardY + 14, wheelEntry.color(), false);
+            graphics.text(minecraft.font, wheelEntry.glyph(), cardX + cardWidth - 14, cardY + 14, wheelEntry.color(), false);
         }
 
             final String entryId = wheelEntry.id();
@@ -2690,21 +2690,21 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (contentHeight > height) {
-            graphics.drawString(minecraft.font, "Scroll", x + width - minecraft.font.width("Scroll") - 8, y + height - 11, TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, "Scroll", x + width - minecraft.font.width("Scroll") - 8, y + height - 11, TEXT_SECONDARY, false);
         }
     }
 
-    private void drawReadOnlyField(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, String value) {
-        graphics.drawString(minecraft.font, label, x, y, TEXT_SECONDARY, false);
+    private void drawReadOnlyField(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, String label, String value) {
+        graphics.text(minecraft.font, label, x, y, TEXT_SECONDARY, false);
         graphics.fill(x, y + 12, x + width, y + 34, FIELD);
         graphics.fill(x, y + 12, x + width, y + 13, FIELD_EDGE);
         graphics.fill(x, y + 33, x + width, y + 34, FIELD_EDGE);
         graphics.fill(x, y + 12, x + 1, y + 34, FIELD_EDGE);
         graphics.fill(x + width - 1, y + 12, x + width, y + 34, FIELD_EDGE);
-        graphics.drawString(minecraft.font, shorten(value, Math.max(8, (width - 16) / 6)), x + 8, y + 19, TEXT, false);
+        graphics.text(minecraft.font, shorten(value, Math.max(8, (width - 16) / 6)), x + 8, y + 19, TEXT, false);
     }
 
-    private void drawInlineProfileNameField(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawInlineProfileNameField(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         TextFieldState field = textFields.get(EditorField.PROFILE_NAME);
         field.visible = true;
         field.setBounds(x, y, width, height, 6);
@@ -2719,7 +2719,7 @@ public final class OmniWheelProfilesOverlay {
         int maxWidth = Math.max(8, width - 12);
         drawFieldSelection(graphics, minecraft.font, field, x + 6, y + 3, 10, maxWidth);
         String visibleText = field.visibleText(minecraft.font, maxWidth);
-        graphics.drawString(minecraft.font, visibleText, x + 6, y + 4, TEXT, false);
+        graphics.text(minecraft.font, visibleText, x + 6, y + 4, TEXT, false);
 
         if (field.focused && textEntryActive && ((System.currentTimeMillis() / 500L) & 1L) == 0L) {
             int cursorX = x + 6 + field.cursorOffset(minecraft.font, maxWidth);
@@ -2727,7 +2727,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawInlineWheelNameField(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
+    private void drawInlineWheelNameField(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, int height) {
         TextFieldState field = textFields.get(EditorField.WHEEL_TITLE);
         field.visible = true;
         field.setBounds(x, y, width, height, 6);
@@ -2742,7 +2742,7 @@ public final class OmniWheelProfilesOverlay {
         int maxWidth = Math.max(8, width - 12);
         drawFieldSelection(graphics, minecraft.font, field, x + 6, y + 3, 10, maxWidth);
         String visibleText = field.visibleText(minecraft.font, maxWidth);
-        graphics.drawString(minecraft.font, visibleText, x + 6, y + 4, TEXT, false);
+        graphics.text(minecraft.font, visibleText, x + 6, y + 4, TEXT, false);
 
         if (field.focused && textEntryActive && ((System.currentTimeMillis() / 500L) & 1L) == 0L) {
             int cursorX = x + 6 + field.cursorOffset(minecraft.font, maxWidth);
@@ -2750,16 +2750,16 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawTextField(GuiGraphics graphics, Minecraft minecraft, EditorField fieldId, int x, int y, int width, String label, boolean visible) {
+    private void drawTextField(GuiGraphicsExtractor graphics, Minecraft minecraft, EditorField fieldId, int x, int y, int width, String label, boolean visible) {
         TextFieldState field = textFields.get(fieldId);
         drawTextFieldState(graphics, minecraft, field, x, y, width, label, visible);
     }
 
-    private void drawTextFieldState(GuiGraphics graphics, Minecraft minecraft, TextFieldState field, int x, int y, int width, String label, boolean visible) {
+    private void drawTextFieldState(GuiGraphicsExtractor graphics, Minecraft minecraft, TextFieldState field, int x, int y, int width, String label, boolean visible) {
         field.visible = visible;
         field.setBounds(x, y + 12, width, 22, 8);
 
-        graphics.drawString(minecraft.font, label, x, y, TEXT_SECONDARY, false);
+        graphics.text(minecraft.font, label, x, y, TEXT_SECONDARY, false);
         graphics.fill(x, y + 12, x + width, y + 34, FIELD);
         int edgeColor = field.focused ? FIELD_FOCUSED : FIELD_EDGE;
         graphics.fill(x, y + 12, x + width, y + 13, edgeColor);
@@ -2770,7 +2770,7 @@ public final class OmniWheelProfilesOverlay {
         int maxWidth = Math.max(8, width - 16);
         drawFieldSelection(graphics, minecraft.font, field, x + 8, y + 18, 12, maxWidth);
         String visibleText = field.visibleText(minecraft.font, maxWidth);
-        graphics.drawString(minecraft.font, visibleText, x + 8, y + 19, TEXT, false);
+        graphics.text(minecraft.font, visibleText, x + 8, y + 19, TEXT, false);
 
         if (field.focused && textEntryActive && ((System.currentTimeMillis() / 500L) & 1L) == 0L) {
             int cursorX = x + 8 + field.cursorOffset(minecraft.font, maxWidth);
@@ -2778,7 +2778,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawCompactTextFieldState(GuiGraphics graphics, Minecraft minecraft, TextFieldState field, int x, int y, int width, int height, String placeholder, boolean visible) {
+    private void drawCompactTextFieldState(GuiGraphicsExtractor graphics, Minecraft minecraft, TextFieldState field, int x, int y, int width, int height, String placeholder, boolean visible) {
         field.visible = visible;
         field.setBounds(x, y, width, height, 8);
 
@@ -2793,9 +2793,9 @@ public final class OmniWheelProfilesOverlay {
         drawFieldSelection(graphics, minecraft.font, field, x + 8, y + 5, Math.max(10, height - 10), maxWidth);
         String visibleText = field.visibleText(minecraft.font, maxWidth);
         if (visibleText.isEmpty() && !field.focused) {
-            graphics.drawString(minecraft.font, placeholder, x + 8, y + ((height - 8) / 2), TEXT_SECONDARY, false);
+            graphics.text(minecraft.font, placeholder, x + 8, y + ((height - 8) / 2), TEXT_SECONDARY, false);
         } else {
-            graphics.drawString(minecraft.font, visibleText, x + 8, y + ((height - 8) / 2), TEXT, false);
+            graphics.text(minecraft.font, visibleText, x + 8, y + ((height - 8) / 2), TEXT, false);
         }
 
         if (field.focused && textEntryActive && ((System.currentTimeMillis() / 500L) & 1L) == 0L) {
@@ -2804,7 +2804,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawFieldSelection(GuiGraphics graphics, Font font, TextFieldState field, int textX, int selectionY, int selectionHeight, int contentWidth) {
+    private void drawFieldSelection(GuiGraphicsExtractor graphics, Font font, TextFieldState field, int textX, int selectionY, int selectionHeight, int contentWidth) {
         if (!field.hasSelection()) {
             return;
         }
@@ -2817,15 +2817,15 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(textX + startOffset, selectionY, textX + endOffset, selectionY + selectionHeight, 0x90456B89);
     }
 
-    private void addButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, boolean enabled, Runnable handler) {
+    private void addButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, String label, boolean enabled, Runnable handler) {
         addButton(graphics, minecraft, x, y, width, label, 24, enabled, handler);
     }
 
-    private void addButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, int height, boolean enabled, Runnable handler) {
+    private void addButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, int width, String label, int height, boolean enabled, Runnable handler) {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, enabled, highlighted);
-        graphics.drawCenteredString(minecraft.font, label, x + (width / 2), y + ((height - 8) / 2), enabled ? (highlighted ? TEXT : ACTION) : ACTION_DISABLED);
+        graphics.centeredText(minecraft.font, label, x + (width / 2), y + ((height - 8) / 2), enabled ? (highlighted ? TEXT : ACTION) : ACTION_DISABLED);
         actions.add(new ClickAction(x, y, width, height, enabled, handler));
     }
 
@@ -2836,7 +2836,7 @@ public final class OmniWheelProfilesOverlay {
         return focused || contains(currentMouseX(minecraft), currentMouseY(minecraft), x, y, width, height);
     }
 
-    private void drawButtonChrome(GuiGraphics graphics, int x, int y, int width, int height, int normalFill, int highlightedFill, boolean enabled, boolean highlighted) {
+    private void drawButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int normalFill, int highlightedFill, boolean enabled, boolean highlighted) {
         int fillColor = enabled ? (highlighted ? highlightedFill : normalFill) : ROW_DISABLED;
         int edgeColor = enabled && highlighted ? FIELD_FOCUSED : FIELD_EDGE;
         graphics.fill(x, y, x + width, y + height, fillColor);
@@ -2849,7 +2849,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawFocusedActionOutline(GuiGraphics graphics, int x, int y, int width, int height) {
+    private void drawFocusedActionOutline(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + 1, FIELD_FOCUSED);
         graphics.fill(x, y + height - 1, x + width, y + height, FIELD_FOCUSED);
         graphics.fill(x, y, x + 1, y + height, FIELD_FOCUSED);
@@ -4463,7 +4463,7 @@ public final class OmniWheelProfilesOverlay {
                 || !entry.action().equals(buildDraftAction());
     }
 
-    private void drawPanel(GuiGraphics graphics, int x, int y, int width, int height, boolean active) {
+    private void drawPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height, boolean active) {
         graphics.fill(x, y, x + width, y + height, PANEL);
         int edgeColor = active ? PANEL_EDGE_ACTIVE : PANEL_EDGE;
         graphics.fill(x, y, x + width, y + 1, edgeColor);
@@ -4504,7 +4504,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static CharacterEvent characterEvent(char codePoint, int modifiers) {
-        return new CharacterEvent(codePoint, modifiers);
+        return new CharacterEvent(codePoint);
     }
 
     private static MouseButtonEvent mouseButtonEvent(double mouseX, double mouseY, int button) {
@@ -4579,7 +4579,7 @@ public final class OmniWheelProfilesOverlay {
         return mouseY * (uiScaleFactor(minecraft) / SCREEN_HOSTED_REFERENCE_SCALE);
     }
 
-    private void enableUiScissor(GuiGraphics graphics, int x1, int y1, int x2, int y2) {
+    private void enableUiScissor(GuiGraphicsExtractor graphics, int x1, int y1, int x2, int y2) {
         graphics.enableScissor(x1, y1, x2, y2);
     }
 
