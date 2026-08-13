@@ -4551,18 +4551,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void enableUiScissor(GuiGraphics graphics, int x1, int y1, int x2, int y2) {
-        if (!screenHosted) {
-            graphics.enableScissor(x1, y1, x2, y2);
-            return;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        double scale = screenHostedRenderScale(minecraft);
-        graphics.enableScissor(
-                (int) Math.floor(x1 * scale),
-                (int) Math.floor(y1 * scale),
-                (int) Math.ceil(x2 * scale),
-                (int) Math.ceil(y2 * scale)
-        );
+        graphics.enableScissor(x1, y1, x2, y2);
     }
 
     private WheelProfile draggedProfile() {
