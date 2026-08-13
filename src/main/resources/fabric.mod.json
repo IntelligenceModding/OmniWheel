@@ -35,6 +35,9 @@
     "java": ">=21",
     "fabric-api": "*"
   },
+  "breaks": {
+    "placeholder-api": "<${placeholder_api_min_version}"
+  },
   "custom": {
     "modmenu": {
       "links": {

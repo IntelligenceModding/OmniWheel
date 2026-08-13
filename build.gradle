@@ -25,6 +25,10 @@ repositories {
         name = 'Terraformers'
         url = 'https://maven.terraformersmc.com/'
     }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+    }
 }
 
 loom {
@@ -45,7 +49,8 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
-    modImplementation "com.terraformersmc:modmenu:${modmenu_version}"
+    modLocalRuntime "com.terraformersmc:modmenu:${modmenu_version}"
+    modLocalRuntime "maven.modrinth:placeholder-api:${placeholder_api_version}"
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -58,7 +63,8 @@ tasks.named('processResources', ProcessResources).configure {
             mod_description   : mod_description,
             minecraft_version : minecraft_version,
             loader_version    : loader_version,
-            fabric_api_version: fabric_api_version
+            fabric_api_version: fabric_api_version,
+            placeholder_api_min_version: placeholder_api_min_version
     ])
 
     filesMatching('fabric.mod.json') {
