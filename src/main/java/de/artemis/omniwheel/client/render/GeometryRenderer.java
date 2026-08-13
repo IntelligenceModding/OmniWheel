@@ -1,24 +1,45 @@
 package de.artemis.omniwheel.client.render;
 
+import com.mojang.blaze3d.buffers.BufferType;
+import com.mojang.blaze3d.buffers.BufferUsage;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.CoreShaders;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 
+import java.util.OptionalInt;
+
+import static de.artemis.omniwheel.OmniWheel.MOD_ID;
+
 public final class GeometryRenderer {
+    private static final RenderPipeline TRIANGLE_FAN_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
+            .withLocation(ResourceLocation.fromNamespaceAndPath(MOD_ID, "geometry_triangle_fan"))
+            .withCull(false)
+            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+            .withDepthWrite(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_FAN)
+            .build();
+    private static final RenderPipeline TRIANGLE_STRIP_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
+            .withLocation(ResourceLocation.fromNamespaceAndPath(MOD_ID, "geometry_triangle_strip"))
+            .withCull(false)
+            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+            .withDepthWrite(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_STRIP)
+            .build();
+
     private GeometryRenderer() {
     }
 
     public static void fillCircle(GuiGraphics graphics, float centerX, float centerY, float radius, int color) {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
-
         Matrix4f pose = graphics.pose().last().pose();
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
@@ -32,8 +53,7 @@ public final class GeometryRenderer {
             addVertex(buffer, pose, x, y, color);
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        RenderSystem.disableBlend();
+        draw(buffer.buildOrThrow(), TRIANGLE_FAN_PIPELINE);
     }
 
     public static void fillDisc(GuiGraphics graphics, float centerX, float centerY, float radius, int color) {
@@ -85,10 +105,6 @@ public final class GeometryRenderer {
             double outerEndAngle,
             int color
     ) {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
-
         Matrix4f pose = graphics.pose().last().pose();
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
@@ -108,8 +124,7 @@ public final class GeometryRenderer {
             addVertex(buffer, pose, centerX + (innerCos * innerRadius), centerY + (innerSin * innerRadius), color);
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        RenderSystem.disableBlend();
+        draw(buffer.buildOrThrow(), TRIANGLE_STRIP_PIPELINE);
     }
 
     private static void addVertex(BufferBuilder buffer, Matrix4f pose, float x, float y, int color) {
@@ -118,5 +133,20 @@ public final class GeometryRenderer {
         float green = ((color >> 8) & 0xFF) / 255.0F;
         float blue = (color & 0xFF) / 255.0F;
         buffer.addVertex(pose, x, y, 0.0F).setColor(red, green, blue, alpha);
+    }
+
+    private static void draw(MeshData meshData, RenderPipeline pipeline) {
+        var device = RenderSystem.getDevice();
+        var renderTarget = Minecraft.getInstance().getMainRenderTarget();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
+        try (meshData;
+             var vertexBuffer = device.createBuffer(() -> "OmniWheel geometry", BufferType.VERTICES, BufferUsage.DYNAMIC_WRITE, meshData.vertexBuffer());
+             var renderPass = device.createCommandEncoder()
+                     .createRenderPass(renderTarget.getColorTexture(), OptionalInt.empty())) {
+            renderPass.setPipeline(pipeline);
+            renderPass.setVertexBuffer(0, vertexBuffer);
+            renderPass.draw(0, meshData.drawState().vertexCount());
+        }
     }
 }
