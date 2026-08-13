@@ -3,6 +3,9 @@ package de.artemis.omniwheel.client.screen;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -51,35 +54,35 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (editor.keyPressed(keyCode, scanCode, modifiers)) {
+    public boolean keyPressed(KeyEvent event) {
+        if (editor.keyPressed(event.key(), event.scancode(), event.modifiers())) {
             return true;
         }
-        if (keyCode == 256) {
+        if (event.key() == 256) {
             onClose();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        return editor.charTyped(codePoint, modifiers) || super.charTyped(codePoint, modifiers);
+    public boolean charTyped(CharacterEvent event) {
+        return editor.charTyped((char) event.codepoint(), event.modifiers()) || super.charTyped(event);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return editor.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        return editor.mouseClicked(event.x(), event.y(), event.button()) || super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return editor.mouseReleased(mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
+    public boolean mouseReleased(MouseButtonEvent event) {
+        return editor.mouseReleased(event.x(), event.y(), event.button()) || super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return editor.mouseDragged(mouseX, mouseY, button) || super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        return editor.mouseDragged(event.x(), event.y(), event.button()) || super.mouseDragged(event, dragX, dragY);
     }
 
     @Override

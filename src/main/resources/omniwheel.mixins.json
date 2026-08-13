@@ -5,8 +5,7 @@
   "client": [
     "GuiMixin",
     "KeyMappingAccessor",
-    "MouseHandlerMixin",
-    "ParticleEngineAccessor"
+    "MouseHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

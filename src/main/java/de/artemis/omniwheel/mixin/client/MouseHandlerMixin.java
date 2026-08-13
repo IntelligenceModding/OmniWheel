@@ -3,6 +3,7 @@ package de.artemis.omniwheel.mixin.client;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,17 +17,17 @@ public abstract class MouseHandlerMixin {
     @Final
     private Minecraft minecraft;
 
-    @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
-    private void omniwheel$handleMouseButton(long windowPointer, int button, int action, int modifiers, CallbackInfo callbackInfo) {
-        if (windowPointer == minecraft.getWindow().getWindow()
-                && OmniWheelClientRuntime.getInstance().handleMouseButton(button, action)) {
+    @Inject(method = "onButton", at = @At("HEAD"), cancellable = true)
+    private void omniwheel$handleMouseButton(long windowPointer, MouseButtonInfo buttonInfo, int action, CallbackInfo callbackInfo) {
+        if (windowPointer == minecraft.getWindow().handle()
+                && OmniWheelClientRuntime.getInstance().handleMouseButton(buttonInfo.button(), action)) {
             callbackInfo.cancel();
         }
     }
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
     private void omniwheel$handleMouseScroll(long windowPointer, double xOffset, double yOffset, CallbackInfo callbackInfo) {
-        if (windowPointer == minecraft.getWindow().getWindow()
+        if (windowPointer == minecraft.getWindow().handle()
                 && OmniWheelClientRuntime.getInstance().handleMouseScroll(xOffset, yOffset)) {
             callbackInfo.cancel();
         }

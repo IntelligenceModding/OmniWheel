@@ -54,8 +54,8 @@ public final class GameplayFunctionController {
             case OMNI_NEXT_PROFILE -> cycleProfile(1);
             case OMNI_PREVIOUS_PROFILE -> cycleProfile(-1);
             case OPEN_INVENTORY -> openInventory(minecraft);
-            case OPEN_CHAT -> minecraft.setScreen(new ChatScreen(""));
-            case OPEN_COMMAND_CHAT -> minecraft.setScreen(new ChatScreen("/"));
+            case OPEN_CHAT -> minecraft.setScreen(new ChatScreen("", false));
+            case OPEN_COMMAND_CHAT -> minecraft.setScreen(new ChatScreen("/", false));
             case OPEN_ADVANCEMENTS -> openAdvancements(minecraft);
             case OPEN_SOCIAL_INTERACTIONS -> openSocialInteractions(minecraft);
             case ATTACK -> invokeMinecraftPrivate(minecraft, "startAttack");
@@ -313,10 +313,11 @@ public final class GameplayFunctionController {
     }
 
     private static boolean isPhysicalBindingDown(Minecraft minecraft, KeyMapping keyMapping) {
-        long windowHandle = minecraft.getWindow().getWindow();
+        var window = minecraft.getWindow();
+        long windowHandle = window.handle();
         InputConstants.Key key = OmniWheelKeyMappings.currentKey(keyMapping);
         return switch (key.getType()) {
-            case KEYSYM -> InputConstants.isKeyDown(windowHandle, key.getValue());
+            case KEYSYM -> InputConstants.isKeyDown(window, key.getValue());
             case SCANCODE -> GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
             case MOUSE -> GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
             default -> false;

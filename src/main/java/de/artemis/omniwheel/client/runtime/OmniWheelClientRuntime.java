@@ -1,6 +1,5 @@
 package de.artemis.omniwheel.client.runtime;
 
-import com.mojang.blaze3d.platform.Window;
 import de.artemis.omniwheel.client.overlay.OmniWheelOverlay;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.profile.OmniWheelProfileManager;
@@ -144,7 +143,6 @@ public final class OmniWheelClientRuntime {
             return;
         }
 
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
         List<ShortcutCandidate> candidates = collectShortcutCandidates(profile);
         Set<String> downShortcutIds = new HashSet<>();
         ShortcutCandidate nextTrigger = null;
@@ -152,7 +150,7 @@ public final class OmniWheelClientRuntime {
 
         for (ShortcutCandidate candidate : candidates) {
             EntryShortcutMatcher.ShortcutSpec shortcut = EntryShortcutMatcher.parse(candidate.entry().shortcut());
-            if (shortcut == null || !shortcut.matches(windowHandle)) {
+            if (shortcut == null || !shortcut.matches(minecraft.getWindow())) {
                 continue;
             }
 
@@ -279,10 +277,6 @@ public final class OmniWheelClientRuntime {
         }
 
         profileManager.setActiveProfile(profiles.get(Math.floorMod(currentIndex + delta, profiles.size())).id());
-    }
-
-    private long resolveWindowHandle(Window window) {
-        return window.getWindow();
     }
 
     private record ShortcutCandidate(String id, WheelEntry entry, List<String> openPath) {

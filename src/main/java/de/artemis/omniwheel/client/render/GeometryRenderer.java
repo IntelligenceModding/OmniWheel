@@ -217,13 +217,13 @@ public final class GeometryRenderer {
         private static final TextureSetup TEXTURE_SETUP = TextureSetup.noTexture();
 
         @Override
-        public void buildVertices(VertexConsumer consumer, float z) {
+        public void buildVertices(VertexConsumer consumer) {
             float[] vertices = mesh.vertices();
             for (int index = 0; index < vertices.length; index += 8) {
-                consumer.addVertexWith2DPose(pose, originX + vertices[index], originY + vertices[index + 1], z).setColor(color);
-                consumer.addVertexWith2DPose(pose, originX + vertices[index + 2], originY + vertices[index + 3], z).setColor(color);
-                consumer.addVertexWith2DPose(pose, originX + vertices[index + 4], originY + vertices[index + 5], z).setColor(color);
-                consumer.addVertexWith2DPose(pose, originX + vertices[index + 6], originY + vertices[index + 7], z).setColor(color);
+                consumer.addVertexWith2DPose(pose, originX + vertices[index], originY + vertices[index + 1]).setColor(color);
+                consumer.addVertexWith2DPose(pose, originX + vertices[index + 2], originY + vertices[index + 3]).setColor(color);
+                consumer.addVertexWith2DPose(pose, originX + vertices[index + 4], originY + vertices[index + 5]).setColor(color);
+                consumer.addVertexWith2DPose(pose, originX + vertices[index + 6], originY + vertices[index + 7]).setColor(color);
             }
         }
 

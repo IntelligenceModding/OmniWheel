@@ -1,7 +1,6 @@
 package de.artemis.omniwheel.client.overlay;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.platform.Window;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.runtime.EntryShortcutMatcher;
@@ -24,6 +23,10 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
@@ -955,7 +958,7 @@ public final class OmniWheelProfilesOverlay {
                 return true;
             }
             String capturedShortcut = EntryShortcutMatcher.captureShortcutText(
-                    resolveWindowHandleStatic(Minecraft.getInstance().getWindow()),
+                    Minecraft.getInstance().getWindow(),
                     keyCode,
                     modifiers
             );
@@ -2210,7 +2213,7 @@ public final class OmniWheelProfilesOverlay {
 
         for (KeyMapping keyMapping : minecraft.options.keyMappings) {
             for (int key : spec.keys()) {
-                if (keyMapping.matches(key, -1)) {
+                if (keyMapping.matches(new KeyEvent(key, -1, 0))) {
                     conflicts.add(Component.translatable(keyMapping.getName()).getString());
                     break;
                 }
@@ -4485,19 +4488,45 @@ public final class OmniWheelProfilesOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputConstants.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
-    }
-
-    private long resolveWindowHandle(Window window) {
-        return window.getWindow();
+        InputConstants.grabOrReleaseMouse(minecraft.getWindow(), 212993, rawX, rawY);
     }
 
     private static boolean isEscapeDown(Minecraft minecraft) {
-        return InputConstants.isKeyDown(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_KEY_ESCAPE);
+        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_ESCAPE);
     }
 
-    private static long resolveWindowHandleStatic(Window window) {
-        return window.getWindow();
+    private static long windowHandle(Minecraft minecraft) {
+        return minecraft.getWindow().handle();
+    }
+
+    private static KeyEvent keyEvent(int keyCode, int scanCode, int modifiers) {
+        return new KeyEvent(keyCode, scanCode, modifiers);
+    }
+
+    private static CharacterEvent characterEvent(char codePoint, int modifiers) {
+        return new CharacterEvent(codePoint, modifiers);
+    }
+
+    private static MouseButtonEvent mouseButtonEvent(double mouseX, double mouseY, int button) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(button, currentModifierFlags(minecraft)));
+    }
+
+    private static int currentModifierFlags(Minecraft minecraft) {
+        int modifiers = 0;
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+            modifiers |= GLFW.GLFW_MOD_SHIFT;
+        }
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL)) {
+            modifiers |= GLFW.GLFW_MOD_CONTROL;
+        }
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT)) {
+            modifiers |= GLFW.GLFW_MOD_ALT;
+        }
+        return modifiers;
     }
 
     private float currentMouseX(Minecraft minecraft) {
@@ -5532,7 +5561,7 @@ public final class OmniWheelProfilesOverlay {
                     if (isUsingVanillaCommandInput(index)) {
                         double clampedX = Math.max(commandInput.getX(), Math.min(mouseX, commandInput.getX() + commandInput.getWidth() - 1));
                         double clampedY = Math.max(commandInput.getY(), Math.min(mouseY, commandInput.getY() + commandInput.getHeight() - 1));
-                        commandInput.mouseClicked(clampedX, clampedY, 0);
+                        commandInput.onClick(mouseButtonEvent(clampedX, clampedY, 0), false);
                     } else {
                         field.click(minecraft.font, mouseX);
                         applyCommandFieldDraft(index, field.value);
@@ -5555,10 +5584,9 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void handleKeyboardInput(Minecraft minecraft) {
-        long handle = resolveWindowHandle(minecraft.getWindow());
         long now = System.currentTimeMillis();
         for (int key : POLLED_KEYS) {
-            boolean down = InputConstants.isKeyDown(handle, key);
+            boolean down = InputConstants.isKeyDown(minecraft.getWindow(), key);
             if (down) {
                 if (pressedKeys.add(key)) {
                     handleKeyPress(key);
@@ -6096,10 +6124,11 @@ public final class OmniWheelProfilesOverlay {
         if (!ensureCommandInput()) {
             return false;
         }
-        if (commandSuggestions.keyPressed(keyCode, scanCode, modifiers)) {
+        KeyEvent event = keyEvent(keyCode, scanCode, modifiers);
+        if (commandSuggestions.keyPressed(event)) {
             return true;
         }
-        if (commandInput.keyPressed(keyCode, scanCode, modifiers)) {
+        if (commandInput.keyPressed(event)) {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
@@ -6286,13 +6315,16 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private boolean handleCommandFieldCharTyped(char codePoint, int modifiers) {
-        return textEntryActive && focusedCommandFieldIndex >= 0 && ensureCommandInput() && commandInput.charTyped(codePoint, modifiers);
+        return textEntryActive
+                && focusedCommandFieldIndex >= 0
+                && ensureCommandInput()
+                && commandInput.charTyped(characterEvent(codePoint, modifiers));
     }
 
     private boolean handleCommandSuggestionsClick(double mouseX, double mouseY, int button) {
         return focusedCommandFieldIndex >= 0
                 && ensureCommandInput()
-                && commandSuggestions.mouseClicked(mouseX, mouseY - commandSuggestionsYOffset, button);
+                && commandSuggestions.mouseClicked(mouseButtonEvent(mouseX, mouseY - commandSuggestionsYOffset, button));
     }
 
     private boolean handleCommandSuggestionsScroll(double scrollY) {
@@ -6920,18 +6952,18 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private int pressedDirectionalKeyCount() {
-        long windowHandle = resolveWindowHandleStatic(Minecraft.getInstance().getWindow());
+        Minecraft minecraft = Minecraft.getInstance();
         int count = 0;
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT)) {
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT)) {
             count++;
         }
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT)) {
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT)) {
             count++;
         }
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_UP)) {
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_UP)) {
             count++;
         }
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_DOWN)) {
+        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_DOWN)) {
             count++;
         }
         return count;
@@ -7085,11 +7117,10 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void restoreGameplayInput(Minecraft minecraft) {
-        long handle = resolveWindowHandle(minecraft.getWindow());
         for (KeyMapping keyMapping : gameplayKeyMappings(minecraft)) {
             InputConstants.Key key = OmniWheelKeyMappings.currentKey(keyMapping);
             if (key.getType() == InputConstants.Type.KEYSYM) {
-                keyMapping.setDown(InputConstants.isKeyDown(handle, key.getValue()));
+                keyMapping.setDown(InputConstants.isKeyDown(minecraft.getWindow(), key.getValue()));
             }
         }
     }
@@ -7123,14 +7154,14 @@ public final class OmniWheelProfilesOverlay {
 
     private boolean isShiftModifierDown() {
         Minecraft minecraft = Minecraft.getInstance();
-        long handle = resolveWindowHandle(minecraft.getWindow());
-        return InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
     private boolean isControlModifierDown() {
         Minecraft minecraft = Minecraft.getInstance();
-        long handle = resolveWindowHandle(minecraft.getWindow());
-        return InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_RIGHT_CONTROL);
+        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
     }
 
     private static Character typedCharacterForKey(int key, boolean shiftDown) {

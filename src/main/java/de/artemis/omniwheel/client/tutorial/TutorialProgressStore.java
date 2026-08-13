@@ -101,6 +101,7 @@ public final class TutorialProgressStore {
                 legacy.managerStep = loaded.managerStep;
                 loaded.contexts.put("legacy", legacy);
             }
+            migrateSingleplayerContexts(loaded);
             state = loaded;
             return state;
         } catch (IOException exception) {
@@ -128,7 +129,7 @@ public final class TutorialProgressStore {
             } catch (Exception ignored) {
                 worldKey = minecraft.getSingleplayerServer().getWorldData().getLevelName();
             }
-            return "sp:" + userKey + ":" + normalizeKey(worldKey);
+            return "sp:" + normalizeKey(worldKey);
         }
 
         ServerData server = minecraft.getCurrentServer();
@@ -151,6 +152,46 @@ public final class TutorialProgressStore {
             return normalizeKey(profileId.toString());
         }
         return normalizeKey(user.getName());
+    }
+
+    private static void migrateSingleplayerContexts(StoreState storeState) {
+        Map<String, TutorialState> migrated = new LinkedHashMap<>();
+        for (Map.Entry<String, TutorialState> entry : storeState.contexts.entrySet()) {
+            String contextKey = entry.getKey();
+            if (contextKey == null || !contextKey.startsWith("sp:")) {
+                continue;
+            }
+
+            int worldSeparator = contextKey.indexOf(':', 3);
+            if (worldSeparator < 0 || worldSeparator >= contextKey.length() - 1) {
+                continue;
+            }
+
+            String worldScopedKey = "sp:" + contextKey.substring(worldSeparator + 1);
+            mergeState(migrated.computeIfAbsent(worldScopedKey, ignored -> new TutorialState()), entry.getValue());
+        }
+
+        for (Map.Entry<String, TutorialState> entry : migrated.entrySet()) {
+            mergeState(storeState.contexts.computeIfAbsent(entry.getKey(), ignored -> new TutorialState()), entry.getValue());
+        }
+    }
+
+    private static void mergeState(TutorialState target, TutorialState source) {
+        if (source == null) {
+            return;
+        }
+        target.radialCompleted = target.radialCompleted || source.radialCompleted;
+        target.managerCompleted = target.managerCompleted || source.managerCompleted;
+        if (!target.radialCompleted) {
+            target.radialStep = Math.max(target.radialStep, source.radialStep);
+        } else {
+            target.radialStep = 0;
+        }
+        if (!target.managerCompleted) {
+            target.managerStep = Math.max(target.managerStep, source.managerStep);
+        } else {
+            target.managerStep = 0;
+        }
     }
 
     private static String normalizeKey(String value) {
