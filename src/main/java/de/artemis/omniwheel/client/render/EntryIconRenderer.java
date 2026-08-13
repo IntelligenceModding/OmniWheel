@@ -2,8 +2,9 @@ package de.artemis.omniwheel.client.render;
 
 import de.artemis.omniwheel.mixin.client.ParticleEngineAccessor;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.renderer.texture.TextureAtlas;
@@ -92,11 +93,12 @@ public final class EntryIconRenderer {
         ItemStack stack = resolveItemStack(icon);
         if (!stack.isEmpty()) {
             float iconSize = 16.0F * scale;
-            graphics.pose().pushPose();
-            graphics.pose().translate(centerX - (iconSize * 0.5F), centerY - (iconSize * 0.5F), 200.0F);
-            graphics.pose().scale(scale, scale, 1.0F);
+            graphics.nextStratum();
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(centerX - (iconSize * 0.5F), centerY - (iconSize * 0.5F));
+            graphics.pose().scale(scale, scale);
             graphics.renderItem(stack, 0, 0);
-            graphics.pose().popPose();
+            graphics.pose().popMatrix();
             return true;
         }
 
@@ -195,15 +197,10 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        TextureAtlasSprite sprite = minecraft.getMobEffectTextures().get(effectHolder);
-        if (sprite == null) {
-            return false;
-        }
-
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blitSprite(RenderType::guiTextured, sprite, x, y, size, size);
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, Gui.getMobEffectSprite(effectHolder), x, y, size, size);
         return true;
     }
 
@@ -216,7 +213,7 @@ public final class EntryIconRenderer {
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blitSprite(RenderType::guiTextured, spriteId, x, y, size, size);
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, spriteId, x, y, size, size);
         return true;
     }
 
@@ -226,11 +223,23 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        graphics.pose().pushPose();
-        graphics.pose().translate(centerX - (8.0F * scale), centerY - (8.0F * scale), 200.0F);
-        graphics.pose().scale(scale, scale, 1.0F);
-        graphics.blit(RenderType::guiTextured, textureIcon.texture(), 0, 0, (float) textureIcon.u(), (float) textureIcon.v(), 16, 16, textureIcon.textureWidth(), textureIcon.textureHeight());
-        graphics.pose().popPose();
+        graphics.nextStratum();
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX - (8.0F * scale), centerY - (8.0F * scale));
+        graphics.pose().scale(scale, scale);
+        graphics.blit(
+                RenderPipelines.GUI_TEXTURED,
+                textureIcon.texture(),
+                0,
+                0,
+                (float) textureIcon.u(),
+                (float) textureIcon.v(),
+                textureIcon.srcWidth(),
+                textureIcon.srcHeight(),
+                textureIcon.textureWidth(),
+                textureIcon.textureHeight()
+        );
+        graphics.pose().popMatrix();
         return true;
     }
 
@@ -255,7 +264,7 @@ public final class EntryIconRenderer {
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blitSprite(RenderType::guiTextured, sprite, x, y, size, size);
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, size, size);
         return true;
     }
 
@@ -281,11 +290,11 @@ public final class EntryIconRenderer {
         int textWidth = minecraft.font.width(symbol);
         int x = Math.round((centerX / symbolScale) - (textWidth / 2.0F));
         int y = Math.round((centerY / symbolScale) - 4.0F);
-        graphics.pose().pushPose();
-        graphics.pose().translate(0.0F, 0.0F, 200.0F);
-        graphics.pose().scale(symbolScale, symbolScale, 1.0F);
+        graphics.nextStratum();
+        graphics.pose().pushMatrix();
+        graphics.pose().scale(symbolScale, symbolScale);
         graphics.drawString(minecraft.font, symbol, x, y, 0xFFF2F5F8, false);
-        graphics.pose().popPose();
+        graphics.pose().popMatrix();
         return true;
     }
 

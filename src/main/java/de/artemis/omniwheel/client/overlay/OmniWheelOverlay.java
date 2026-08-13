@@ -709,8 +709,8 @@ public final class OmniWheelOverlay {
     private void drawAdaptiveCenteredText(GuiGraphics graphics, Minecraft minecraft, TextLayout layout, int centerX, int topY, int color) {
         int lineY = topY;
         for (FormattedCharSequence line : layout.lines()) {
-            graphics.pose().pushPose();
-            graphics.pose().scale(layout.scale(), layout.scale(), 1.0F);
+            graphics.pose().pushMatrix();
+            graphics.pose().scale(layout.scale(), layout.scale());
             graphics.drawCenteredString(
                     minecraft.font,
                     line,
@@ -718,7 +718,7 @@ public final class OmniWheelOverlay {
                     Math.round(lineY / layout.scale()),
                     color
             );
-            graphics.pose().popPose();
+            graphics.pose().popMatrix();
             lineY += layout.lineHeight();
         }
     }
@@ -1383,8 +1383,8 @@ public final class OmniWheelOverlay {
             float scale,
             int color
     ) {
-        graphics.pose().pushPose();
-        graphics.pose().scale(scale, scale, 1.0F);
+        graphics.pose().pushMatrix();
+        graphics.pose().scale(scale, scale);
         graphics.drawCenteredString(
                 font,
                 text,
@@ -1392,7 +1392,7 @@ public final class OmniWheelOverlay {
                 Math.round(topY / scale),
                 color
         );
-        graphics.pose().popPose();
+        graphics.pose().popMatrix();
     }
 
     private static SegmentPalette paletteForGuiColor(int guiColor) {
