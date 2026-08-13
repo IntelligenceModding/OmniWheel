@@ -99,7 +99,7 @@ public final class ClientActionExecutor {
             return;
         }
 
-        minecraft.setScreen(new ChatScreen(ContextValueFormatter.resolveForDisplay(action.initialText(), minecraft), false));
+        minecraft.gui.setScreen(new ChatScreen(ContextValueFormatter.resolveForDisplay(action.initialText(), minecraft), false));
     }
 
     private void executeCopyText(CopyTextAction action) {

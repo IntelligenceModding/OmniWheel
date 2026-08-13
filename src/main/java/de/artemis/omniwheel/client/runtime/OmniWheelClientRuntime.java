@@ -111,10 +111,10 @@ public final class OmniWheelClientRuntime {
 
     public void openProfileManagerShortcut() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen instanceof OmniWheelProfilesScreen) {
+        if (minecraft.gui.screen() instanceof OmniWheelProfilesScreen) {
             return;
         }
-        if (minecraft.screen != null) {
+        if (minecraft.gui.screen() != null) {
             return;
         }
 
@@ -126,12 +126,12 @@ public final class OmniWheelClientRuntime {
         Minecraft minecraft = Minecraft.getInstance();
         overlay.close();
         switch (target) {
-            case PROFILE_MANAGER -> minecraft.setScreen(new OmniWheelProfilesScreen(this, parent));
+            case PROFILE_MANAGER -> minecraft.gui.setScreen(new OmniWheelProfilesScreen(this, parent));
         }
     }
 
     private void processEntryShortcuts(Minecraft minecraft) {
-        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null || isOverlayUiOpen()) {
+        if (minecraft.player == null || minecraft.level == null || minecraft.gui.screen() != null || isOverlayUiOpen()) {
             activeShortcutEntries.clear();
             return;
         }
