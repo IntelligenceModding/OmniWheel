@@ -7,7 +7,7 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.state.GuiElementRenderState;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2f;
 
 import java.util.LinkedHashMap;
@@ -210,7 +210,7 @@ public final class GeometryRenderer {
             ScreenRectangle bounds
     ) implements GuiElementRenderState {
         private static final RenderPipeline PIPELINE = RenderPipeline.builder(RenderPipelines.GUI_SNIPPET)
-                .withLocation(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gui_polygon"))
+                .withLocation(Identifier.fromNamespaceAndPath(MOD_ID, "gui_polygon"))
                 .withCull(false)
                 .withDepthWrite(false)
                 .build();

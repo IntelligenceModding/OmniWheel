@@ -4,13 +4,13 @@ import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.mixin.client.KeyMappingAccessor;
 import net.minecraft.client.KeyMapping;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
 public final class OmniWheelKeyMappings {
-    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("omniwheel", "main"));
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("omniwheel", "main"));
     public static final KeyMapping OPEN_WHEEL = new KeyMapping(
             "key.omniwheel.open_wheel",
             InputConstants.Type.KEYSYM,
