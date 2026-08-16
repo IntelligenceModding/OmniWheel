@@ -55,21 +55,23 @@
 </p>
 
 <p align="center">
-  OmniWheel is developed as part of the <strong>Intelligence Modding Team</strong>.
+  Artemis' Laboratory Blocks is developed as part of the <strong>Intelligence Modding Team</strong>.
 </p>
 
 <p align="center">
-  Follow the project, browse the source, or join the community for updates, previews, and modding help.
+  Follow the project, browse releases, or join the community for updates, previews, and modding help.
 </p>
 
 <p align="center">
   <a href="https://discord.intelligence-modding.de/"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join the Intelligence Modding Discord"></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.youtube.com/@intelligencemodding4093"><img src="https://img.shields.io/badge/YouTube-Intelligence%20Modding-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Intelligence Modding on YouTube"></a>
 </p>
 
 <p align="center">
-  <a href="https://www.curseforge.com/minecraft/mc-mods/omni-wheel"><img src="https://img.shields.io/badge/CurseForge-Omni%20Wheel-F16436?style=for-the-badge&logo=curseforge&logoColor=white" alt="OmniWheel on CurseForge"></a>
+  <a href="https://www.curseforge.com/minecraft/mc-mods/omni-wheel"><img src="https://img.shields.io/badge/CurseForge-OmniWheel-F16436?style=for-the-badge&logo=curseforge&logoColor=white" alt="Omni Wheel on CurseForge"></a>
   &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/IntelligenceModding/OmniWheel"><img src="https://img.shields.io/badge/GitHub-OmniWheel-181717?style=for-the-badge&logo=github&logoColor=white" alt="OmniWheel on GitHub"></a>
+  <a href="https://modrinth.com/mod/omni-wheel"><img src="https://img.shields.io/badge/Modrinth-OmniWheel-00AF5C?style=for-the-badge&logo=modrinth&logoColor=white" alt="Omni Wheel on Modrinth"></a>
 </p>
 
 <p align="center">
@@ -99,14 +101,4 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-830F26?style=for-the-badge&labelColor=A4011A&logo=bookstack&logoColor=white" alt="MIT License"></a>
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/IntelligenceModding/OmniWheel/refs/heads/assets/Resources.png" alt="Resources" height="75">
-</p>
-
-<p align="center">
-  <a href="https://docs.neoforged.net/"><img src="https://img.shields.io/badge/NeoForge-Documentation-6C47FF?style=for-the-badge&logo=bookstack&logoColor=white" alt="NeoForge Documentation"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://discord.neoforged.net/"><img src="https://img.shields.io/badge/NeoForged-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="NeoForged Discord"></a>
 </p>
