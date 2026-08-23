@@ -96,17 +96,3 @@
 <p align="center">
   OmniWheel is released under the MIT License.
 </p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-830F26?style=for-the-badge&labelColor=A4011A&logo=bookstack&logoColor=white" alt="MIT License"></a>
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/IntelligenceModding/OmniWheel/refs/heads/assets/Resources.png" alt="Resources" height="75">
-</p>
-
-<p align="center">
-  <a href="https://docs.neoforged.net/"><img src="https://img.shields.io/badge/NeoForge-Documentation-6C47FF?style=for-the-badge&logo=bookstack&logoColor=white" alt="NeoForge Documentation"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://discord.neoforged.net/"><img src="https://img.shields.io/badge/NeoForged-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="NeoForged Discord"></a>
-</p>
