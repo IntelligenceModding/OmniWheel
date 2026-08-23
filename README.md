@@ -96,3 +96,7 @@
 <p align="center">
   OmniWheel is released under the MIT License.
 </p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-830F26?style=for-the-badge&labelColor=A4011A&logo=bookstack&logoColor=white" alt="MIT License"></a>
+</p>
