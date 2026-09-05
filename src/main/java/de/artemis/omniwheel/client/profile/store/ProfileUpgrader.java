@@ -39,6 +39,10 @@ final class ProfileUpgrader {
     private ProfileUpgrader() {
     }
 
+    private static String key(String suffix) {
+        return "omniwheel.default." + suffix;
+    }
+
     static ProfileCollection upgrade(ProfileCollection profiles) {
         boolean changed = false;
         List<WheelProfile> upgradedProfiles = new ArrayList<>(profiles.profiles().size());
@@ -66,6 +70,8 @@ final class ProfileUpgrader {
         WheelDefinition quick = strippedProfile.wheels().get("quick");
         WheelDefinition utility = strippedProfile.wheels().get("utility");
         boolean changed = false;
+        String upgradedDisplayName = stockTextKey(strippedProfile.displayName(), key("profile.default"), "Default");
+        changed |= !upgradedDisplayName.equals(strippedProfile.displayName());
 
         WheelDefinition upgradedCommunication = communication;
         if (communication != null) {
@@ -139,7 +145,11 @@ final class ProfileUpgrader {
             upgradedWheels.put("quick", upgradedQuick);
         }
 
-        return new WheelProfile(strippedProfile.id(), strippedProfile.displayName(), strippedProfile.rootWheelId(), upgradedWheels);
+        return new WheelProfile(strippedProfile.id(), upgradedDisplayName, strippedProfile.rootWheelId(), upgradedWheels);
+    }
+
+    private static String stockTextKey(String current, String translationKey, String legacyText) {
+        return translationKey.equals(current) || legacyText.equals(current) ? translationKey : current;
     }
 
     private static WheelProfile stripLegacyBackEntries(WheelProfile profile) {
@@ -192,21 +202,21 @@ final class ProfileUpgrader {
         }
 
         List<WheelEntry> upgradedEntries = new ArrayList<>();
-        upgradedEntries.add(ensureEntry(entriesById.get("spawn"), "spawn", "Spawn", "Sends your configured /spawn command.", "S", new CommandAction("/spawn", false)));
-        upgradedEntries.add(ensureEntry(entriesById.get("home"), "home", "Home", "Sends your configured /home command.", "H", new CommandAction("/home", false)));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat"), "chat", "Chat", "Open communication shortcuts.", "C", new OpenWheelAction("communication")));
-        upgradedEntries.add(ensureEntry(entriesById.get("quick"), "quick", "Quick", "Open client-side quick actions.", "Q", new OpenWheelAction("quick")));
-        upgradedEntries.add(ensureEntry(entriesById.get("util"), "util", "Utility", "Open utility shortcuts.", "U", new OpenWheelAction("utility")));
+        upgradedEntries.add(ensureEntry(entriesById.get("spawn"), "spawn", key("entry.spawn"), key("entry.spawn.description"), "S", new CommandAction("/spawn", false)));
+        upgradedEntries.add(ensureEntry(entriesById.get("home"), "home", key("entry.home"), key("entry.home.description"), "H", new CommandAction("/home", false)));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat"), "chat", key("entry.chat"), key("entry.chat.description"), "C", new OpenWheelAction("communication")));
+        upgradedEntries.add(ensureEntry(entriesById.get("quick"), "quick", key("entry.quick"), key("entry.quick.description"), "Q", new OpenWheelAction("quick")));
+        upgradedEntries.add(ensureEntry(entriesById.get("util"), "util", key("entry.utility"), key("entry.utility.description"), "U", new OpenWheelAction("utility")));
         upgradedEntries.addAll(extras);
 
-        if (upgradedEntries.equals(main.entries()) && "General shortcuts for typical survival play sessions.".equals(main.description())) {
+        if (upgradedEntries.equals(main.entries()) && key("wheel.main").equals(main.title()) && key("wheel.main.description").equals(main.description())) {
             return main;
         }
 
         return new WheelDefinition(
                 main.id(),
-                main.title(),
-                "General shortcuts for typical survival play sessions.",
+                key("wheel.main"),
+                key("wheel.main.description"),
                 main.segmentCount(),
                 upgradedEntries,
                 main.active()
@@ -229,16 +239,16 @@ final class ProfileUpgrader {
         }
 
         List<WheelEntry> upgradedEntries = new ArrayList<>();
-        upgradedEntries.add(ensureEntry(entriesById.get("util_profile"), "util_profile", "Profiles", "Open the available profile list.", "P", new FunctionAction(GameplayFunction.OMNI_OPEN_PROFILES)));
-        upgradedEntries.add(ensureEntry(entriesById.get("util_manage"), "util_manage", "Manage", "Open the local profile manager.", "G", new FunctionAction(GameplayFunction.OMNI_OPEN_MANAGER)));
-        upgradedEntries.add(ensureEntry(entriesById.get("util_copy"), "util_copy", "Copy Pos", "Copies your raw coordinates to the clipboard.", "C", new CopyTextAction("{x} {y} {z}")));
-        upgradedEntries.add(ensureEntry(entriesById.get("util_server"), "util_server", "Server", "Shows the current server or world context.", "S", new LocalMessageAction("Current context: {server} ({dimension})")));
+        upgradedEntries.add(ensureEntry(entriesById.get("util_profile"), "util_profile", key("entry.util_profile"), key("entry.util_profile.description"), "P", new FunctionAction(GameplayFunction.OMNI_OPEN_PROFILES)));
+        upgradedEntries.add(ensureEntry(entriesById.get("util_manage"), "util_manage", key("entry.util_manage"), key("entry.util_manage.description"), "G", new FunctionAction(GameplayFunction.OMNI_OPEN_MANAGER)));
+        upgradedEntries.add(ensureEntry(entriesById.get("util_copy"), "util_copy", key("entry.util_copy"), key("entry.util_copy.description"), "C", new CopyTextAction("{x} {y} {z}")));
+        upgradedEntries.add(ensureEntry(entriesById.get("util_server"), "util_server", key("entry.util_server"), key("entry.util_server.description"), "S", new LocalMessageAction(key("local.current_context"))));
         upgradedEntries.addAll(extras);
 
         return new WheelDefinition(
                 utility.id(),
-                utility.title(),
-                "Profiles, management, and quiet local tools.",
+                key("wheel.utility"),
+                key("wheel.utility.description"),
                 utility.segmentCount(),
                 upgradedEntries,
                 utility.active()
@@ -252,8 +262,8 @@ final class ProfileUpgrader {
             switch (entry.id()) {
                 case "chat_target" -> entriesById.put("chat_message", new WheelEntry(
                         "chat_message",
-                        "Message",
-                        "Opens chat with a private-message command prefilled.",
+                        key("entry.chat_message"),
+                        key("entry.chat_message.description"),
                         "6",
                         entry.color(),
                         entry.guiColor(),
@@ -273,19 +283,19 @@ final class ProfileUpgrader {
         }
 
         List<WheelEntry> upgradedEntries = new ArrayList<>();
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_omw"), "chat_omw", "On My Way", "Posts a quick travel update.", "1", new ChatAction("On my way.", false)));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_help"), "chat_help", "Need Help", "Requests help and includes your coordinates.", "2", new ChatAction("Need help at {x}, {y}, {z}.", false)));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_thanks"), "chat_thanks", "Thanks", "Posts a quick thank-you in chat.", "3", new ChatAction("Thanks!", false)));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_share"), "chat_share", "Share Pos", "Posts your current position in chat.", "4", new ChatAction("Meet me at {x}, {y}, {z} in {dimension}.", false)));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_open"), "chat_open", "Open Chat", "Open normal chat input.", "5", new FunctionAction(GameplayFunction.OPEN_CHAT)));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_message"), "chat_message", "Message", "Opens chat with a private-message command prefilled.", "6", new OpenChatAction("/msg ")));
-        upgradedEntries.add(ensureEntry(entriesById.get("chat_reply"), "chat_reply", "Reply", "Opens chat with a reply command prefilled.", "7", new OpenChatAction("/r ")));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_omw"), "chat_omw", key("entry.chat_omw"), key("entry.chat_omw.description"), "1", new ChatAction(key("chat.on_my_way"), false)));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_help"), "chat_help", key("entry.chat_help"), key("entry.chat_help.description"), "2", new ChatAction(key("chat.need_help"), false)));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_thanks"), "chat_thanks", key("entry.chat_thanks"), key("entry.chat_thanks.description"), "3", new ChatAction(key("chat.thanks"), false)));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_share"), "chat_share", key("entry.chat_share"), key("entry.chat_share.description"), "4", new ChatAction(key("chat.share_position"), false)));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_open"), "chat_open", key("entry.chat_open"), key("entry.chat_open.description"), "5", new FunctionAction(GameplayFunction.OPEN_CHAT)));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_message"), "chat_message", key("entry.chat_message"), key("entry.chat_message.description"), "6", new OpenChatAction("/msg ")));
+        upgradedEntries.add(ensureEntry(entriesById.get("chat_reply"), "chat_reply", key("entry.chat_reply"), key("entry.chat_reply.description"), "7", new OpenChatAction("/r ")));
         upgradedEntries.addAll(extras);
 
         return new WheelDefinition(
                 communication.id(),
-                communication.title(),
-                communication.description(),
+                key("wheel.communication"),
+                key("wheel.communication.description"),
                 communication.segmentCount(),
                 upgradedEntries,
                 communication.active()
@@ -304,16 +314,16 @@ final class ProfileUpgrader {
         }
 
         List<WheelEntry> upgradedEntries = new ArrayList<>();
-        upgradedEntries.add(ensureEntry(entriesById.get("quick_inventory"), "quick_inventory", "Inventory", "Open the player inventory.", "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)));
-        upgradedEntries.add(ensureEntry(entriesById.get("quick_command"), "quick_command", "Command Chat", "Open chat prefilled with '/'.", "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)));
-        upgradedEntries.add(ensureEntry(entriesById.get("quick_view"), "quick_view", "Perspective", "Toggle first- and third-person view.", "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)));
-        upgradedEntries.add(ensureEntry(entriesById.get("quick_shot"), "quick_shot", "Screenshot", "Take a screenshot.", "4", new FunctionAction(GameplayFunction.TAKE_SCREENSHOT)));
+        upgradedEntries.add(ensureEntry(entriesById.get("quick_inventory"), "quick_inventory", key("entry.quick_inventory"), key("entry.quick_inventory.description"), "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)));
+        upgradedEntries.add(ensureEntry(entriesById.get("quick_command"), "quick_command", key("entry.quick_command"), key("entry.quick_command.description"), "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)));
+        upgradedEntries.add(ensureEntry(entriesById.get("quick_view"), "quick_view", key("entry.quick_view"), key("entry.quick_view.description"), "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)));
+        upgradedEntries.add(ensureEntry(entriesById.get("quick_shot"), "quick_shot", key("entry.quick_shot"), key("entry.quick_shot.description"), "4", new FunctionAction(GameplayFunction.TAKE_SCREENSHOT)));
         upgradedEntries.addAll(extras);
 
         return new WheelDefinition(
                 quick.id(),
-                quick.title(),
-                "Client-side actions that are useful in normal play.",
+                key("wheel.quick"),
+                key("wheel.quick.description"),
                 quick.segmentCount(),
                 upgradedEntries,
                 quick.active()
@@ -323,14 +333,14 @@ final class ProfileUpgrader {
     private static WheelDefinition defaultQuickWheel() {
         return new WheelDefinition(
                 "quick",
-                "Quick",
-                "Client-side actions that are useful in normal play.",
+                key("wheel.quick"),
+                key("wheel.quick.description"),
                 8,
                 List.of(
-                        new WheelEntry("quick_inventory", "Inventory", "Open the player inventory.", "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)),
-                        new WheelEntry("quick_command", "Command Chat", "Open chat prefilled with '/'.", "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)),
-                        new WheelEntry("quick_view", "Perspective", "Toggle first- and third-person view.", "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)),
-                        new WheelEntry("quick_shot", "Screenshot", "Take a screenshot.", "4", new FunctionAction(GameplayFunction.TAKE_SCREENSHOT))
+                        new WheelEntry("quick_inventory", key("entry.quick_inventory"), key("entry.quick_inventory.description"), "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)),
+                        new WheelEntry("quick_command", key("entry.quick_command"), key("entry.quick_command.description"), "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)),
+                        new WheelEntry("quick_view", key("entry.quick_view"), key("entry.quick_view.description"), "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)),
+                        new WheelEntry("quick_shot", key("entry.quick_shot"), key("entry.quick_shot.description"), "4", new FunctionAction(GameplayFunction.TAKE_SCREENSHOT))
                 )
         );
     }
