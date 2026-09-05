@@ -16,6 +16,7 @@ import de.artemis.omniwheel.common.action.OpenScreenAction;
 import de.artemis.omniwheel.common.action.OpenWheelAction;
 import de.artemis.omniwheel.common.action.ScreenTarget;
 import de.artemis.omniwheel.common.action.WheelAction;
+import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
@@ -83,7 +84,8 @@ public final class OmniWheelProfilesOverlay {
     private static final float PROFILE_DRAG_THRESHOLD = 4.0F;
     private static final long KEY_REPEAT_DELAY_MS = 400L;
     private static final long KEY_REPEAT_INTERVAL_MS = 35L;
-    private static final double SCREEN_HOSTED_REFERENCE_SCALE = 4.0D;
+    private static final int REFERENCE_UI_WIDTH = 960;
+    private static final int REFERENCE_UI_HEIGHT = 540;
     private static final int[] ENTRY_NAME_COLORS = {
             WheelEntry.DEFAULT_COLOR,
             0xFFFFD36A,
@@ -491,11 +493,9 @@ public final class OmniWheelProfilesOverlay {
 
         int width = uiWidth(minecraft);
         int height = uiHeight(minecraft);
-        if (screenHosted) {
-            float inverseScale = (float) screenHostedRenderScale(minecraft);
-            graphics.pose().pushPose();
-            graphics.pose().scale(inverseScale, inverseScale, 1.0F);
-        }
+        float renderScale = (float) uiScale(minecraft);
+        graphics.pose().pushPose();
+        graphics.pose().scale(renderScale, renderScale, 1.0F);
 
         int leftX = 18;
         int topY = 18;
@@ -526,17 +526,17 @@ public final class OmniWheelProfilesOverlay {
 
         if (showProfilesPanel) {
             drawPanel(graphics, leftX, topY, profileWidth, panelHeight, !tutorialActive && activeList == NavigationList.PROFILES);
-            graphics.drawString(minecraft.font, "Profiles", leftX + 12, topY + 10, TEXT, false);
+            graphics.drawString(minecraft.font, text("omniwheel.manager.profiles"), leftX + 12, topY + 10, TEXT, false);
             drawProfilesPanel(graphics, minecraft, leftX + 10, topY + 30, profileWidth - 20, panelHeight - 40);
         }
         if (showEntriesPanel) {
             drawPanel(graphics, wheelX, topY, wheelWidth, panelHeight, !tutorialActive && activeList == NavigationList.WHEELS);
-            graphics.drawString(minecraft.font, "Entries", wheelX + 12, topY + 10, TEXT, false);
+            graphics.drawString(minecraft.font, text("omniwheel.manager.entries"), wheelX + 12, topY + 10, TEXT, false);
             drawWheelsPanel(graphics, minecraft, wheelX + 10, topY + 30, wheelWidth - 20, panelHeight - 40);
         }
         if (showEditorPanel) {
             drawPanel(graphics, editorX, topY, editorWidth, panelHeight, !tutorialActive && activeList == NavigationList.EDITOR);
-            graphics.drawString(minecraft.font, iconPickerOpen ? "Icon Browser" : "Editor", editorX + 12, topY + 10, TEXT, false);
+            graphics.drawString(minecraft.font, text(iconPickerOpen ? "omniwheel.manager.icon_browser" : "omniwheel.manager.editor"), editorX + 12, topY + 10, TEXT, false);
             drawEditorPanel(graphics, minecraft, editorX + 12, topY + 30, editorWidth - 24, panelHeight - 40);
         }
         if (!tutorialActive && !iconPickerOpen && textEntryActive && focusedCommandFieldIndex >= 0 && commandSuggestions != null) {
@@ -558,9 +558,7 @@ public final class OmniWheelProfilesOverlay {
         }
         drawEditorButtonTooltip(graphics, minecraft);
         drawManagerTutorial(graphics, minecraft);
-        if (screenHosted) {
-            graphics.pose().popPose();
-        }
+        graphics.pose().popPose();
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -1401,7 +1399,7 @@ public final class OmniWheelProfilesOverlay {
         }
         drawProfilesScrollbar(graphics, needsScrollbar);
 
-        addButton(graphics, minecraft, x, actionY, width, "New Profile", true, () -> {
+        addButton(graphics, minecraft, x, actionY, width, text("omniwheel.manager.new_profile"), true, () -> {
             persistPendingEdits();
             WheelProfile createdProfile = runtime.profileManager().createProfile();
             selectedProfileId = createdProfile.id();
@@ -1409,8 +1407,8 @@ public final class OmniWheelProfilesOverlay {
             selectedEntryId = null;
             syncSelection(true);
         });
-        addButton(graphics, minecraft, x, actionY + 30, width, "Rename", canRenameSelectedProfile(), this::renameSelectedProfile);
-        addButton(graphics, minecraft, x, actionY + 60, width, "Delete", canDeleteSelectedProfile(), () -> {
+        addButton(graphics, minecraft, x, actionY + 30, width, text("omniwheel.common.rename"), canRenameSelectedProfile(), this::renameSelectedProfile);
+        addButton(graphics, minecraft, x, actionY + 60, width, text("omniwheel.common.delete"), canDeleteSelectedProfile(), () -> {
             WheelProfile remainingProfile = runtime.profileManager().deleteProfile(selectedProfileId);
             selectedProfileId = remainingProfile.id();
             selectedWheelId = remainingProfile.rootWheelId();
@@ -1418,7 +1416,7 @@ public final class OmniWheelProfilesOverlay {
             syncSelection(true);
         });
         boolean canActivate = selectedProfileId != null && !selectedProfileId.equals(runtime.activeProfile().id());
-        addButton(graphics, minecraft, x, actionY + 90, width, "Activate", canActivate, () -> runtime.profileManager().setActiveProfile(selectedProfileId));
+        addButton(graphics, minecraft, x, actionY + 90, width, text("omniwheel.common.activate"), canActivate, () -> runtime.profileManager().setActiveProfile(selectedProfileId));
     }
 
     private void drawProfileRow(GuiGraphics graphics, Minecraft minecraft, WheelProfile profile, int x, int y, int width, boolean dragged) {
@@ -1439,7 +1437,7 @@ public final class OmniWheelProfilesOverlay {
             graphics.fill(x + width - 1, y, x + width, y + PROFILE_ROW_HEIGHT, ACTION);
         }
 
-        String stateLabel = activeProfile ? "Active" : selected ? "Selected" : "Select";
+        String stateLabel = text(activeProfile ? "omniwheel.manager.profile.active" : selected ? "omniwheel.manager.profile.selected" : "omniwheel.manager.profile.select");
         int stateColor = activeProfile || selected ? ACTION : TEXT_SECONDARY;
         int stateWidth = minecraft.font.width(stateLabel);
         int stateX = x + width - stateWidth - 10;
@@ -1449,7 +1447,7 @@ public final class OmniWheelProfilesOverlay {
         if (renaming) {
             drawInlineProfileNameField(graphics, minecraft, x + 8, y + 4, textWidth, 14);
         } else {
-            graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, profile.displayName(), textWidth), x + 10, y + 7, TEXT, false);
+            graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, displayText(profile.displayName()), textWidth), x + 10, y + 7, TEXT, false);
         }
         graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, profile.id(), textWidth), x + 10, y + 17, TEXT_SECONDARY, false);
         graphics.drawString(minecraft.font, stateLabel, stateX, y + 11, stateColor, false);
@@ -1496,7 +1494,7 @@ public final class OmniWheelProfilesOverlay {
             graphics.fill(x + width - 1, y, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
         }
 
-        String metaCount = wheel.entries().size() + " | " + pageCountForEntries(wheel.entries().size()) + "p";
+        String metaCount = text("omniwheel.manager.wheel_meta", wheel.entries().size(), pageCountForEntries(wheel.entries().size()));
         int titleColor = active ? TEXT : TEXT_SECONDARY;
         int secondaryColor = active ? TEXT_SECONDARY : ACTION_DISABLED;
         int metaColor = active ? (selected ? ACTION : TEXT_SECONDARY) : ACTION_DISABLED;
@@ -1508,9 +1506,9 @@ public final class OmniWheelProfilesOverlay {
         if (renaming) {
             drawInlineWheelNameField(graphics, minecraft, x + 8, y + 4, textWidth, 14);
         } else {
-            graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, wheel.title(), textWidth), x + 10, y + 7, titleColor, false);
+            graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, displayText(wheel.title()), textWidth), x + 10, y + 7, titleColor, false);
         }
-        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, root ? "Root" : wheel.id(), textWidth), x + 10, y + 17, secondaryColor, false);
+        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, root ? text("omniwheel.manager.root") : wheel.id(), textWidth), x + 10, y + 17, secondaryColor, false);
         graphics.drawString(minecraft.font, metaCount, metaX, y + 11, metaColor, false);
     }
 
@@ -1559,7 +1557,7 @@ public final class OmniWheelProfilesOverlay {
         int textWidth = Math.max(48, x + width - textStartX - typeWidth - 14);
         int labelColor = entry.active() ? entry.color() : ACTION_DISABLED;
         int summaryColor = entry.active() ? TEXT_SECONDARY : ACTION_DISABLED;
-        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, entry.label(), textWidth), textStartX, y + 7, labelColor, false);
+        graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, displayText(entry.label()), textWidth), textStartX, y + 7, labelColor, false);
         graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, actionSummary(entry.action()), textWidth), textStartX, y + 17, summaryColor, false);
         graphics.drawString(minecraft.font, entryTypeLabel(entry), x + width - typeWidth - 8, y + 11, !entry.active() ? ACTION_DISABLED : selected ? ACTION : TEXT_SECONDARY, false);
     }
@@ -1665,11 +1663,11 @@ public final class OmniWheelProfilesOverlay {
         drawWheelsScrollbar(graphics, needsScrollbar);
 
         int halfWidth = (width - 8) / 2;
-        addButton(graphics, minecraft, x, actionY, halfWidth, "New Command", canCreateEntry(), this::createCommandEntry);
-        addButton(graphics, minecraft, x + halfWidth + 8, actionY, halfWidth, "New Chat", canCreateEntry(), this::createChatEntry);
-        addButton(graphics, minecraft, x, actionY + 30, halfWidth, "New Submenu", canCreateEntry(), this::createSubmenuEntry);
-        addButton(graphics, minecraft, x + halfWidth + 8, actionY + 30, halfWidth, "New Function", canCreateEntry(), this::createFunctionEntry);
-        addButton(graphics, minecraft, x, actionY + 60, width, "Delete", canDeleteSelection(), this::deleteSelection);
+        addButton(graphics, minecraft, x, actionY, halfWidth, text("omniwheel.manager.new_command"), canCreateEntry(), this::createCommandEntry);
+        addButton(graphics, minecraft, x + halfWidth + 8, actionY, halfWidth, text("omniwheel.manager.new_chat"), canCreateEntry(), this::createChatEntry);
+        addButton(graphics, minecraft, x, actionY + 30, halfWidth, text("omniwheel.manager.new_submenu"), canCreateEntry(), this::createSubmenuEntry);
+        addButton(graphics, minecraft, x + halfWidth + 8, actionY + 30, halfWidth, text("omniwheel.manager.new_function"), canCreateEntry(), this::createFunctionEntry);
+        addButton(graphics, minecraft, x, actionY + 60, width, text("omniwheel.common.delete"), canDeleteSelection(), this::deleteSelection);
         addButton(graphics, minecraft, x, actionY + 90, width, selectedThingToggleLabel(), canToggleSelection(), this::toggleSelectionActive);
     }
 
@@ -1684,12 +1682,12 @@ public final class OmniWheelProfilesOverlay {
         WheelEntry entry = selectedEntry();
 
         if (profile == null || wheel == null) {
-            graphics.drawString(minecraft.font, "No wheel selected.", x, y, TEXT_SECONDARY, false);
+            graphics.drawString(minecraft.font, text("omniwheel.manager.no_wheel_selected"), x, y, TEXT_SECONDARY, false);
             return;
         }
 
         if (entry == null) {
-            graphics.drawString(minecraft.font, "Create or select an entry to edit it.", x, y, TEXT_SECONDARY, false);
+            graphics.drawString(minecraft.font, text("omniwheel.manager.no_entry_selected"), x, y, TEXT_SECONDARY, false);
             return;
         }
 
@@ -1733,28 +1731,28 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (showNameSection) {
-            drawTextField(graphics, minecraft, EditorField.ENTRY_LABEL, x, editorY + 14, nameFieldWidth, "Name", true);
+            drawTextField(graphics, minecraft, EditorField.ENTRY_LABEL, x, editorY + 14, nameFieldWidth, text("omniwheel.manager.field.name"), true);
             drawLabelVisibilityButton(graphics, minecraft, x + nameFieldWidth + nameButtonGap, editorY + 26, labelToggleButtonWidth, 22);
         }
         if (showIconSection) {
-            drawTextField(graphics, minecraft, EditorField.ENTRY_GLYPH, x, editorY + 52, iconFieldWidth, "Icon", true);
+            drawTextField(graphics, minecraft, EditorField.ENTRY_GLYPH, x, editorY + 52, iconFieldWidth, text("omniwheel.manager.field.icon"), true);
             drawIconVisibilityButton(graphics, minecraft, x + iconFieldWidth + iconToggleButtonGap, editorY + 64, iconToggleButtonWidth, 22);
             drawIconPickerButton(graphics, minecraft, x + iconFieldWidth + iconToggleButtonGap + iconToggleButtonWidth + iconButtonGap, editorY + 64, iconButtonWidth, 22);
         }
         if (showColorSection) {
-            drawColorPalette(graphics, minecraft, "GUI Color", rightColumnX, editorY + 14, rightColumnWidth, ENTRY_GUI_COLORS, WheelEntry.DEFAULT_GUI_COLOR, entryGuiColorDraft, color -> {
+            drawColorPalette(graphics, minecraft, text("omniwheel.manager.field.gui_color"), rightColumnX, editorY + 14, rightColumnWidth, ENTRY_GUI_COLORS, WheelEntry.DEFAULT_GUI_COLOR, entryGuiColorDraft, color -> {
                 entryGuiColorDraft = color;
                 autosaveCurrentEntryDraft();
             });
-            drawColorPalette(graphics, minecraft, "Name Color", rightColumnX, editorY + 52, rightColumnWidth, ENTRY_NAME_COLORS, WheelEntry.DEFAULT_COLOR, entryColorDraft, color -> {
+            drawColorPalette(graphics, minecraft, text("omniwheel.manager.field.name_color"), rightColumnX, editorY + 52, rightColumnWidth, ENTRY_NAME_COLORS, WheelEntry.DEFAULT_COLOR, entryColorDraft, color -> {
                 entryColorDraft = color;
                 autosaveCurrentEntryDraft();
             });
         }
 
         if (showDetailsSection) {
-            drawTextField(graphics, minecraft, EditorField.ENTRY_DESCRIPTION, x, editorY + 90, width, "Description", true);
-            drawTextField(graphics, minecraft, EditorField.ENTRY_SHORTCUT, x, editorY + 128, shortcutFieldWidth, "Shortcut", true);
+            drawTextField(graphics, minecraft, EditorField.ENTRY_DESCRIPTION, x, editorY + 90, width, text("omniwheel.manager.field.description"), true);
+            drawTextField(graphics, minecraft, EditorField.ENTRY_SHORTCUT, x, editorY + 128, shortcutFieldWidth, text("omniwheel.manager.field.shortcut"), true);
             drawShortcutVisibilityButton(graphics, minecraft, x + shortcutFieldWidth + shortcutToggleButtonGap, editorY + 140, shortcutToggleButtonWidth, 22);
             drawShortcutControlsButton(graphics, minecraft, x + shortcutFieldWidth + shortcutToggleButtonGap + shortcutToggleButtonWidth + shortcutButtonGap, editorY + 140, shortcutButtonWidth, 22);
             String shortcutConflict = shortcutConflictMessage();
@@ -1765,11 +1763,11 @@ public final class OmniWheelProfilesOverlay {
 
         boolean readOnlyValue = entryActionTypeDraft == DraftActionType.OPEN_SCREEN;
         String valueLabel = switch (entryActionTypeDraft) {
-            case OPEN_SCREEN -> "Screen";
-            case COMMAND -> "Commands";
-            case FUNCTION -> "Function";
-            case CHAT -> "Message";
-            default -> "Value";
+            case OPEN_SCREEN -> text("omniwheel.manager.field.screen");
+            case COMMAND -> text("omniwheel.manager.field.commands");
+            case FUNCTION -> text("omniwheel.manager.field.function");
+            case CHAT -> text("omniwheel.manager.field.message");
+            default -> text("omniwheel.manager.field.value");
         };
         String valueText = switch (entryActionTypeDraft) {
             case OPEN_SCREEN -> screenTargetLabel(entryScreenTargetDraft);
@@ -1829,7 +1827,7 @@ public final class OmniWheelProfilesOverlay {
         int swatchGapRemainder = colorCount > 1 ? Math.max(0, width - (colorCount * swatchOuterSize) - (swatchGap * (colorCount - 1))) : 0;
         int swatchX = x;
         int swatchY = labelY + 12;
-        if ("Name Color".equals(label)) {
+        if (palette == ENTRY_NAME_COLORS) {
             nameColorPaletteX = x;
             nameColorPaletteY = swatchY;
             nameColorPaletteWidth = width;
@@ -1903,7 +1901,7 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, fillColor, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "I", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
+        graphics.drawCenteredString(minecraft.font, text("omniwheel.manager.button.icon_visibility"), x + (width / 2), y + 7, highlighted ? TEXT : textColor);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleEntryIconVisibility));
     }
 
@@ -1917,7 +1915,7 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, fillColor, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "A", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
+        graphics.drawCenteredString(minecraft.font, text("omniwheel.manager.button.label_visibility"), x + (width / 2), y + 7, highlighted ? TEXT : textColor);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleEntryLabelVisibility));
     }
 
@@ -1931,7 +1929,7 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, fillColor, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "S", x + (width / 2), y + 7, highlighted ? TEXT : textColor);
+        graphics.drawCenteredString(minecraft.font, text("omniwheel.manager.button.shortcut_visibility"), x + (width / 2), y + 7, highlighted ? TEXT : textColor);
         actions.add(new ClickAction(x, y, width, height, true, this::toggleEntryShortcutVisibility));
     }
 
@@ -1943,7 +1941,7 @@ public final class OmniWheelProfilesOverlay {
         boolean focused = focusedActionIndex == actions.size();
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, true, highlighted);
-        graphics.drawCenteredString(minecraft.font, "K", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
+        graphics.drawCenteredString(minecraft.font, text("omniwheel.manager.button.controls"), x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
         actions.add(new ClickAction(x, y, width, height, true, this::openControlsMenu));
     }
 
@@ -1955,15 +1953,15 @@ public final class OmniWheelProfilesOverlay {
         float mouseY = currentMouseY(minecraft);
         String tooltip = null;
         if (contains(mouseX, mouseY, iconToggleButtonX, iconToggleButtonY, iconToggleButtonWidth, iconToggleButtonHeight)) {
-            tooltip = entryShowIconDraft ? "Turn icon rendering off in the radial." : "Turn icon rendering on in the radial.";
+            tooltip = text(entryShowIconDraft ? "omniwheel.manager.tooltip.icon_off" : "omniwheel.manager.tooltip.icon_on");
         } else if (contains(mouseX, mouseY, iconButtonX, iconButtonY, iconButtonWidth, iconButtonHeight)) {
-            tooltip = "Choose an item or block icon.";
+            tooltip = text("omniwheel.manager.tooltip.icon_picker");
         } else if (contains(mouseX, mouseY, labelToggleButtonX, labelToggleButtonY, labelToggleButtonWidth, labelToggleButtonHeight)) {
-            tooltip = entryShowLabelDraft ? "Turn name rendering off in the radial." : "Turn name rendering on in the radial.";
+            tooltip = text(entryShowLabelDraft ? "omniwheel.manager.tooltip.label_off" : "omniwheel.manager.tooltip.label_on");
         } else if (contains(mouseX, mouseY, shortcutToggleButtonX, shortcutToggleButtonY, shortcutToggleButtonWidth, shortcutToggleButtonHeight)) {
-            tooltip = entryShowShortcutDraft ? "Turn shortcut rendering off in the radial." : "Turn shortcut rendering on in the radial.";
+            tooltip = text(entryShowShortcutDraft ? "omniwheel.manager.tooltip.shortcut_off" : "omniwheel.manager.tooltip.shortcut_on");
         } else if (contains(mouseX, mouseY, shortcutButtonX, shortcutButtonY, shortcutButtonWidth, shortcutButtonHeight)) {
-            tooltip = "Open Minecraft controls.";
+            tooltip = text("omniwheel.manager.tooltip.controls");
         } else {
             for (TooltipRegion region : tooltipRegions) {
                 if (contains(mouseX, mouseY, region.x(), region.y(), region.width(), region.height())) {
@@ -2035,9 +2033,9 @@ public final class OmniWheelProfilesOverlay {
         tutorialSkipAllButtonWidth = lastStep ? 0 : buttonWidth;
         tutorialSkipAllButtonHeight = buttonHeight;
 
-        drawTutorialButton(graphics, minecraft, tutorialNextButtonX, tutorialNextButtonY, tutorialNextButtonWidth, tutorialNextButtonHeight, lastStep ? "Finish" : "Next");
+        drawTutorialButton(graphics, minecraft, tutorialNextButtonX, tutorialNextButtonY, tutorialNextButtonWidth, tutorialNextButtonHeight, text(lastStep ? "omniwheel.common.finish" : "omniwheel.common.next"));
         if (!lastStep) {
-            drawTutorialButton(graphics, minecraft, tutorialSkipAllButtonX, tutorialSkipAllButtonY, tutorialSkipAllButtonWidth, tutorialSkipAllButtonHeight, "Skip All");
+            drawTutorialButton(graphics, minecraft, tutorialSkipAllButtonX, tutorialSkipAllButtonY, tutorialSkipAllButtonWidth, tutorialSkipAllButtonHeight, text("omniwheel.common.skip_all"));
         }
         graphics.pose().popPose();
     }
@@ -2095,44 +2093,44 @@ public final class OmniWheelProfilesOverlay {
         int cardWidth;
         return switch (Math.min(managerTutorialStepIndex, MANAGER_TUTORIAL_STEP_COUNT - 1)) {
             case 0 -> {
-                title = "Profiles";
-                body = "Create profiles on the left. Each profile can have its own wheel setup.";
+                title = text("omniwheel.tutorial.manager.profiles.title");
+                body = text("omniwheel.tutorial.manager.profiles.body");
                 cardWidth = tutorialCardWidth(font, title, body, 180, 248);
                 yield new TutorialStep(title, body, profilesPanelX + profilesPanelWidth + 18, profilesPanelY + 42, cardWidth);
             }
             case 1 -> {
-                title = "Entries";
-                body = "The middle panel lists the entries in the current wheel or submenu. Add, delete, and reorder them here.";
+                title = text("omniwheel.tutorial.manager.entries.title");
+                body = text("omniwheel.tutorial.manager.entries.body");
                 cardWidth = tutorialCardWidth(font, title, body, 190, 264);
                 yield new TutorialStep(title, body, wheelsPanelX + wheelsPanelWidth + 18, wheelsPanelY + 42, cardWidth);
             }
             case 2 -> {
-                title = "Name";
-                body = "Start with the entry name. This label is used in the radial menu and in the entries list.";
+                title = text("omniwheel.tutorial.manager.name.title");
+                body = text("omniwheel.tutorial.manager.name.body");
                 cardWidth = tutorialCardWidth(font, title, body, 186, 250);
                 yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 42, cardWidth);
             }
             case 3 -> {
-                title = "Icon";
-                body = "Add an icon here. You can type one directly or open the icon browser and search for a better fit.";
+                title = text("omniwheel.tutorial.manager.icon.title");
+                body = text("omniwheel.tutorial.manager.icon.body");
                 cardWidth = tutorialCardWidth(font, title, body, 192, 258);
                 yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 80, cardWidth);
             }
             case 4 -> {
-                title = "Colors";
-                body = "Use GUI Color and Name Color to change how the entry looks in the radial and in the lists.";
+                title = text("omniwheel.tutorial.manager.colors.title");
+                body = text("omniwheel.tutorial.manager.colors.body");
                 cardWidth = tutorialCardWidth(font, title, body, 196, 266);
                 yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 42, cardWidth);
             }
             case 5 -> {
-                title = "Entry Action";
-                body = "This lower area changes with the entry type. Commands, chat, functions, and submenus all use it differently.";
+                title = text("omniwheel.tutorial.manager.action.title");
+                body = text("omniwheel.tutorial.manager.action.body");
                 cardWidth = tutorialCardWidth(font, title, body, 202, 276);
                 yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 208, cardWidth);
             }
             default -> {
-                title = "Shortcuts";
-                body = "Description and shortcuts live here. Shortcuts are optional and can trigger the entry directly.";
+                title = text("omniwheel.tutorial.manager.shortcuts.title");
+                body = text("omniwheel.tutorial.manager.shortcuts.body");
                 cardWidth = tutorialCardWidth(font, title, body, 196, 266);
                 yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 154, cardWidth);
             }
@@ -2164,7 +2162,7 @@ public final class OmniWheelProfilesOverlay {
 
         EntryShortcutMatcher.ShortcutSpec spec = EntryShortcutMatcher.parse(shortcut);
         if (spec == null) {
-            return "Warning: shortcut format not recognized.";
+            return text("omniwheel.manager.warning.shortcut_format");
         }
 
         List<String> conflicts = new ArrayList<>();
@@ -2173,7 +2171,7 @@ public final class OmniWheelProfilesOverlay {
         if (conflicts.isEmpty()) {
             return null;
         }
-        return "Warning: already used by " + summarizeConflictLabels(conflicts) + ".";
+        return text("omniwheel.manager.warning.shortcut_conflict", summarizeConflictLabels(conflicts));
     }
 
     private List<String> findOmniWheelShortcutConflicts(EntryShortcutMatcher.ShortcutSpec spec) {
@@ -2194,7 +2192,11 @@ public final class OmniWheelProfilesOverlay {
                     }
                     EntryShortcutMatcher.ShortcutSpec other = EntryShortcutMatcher.parse(entry.shortcut());
                     if (spec.equals(other)) {
-                        conflicts.add("OmniWheel: " + profile.displayName() + " / " + entry.label());
+                        conflicts.add(text(
+                                "omniwheel.manager.conflict.omniwheel",
+                                displayText(profile.displayName()),
+                                displayText(entry.label())
+                        ));
                     }
                 }
             }
@@ -2234,9 +2236,9 @@ public final class OmniWheelProfilesOverlay {
             return unique.getFirst();
         }
         if (unique.size() == 2) {
-            return unique.get(0) + " and " + unique.get(1);
+            return text("omniwheel.manager.list.two", unique.get(0), unique.get(1));
         }
-        return unique.get(0) + ", " + unique.get(1) + ", and " + (unique.size() - 2) + " more";
+        return text("omniwheel.manager.list.more", unique.get(0), unique.get(1), unique.size() - 2);
     }
 
     private void openControlsMenu() {
@@ -2298,7 +2300,7 @@ public final class OmniWheelProfilesOverlay {
                 continue;
             }
             if (isUsingVanillaCommandInput(index)) {
-                drawActiveCommandField(graphics, minecraft, x, fieldY, fieldWidth, "Command " + (index + 1), index);
+                drawActiveCommandField(graphics, minecraft, x, fieldY, fieldWidth, text("omniwheel.manager.command_number", index + 1), index);
             } else {
                 drawTextFieldState(
                         graphics,
@@ -2307,7 +2309,7 @@ public final class OmniWheelProfilesOverlay {
                         x,
                         fieldY,
                         fieldWidth,
-                        "Command " + (index + 1),
+                        text("omniwheel.manager.command_number", index + 1),
                         true
                 );
             }
@@ -2329,7 +2331,7 @@ public final class OmniWheelProfilesOverlay {
         addCommandButtonWidth = commandListWidth;
         addCommandButtonHeight = buttonHeight;
         if (addCommandButtonY + addCommandButtonHeight > commandListY && addCommandButtonY < commandListY + commandListHeight) {
-            addButton(graphics, minecraft, addCommandButtonX, addCommandButtonY, addCommandButtonWidth, "Add Command", true, this::addCommandValueField);
+            addButton(graphics, minecraft, addCommandButtonX, addCommandButtonY, addCommandButtonWidth, text("omniwheel.manager.add_command"), true, this::addCommandValueField);
         }
         drawCommandListScrollbar(graphics, needsScrollbar);
     }
@@ -2363,7 +2365,7 @@ public final class OmniWheelProfilesOverlay {
         boolean highlighted = isButtonHighlighted(minecraft, x, y, width, height, focused);
         drawButtonChrome(graphics, x, y, width, height, ROW, ROW_SELECTED, true, highlighted);
         graphics.drawCenteredString(minecraft.font, "-", x + (width / 2), y + 7, highlighted ? TEXT : ACTION);
-        tooltipRegions.add(new TooltipRegion(x, y, width, height, "Delete this command entirely."));
+        tooltipRegions.add(new TooltipRegion(x, y, width, height, text("omniwheel.manager.tooltip.delete_command")));
         actions.add(new ClickAction(x, y, width, height, true, () -> removeCommandValueField(index)));
     }
 
@@ -2479,7 +2481,7 @@ public final class OmniWheelProfilesOverlay {
         functionListScrollOffset = clamp(functionListScrollOffset, 0, Math.max(0, contentHeight - functionListHeight));
         updateFunctionListScrollbarBounds(contentHeight);
 
-        graphics.drawString(minecraft.font, "Function", x, y, TEXT_SECONDARY, false);
+        graphics.drawString(minecraft.font, text("omniwheel.manager.field.function"), x, y, TEXT_SECONDARY, false);
         graphics.fill(functionListX, functionListY, functionListX + functionListWidth, functionListY + functionListHeight, FIELD);
 
         enableUiScissor(graphics, functionListX, functionListY, functionListX + functionListWidth, functionListY + functionListHeight);
@@ -2502,7 +2504,7 @@ public final class OmniWheelProfilesOverlay {
             }
 
             String title = ellipsizeToWidth(minecraft.font, function.displayName(), functionListWidth - 18);
-            String detail = ellipsizeToWidth(minecraft.font, function.category().label() + " | " + function.mode().name(), functionListWidth - 18);
+            String detail = ellipsizeToWidth(minecraft.font, function.category().label() + " | " + functionModeLabel(function.mode()), functionListWidth - 18);
             graphics.drawString(minecraft.font, title, functionListX + 8, rowY + 7, TEXT, false);
             graphics.drawString(minecraft.font, detail, functionListX + 8, rowY + 19, selected ? ACTION : TEXT_SECONDARY, false);
 
@@ -2572,7 +2574,7 @@ public final class OmniWheelProfilesOverlay {
                 editorY,
                 searchWidth,
                 searchFieldHeight,
-                "Search items and blocks",
+                text("omniwheel.manager.search_icons"),
                 true
         );
         iconPickerBackButtonX = editorX + editorWidth - closeButtonWidth;
@@ -2585,7 +2587,7 @@ public final class OmniWheelProfilesOverlay {
                 iconPickerBackButtonX,
                 iconPickerBackButtonY,
                 iconPickerBackButtonWidth,
-                "Back",
+                text("omniwheel.common.back"),
                 iconPickerBackButtonHeight,
                 true,
                 this::closeIconPicker
@@ -2673,7 +2675,7 @@ public final class OmniWheelProfilesOverlay {
             boolean selected = wheelEntry.id().equals(selectedEntryId);
             graphics.fill(cardX, cardY, cardX + cardWidth, cardY + cardHeight, selected ? ROW_SELECTED : ROW);
             graphics.fill(cardX + 8, cardY + 9, cardX + 20, cardY + 21, wheelEntry.color());
-            graphics.drawString(minecraft.font, shorten(wheelEntry.label(), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 7, TEXT, false);
+            graphics.drawString(minecraft.font, shorten(displayText(wheelEntry.label()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 7, TEXT, false);
             graphics.drawString(minecraft.font, shorten(actionSummary(wheelEntry.action()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 20, TEXT_SECONDARY, false);
         if (!EntryIconRenderer.drawIcon(graphics, minecraft, wheelEntry.glyph(), cardX + cardWidth - 9.0F, cardY + 19.0F, 0.75F)) {
             graphics.drawString(minecraft.font, wheelEntry.glyph(), cardX + cardWidth - 14, cardY + 14, wheelEntry.color(), false);
@@ -2688,7 +2690,8 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (contentHeight > height) {
-            graphics.drawString(minecraft.font, "Scroll", x + width - minecraft.font.width("Scroll") - 8, y + height - 11, TEXT_SECONDARY, false);
+            String scroll = text("omniwheel.manager.scroll");
+            graphics.drawString(minecraft.font, scroll, x + width - minecraft.font.width(scroll) - 8, y + height - 11, TEXT_SECONDARY, false);
         }
     }
 
@@ -2907,7 +2910,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void loadWheelDraft(WheelDefinition wheel) {
-        wheelTitleDraft = wheel.title();
+        wheelTitleDraft = displayText(wheel.title());
         textFields.get(EditorField.WHEEL_TITLE).setValue(wheelTitleDraft);
     }
 
@@ -2938,8 +2941,8 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
 
-        entryLabelDraft = entry.label();
-        entryDescriptionDraft = entry.description();
+        entryLabelDraft = displayText(entry.label());
+        entryDescriptionDraft = displayText(entry.description());
         entryShortcutDraft = entry.shortcut();
         entryGlyphDraft = entry.glyph();
         entryColorDraft = entry.color();
@@ -2953,10 +2956,10 @@ public final class OmniWheelProfilesOverlay {
         entryScreenTargetDraft = entry.action() instanceof OpenScreenAction openScreenAction ? openScreenAction.target() : ScreenTarget.PROFILE_MANAGER;
         entryValueDraft = switch (entry.action()) {
             case CommandAction commandAction -> formatCommandValues(commandAction.commands());
-            case ChatAction chatAction -> chatAction.message();
+            case ChatAction chatAction -> displayText(chatAction.message());
             case FunctionAction functionAction -> functionAction.function().displayName();
             case CopyTextAction copyTextAction -> copyTextAction.text();
-            case LocalMessageAction localMessageAction -> localMessageAction.message();
+            case LocalMessageAction localMessageAction -> displayText(localMessageAction.message());
             case OpenChatAction openChatAction -> openChatAction.initialText();
             case OpenScreenAction ignored -> entryScreenTargetDraft.name();
             default -> "";
@@ -2981,7 +2984,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         String wheelId = nextWheelId(profile, "custom_wheel");
-        WheelDefinition wheel = new WheelDefinition(wheelId, "New Wheel", "", 8, List.of());
+        WheelDefinition wheel = new WheelDefinition(wheelId, text("omniwheel.manager.created.wheel"), "", 8, List.of());
         persistProfile(withWheel(profile, wheel));
         selectedWheelId = wheelId;
         selectedEntryId = null;
@@ -2999,7 +3002,7 @@ public final class OmniWheelProfilesOverlay {
         List<WheelEntry> entries = currentWheel.entries();
         WheelDefinition updatedWheel = new WheelDefinition(
                 currentWheel.id(),
-                fallbackText(wheelTitleDraft, currentWheel.title()),
+                preservedDraftText(wheelTitleDraft, currentWheel.title()),
                 currentWheel.description(),
                 storedSegmentCount(entries.size()),
                 entries,
@@ -3050,11 +3053,11 @@ public final class OmniWheelProfilesOverlay {
         }
 
         String submenuId = nextWheelId(profile, "submenu");
-        WheelDefinition submenu = new WheelDefinition(submenuId, "New Submenu", "", 8, List.of());
+        WheelDefinition submenu = new WheelDefinition(submenuId, text("omniwheel.manager.created.submenu_wheel"), "", 8, List.of());
         WheelEntry entry = new WheelEntry(
                 nextEntryId(wheel),
-                "Submenu",
-                "Open a custom submenu.",
+                text("omniwheel.manager.created.submenu_entry"),
+                text("omniwheel.manager.created.submenu_entry.description"),
                 "S",
                 0xFF8EE1FF,
                 new OpenWheelAction(submenuId)
@@ -3077,17 +3080,17 @@ public final class OmniWheelProfilesOverlay {
 
         WheelAction action = switch (actionType) {
             case COMMAND -> new CommandAction("/command", false);
-            case CHAT -> new ChatAction("Hello", false);
+            case CHAT -> new ChatAction(text("omniwheel.manager.created.chat_value"), false);
             case FUNCTION -> new FunctionAction(GameplayFunction.OPEN_INVENTORY);
             default -> new CommandAction("/command", false);
         };
         WheelEntry entry = new WheelEntry(
                 nextEntryId(wheel),
                 switch (actionType) {
-                    case COMMAND -> "New Command";
-                    case CHAT -> "New Message";
-                    case FUNCTION -> "New Function";
-                    default -> "New Entry";
+                    case COMMAND -> text("omniwheel.manager.created.command_entry");
+                    case CHAT -> text("omniwheel.manager.created.message_entry");
+                    case FUNCTION -> text("omniwheel.manager.created.function_entry");
+                    default -> text("omniwheel.manager.created.entry");
                 },
                 "",
                 switch (actionType) {
@@ -3116,12 +3119,12 @@ public final class OmniWheelProfilesOverlay {
 
         WheelEntry updatedEntry = new WheelEntry(
                 currentEntry.id(),
-                fallbackText(entryLabelDraft, currentEntry.label()),
-                entryDescriptionDraft.trim(),
+                preservedDraftText(entryLabelDraft, currentEntry.label()),
+                preservedDraftText(entryDescriptionDraft, currentEntry.description()),
                 fallbackText(iconFromText(entryGlyphDraft), currentEntry.glyph()),
                 entryColorDraft,
                 entryGuiColorDraft,
-                buildDraftAction(),
+                buildDraftAction(currentEntry.action()),
                 currentEntry.active(),
                 entryShowIconDraft,
                 entryShowLabelDraft,
@@ -3163,14 +3166,14 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private WheelAction buildDraftAction() {
+    private WheelAction buildDraftAction(WheelAction currentAction) {
         return switch (entryActionTypeDraft) {
             case COMMAND -> new CommandAction(normalizedCommandDrafts(), false);
-            case CHAT -> new ChatAction(fallbackText(entryValueDraft, "Hello"), false);
+            case CHAT -> new ChatAction(preservedActionValue(currentAction, ChatAction.class, entryValueDraft, text("omniwheel.manager.created.chat_value")), false);
             case FUNCTION -> new FunctionAction(entryFunctionDraft);
-            case LOCAL_MESSAGE -> new LocalMessageAction(fallbackText(entryValueDraft, ""));
+            case LOCAL_MESSAGE -> new LocalMessageAction(preservedActionValue(currentAction, LocalMessageAction.class, entryValueDraft, ""));
             case OPEN_CHAT -> new OpenChatAction(fallbackText(entryValueDraft, ""));
-            case COPY_TEXT -> new CopyTextAction(fallbackText(entryValueDraft, ""));
+            case COPY_TEXT -> new CopyTextAction(preservedActionValue(currentAction, CopyTextAction.class, entryValueDraft, ""));
             case OPEN_SCREEN -> new OpenScreenAction(entryScreenTargetDraft);
             case SUBMENU -> new OpenWheelAction(Objects.requireNonNullElse(entrySubmenuWheelId, selectedWheelId));
         };
@@ -3268,7 +3271,7 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
         renamingProfileId = profile.id();
-        profileNameDraft = profile.displayName();
+        profileNameDraft = displayText(profile.displayName());
         textFields.get(EditorField.PROFILE_NAME).setValue(profileNameDraft);
         focusField(EditorField.PROFILE_NAME);
         activateTextEntry();
@@ -3317,7 +3320,7 @@ public final class OmniWheelProfilesOverlay {
     private String selectedThingToggleLabel() {
         WheelEntry entry = selectedEntry();
         if (entry != null) {
-            return entry.active() ? "Deactivate" : "Activate";
+            return text(entry.active() ? "omniwheel.common.deactivate" : "omniwheel.common.activate");
         }
         return selectedWheelToggleLabel();
     }
@@ -3363,9 +3366,9 @@ public final class OmniWheelProfilesOverlay {
     private String selectedWheelToggleLabel() {
         WheelDefinition wheel = selectedWheel();
         if (wheel == null) {
-            return "Deactivate";
+            return text("omniwheel.common.deactivate");
         }
-        return wheel.active() ? "Deactivate" : "Activate";
+        return text(wheel.active() ? "omniwheel.common.deactivate" : "omniwheel.common.activate");
     }
 
     private void renameSelectedWheel() {
@@ -3374,7 +3377,7 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
         renamingWheelId = wheel.id();
-        wheelTitleDraft = wheel.title();
+        wheelTitleDraft = displayText(wheel.title());
         textFields.get(EditorField.WHEEL_TITLE).setValue(wheelTitleDraft);
         focusField(EditorField.WHEEL_TITLE);
         activateTextEntry();
@@ -3554,7 +3557,7 @@ public final class OmniWheelProfilesOverlay {
             if (wheel == null) {
                 break;
             }
-            titles.add(0, wheel.title());
+            titles.add(0, displayText(wheel.title()));
             currentId = currentId.equals(profile.rootWheelId()) ? null : parentWheelIdFor(profile, currentId);
         }
         return String.join(" > ", titles);
@@ -3649,7 +3652,9 @@ public final class OmniWheelProfilesOverlay {
         }
 
         WheelProfile profile = profileById(renamingProfileId);
-        String nextDisplayName = fallbackText(profileNameDraft == null ? "" : profileNameDraft.trim(), profile == null ? "Profile" : profile.displayName());
+        String nextDisplayName = profile == null
+                ? fallbackText(profileNameDraft == null ? "" : profileNameDraft.trim(), text("omniwheel.manager.created.profile"))
+                : preservedDraftText(profileNameDraft, profile.displayName());
         if (profile != null && !nextDisplayName.equals(profile.displayName())) {
             WheelProfile updatedProfile = runtime.profileManager().renameProfile(renamingProfileId, nextDisplayName);
             selectedProfileId = updatedProfile.id();
@@ -3674,7 +3679,7 @@ public final class OmniWheelProfilesOverlay {
         WheelProfile profile = selectedProfile();
         WheelDefinition wheel = selectedWheel();
         if (profile != null && wheel != null && wheel.id().equals(renamingWheelId)) {
-            String nextTitle = fallbackText(wheelTitleDraft == null ? "" : wheelTitleDraft.trim(), wheel.title());
+            String nextTitle = preservedDraftText(wheelTitleDraft, wheel.title());
             if (!nextTitle.equals(wheel.title())) {
                 WheelDefinition updatedWheel = new WheelDefinition(
                         wheel.id(),
@@ -3718,10 +3723,10 @@ public final class OmniWheelProfilesOverlay {
 
     private String submenuTargetLabel(WheelProfile profile) {
         if (entrySubmenuWheelId == null) {
-            return "No linked wheel";
+            return text("omniwheel.manager.no_linked_wheel");
         }
         WheelDefinition target = profile.wheels().get(entrySubmenuWheelId);
-        return target != null ? target.title() + " (" + target.id() + ")" : entrySubmenuWheelId;
+        return target != null ? displayText(target.title()) + " (" + target.id() + ")" : entrySubmenuWheelId;
     }
 
     private String nextWheelId(WheelProfile profile, String prefix) {
@@ -4283,41 +4288,77 @@ public final class OmniWheelProfilesOverlay {
 
     private static String actionSummary(WheelAction action) {
         return switch (action) {
-            case CommandAction commandAction -> commandAction.commands().size() > 1 ? "Commands" : "Command";
-            case ChatAction ignored -> "Chat";
+            case CommandAction commandAction -> text(commandAction.commands().size() > 1 ? "omniwheel.action.commands" : "omniwheel.action.command");
+            case ChatAction ignored -> text("omniwheel.action.chat");
             case FunctionAction functionAction -> functionAction.function().displayName();
-            case OpenWheelAction ignored -> "Submenu";
-            case LocalMessageAction ignored -> "Local";
-            case CopyTextAction ignored -> "Clipboard";
-            case OpenChatAction ignored -> "Prefill";
-            case OpenScreenAction ignored -> "Screen";
+            case OpenWheelAction ignored -> text("omniwheel.action.submenu");
+            case LocalMessageAction ignored -> text("omniwheel.action.local");
+            case CopyTextAction ignored -> text("omniwheel.action.clipboard");
+            case OpenChatAction ignored -> text("omniwheel.action.prefill");
+            case OpenScreenAction ignored -> text("omniwheel.action.screen");
             default -> action.getClass().getSimpleName();
         };
     }
 
     private static String entryTypeLabel(WheelEntry entry) {
         return switch (entry.action()) {
-            case CommandAction ignored -> "CMD";
-            case ChatAction ignored -> "CHAT";
-            case FunctionAction ignored -> "FUNC";
-            case OpenWheelAction ignored -> "SUB";
-            case LocalMessageAction ignored -> "LOCAL";
-            case CopyTextAction ignored -> "COPY";
-            case OpenChatAction ignored -> "OPEN";
-            case OpenScreenAction ignored -> "UI";
+            case CommandAction ignored -> text("omniwheel.action.type.command");
+            case ChatAction ignored -> text("omniwheel.action.type.chat");
+            case FunctionAction ignored -> text("omniwheel.action.type.function");
+            case OpenWheelAction ignored -> text("omniwheel.action.type.submenu");
+            case LocalMessageAction ignored -> text("omniwheel.action.type.local");
+            case CopyTextAction ignored -> text("omniwheel.action.type.copy");
+            case OpenChatAction ignored -> text("omniwheel.action.type.open");
+            case OpenScreenAction ignored -> text("omniwheel.action.type.screen");
             default -> "...";
         };
     }
 
     private static String screenTargetLabel(ScreenTarget target) {
         return switch (target) {
-            case PROFILE_MANAGER -> "Profile Manager";
+            case PROFILE_MANAGER -> text("omniwheel.screen.profile_manager");
         };
+    }
+
+    private static String functionModeLabel(GameplayFunction.FunctionMode mode) {
+        return switch (mode) {
+            case TRIGGER -> text("omniwheel.function.mode.trigger");
+            case TOGGLE -> text("omniwheel.function.mode.toggle");
+        };
+    }
+
+    private static String text(String key, Object... args) {
+        return OmniWheelText.translate(key, args);
+    }
+
+    private static String displayText(String value) {
+        return OmniWheelText.resolve(value);
     }
 
     private static String fallbackText(String value, String fallback) {
         String trimmed = value == null ? "" : value.trim();
         return trimmed.isEmpty() ? fallback : trimmed;
+    }
+
+    private static String preservedDraftText(String draft, String stored) {
+        String trimmed = draft == null ? "" : draft.trim();
+        if (trimmed.isEmpty()) {
+            return stored;
+        }
+        if (OmniWheelText.isTranslationKey(stored) && trimmed.equals(displayText(stored))) {
+            return stored;
+        }
+        return trimmed;
+    }
+
+    private static String preservedActionValue(WheelAction currentAction, Class<? extends WheelAction> actionType, String draft, String fallback) {
+        String stored = switch (currentAction) {
+            case ChatAction chatAction when actionType == ChatAction.class -> chatAction.message();
+            case LocalMessageAction localMessageAction when actionType == LocalMessageAction.class -> localMessageAction.message();
+            case CopyTextAction copyTextAction when actionType == CopyTextAction.class -> copyTextAction.text();
+            default -> fallback;
+        };
+        return preservedDraftText(draft, stored);
     }
 
     private static List<String> parseCommandValues(String rawValue) {
@@ -4445,12 +4486,12 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private boolean isWheelDraftDirty(WheelDefinition wheel) {
-        return !wheel.title().equals(fallbackText(wheelTitleDraft, wheel.title()));
+        return !wheel.title().equals(preservedDraftText(wheelTitleDraft, wheel.title()));
     }
 
     private boolean isEntryDraftDirty(WheelEntry entry) {
-        return !entry.label().equals(fallbackText(entryLabelDraft, entry.label()))
-                || !entry.description().equals(entryDescriptionDraft.trim())
+        return !entry.label().equals(preservedDraftText(entryLabelDraft, entry.label()))
+                || !entry.description().equals(preservedDraftText(entryDescriptionDraft, entry.description()))
                 || !entry.shortcut().equals(entryShortcutDraft.trim())
                 || !entry.glyph().equals(fallbackText(iconFromText(entryGlyphDraft), entry.glyph()))
                 || entry.color() != entryColorDraft
@@ -4458,7 +4499,7 @@ public final class OmniWheelProfilesOverlay {
                 || entry.showIcon() != entryShowIconDraft
                 || entry.showLabel() != entryShowLabelDraft
                 || entry.showShortcut() != entryShowShortcutDraft
-                || !entry.action().equals(buildDraftAction());
+                || !entry.action().equals(buildDraftAction(entry.action()));
     }
 
     private void drawPanel(GuiGraphics graphics, int x, int y, int width, int height, boolean active) {
@@ -4522,68 +4563,40 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private float currentMouseX(Minecraft minecraft) {
-        if (screenHosted) {
-            return (float) (minecraft.mouseHandler.xpos() / SCREEN_HOSTED_REFERENCE_SCALE);
-        }
-        return (float) (minecraft.mouseHandler.xpos() * minecraft.getWindow().getGuiScaledWidth() / minecraft.getWindow().getScreenWidth());
+        double guiX = minecraft.mouseHandler.xpos() * minecraft.getWindow().getGuiScaledWidth() / minecraft.getWindow().getScreenWidth();
+        return (float) (guiX / uiScale(minecraft));
     }
 
     private float currentMouseY(Minecraft minecraft) {
-        if (screenHosted) {
-            return (float) (minecraft.mouseHandler.ypos() / SCREEN_HOSTED_REFERENCE_SCALE);
-        }
-        return (float) (minecraft.mouseHandler.ypos() * minecraft.getWindow().getGuiScaledHeight() / minecraft.getWindow().getScreenHeight());
+        double guiY = minecraft.mouseHandler.ypos() * minecraft.getWindow().getGuiScaledHeight() / minecraft.getWindow().getScreenHeight();
+        return (float) (guiY / uiScale(minecraft));
     }
 
     private int uiWidth(Minecraft minecraft) {
-        return screenHosted
-                ? (int) Math.round(minecraft.getWindow().getScreenWidth() / SCREEN_HOSTED_REFERENCE_SCALE)
-                : minecraft.getWindow().getGuiScaledWidth();
+        return Math.max(1, (int) Math.round(minecraft.getWindow().getGuiScaledWidth() / uiScale(minecraft)));
     }
 
     private int uiHeight(Minecraft minecraft) {
-        return screenHosted
-                ? (int) Math.round(minecraft.getWindow().getScreenHeight() / SCREEN_HOSTED_REFERENCE_SCALE)
-                : minecraft.getWindow().getGuiScaledHeight();
+        return Math.max(1, (int) Math.round(minecraft.getWindow().getGuiScaledHeight() / uiScale(minecraft)));
     }
 
-    private double uiScaleFactor(Minecraft minecraft) {
-        return (double) minecraft.getWindow().getScreenWidth() / Math.max(1, minecraft.getWindow().getGuiScaledWidth());
-    }
-
-    private double screenHostedRenderScale(Minecraft minecraft) {
-        return screenHosted ? (SCREEN_HOSTED_REFERENCE_SCALE / uiScaleFactor(minecraft)) : 1.0D;
+    private double uiScale(Minecraft minecraft) {
+        double widthScale = minecraft.getWindow().getGuiScaledWidth() / (double) REFERENCE_UI_WIDTH;
+        double heightScale = minecraft.getWindow().getGuiScaledHeight() / (double) REFERENCE_UI_HEIGHT;
+        return Math.max(0.05D, Math.min(widthScale, heightScale));
     }
 
     private double toUiX(double mouseX) {
-        if (!screenHosted) {
-            return mouseX;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        return mouseX * (uiScaleFactor(minecraft) / SCREEN_HOSTED_REFERENCE_SCALE);
+        return mouseX / uiScale(Minecraft.getInstance());
     }
 
     private double toUiY(double mouseY) {
-        if (!screenHosted) {
-            return mouseY;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        return mouseY * (uiScaleFactor(minecraft) / SCREEN_HOSTED_REFERENCE_SCALE);
+        return mouseY / uiScale(Minecraft.getInstance());
     }
 
     private void enableUiScissor(GuiGraphics graphics, int x1, int y1, int x2, int y2) {
-        if (!screenHosted) {
-            graphics.enableScissor(x1, y1, x2, y2);
-            return;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        double scale = screenHostedRenderScale(minecraft);
-        graphics.enableScissor(
-                (int) Math.floor(x1 * scale),
-                (int) Math.floor(y1 * scale),
-                (int) Math.ceil(x2 * scale),
-                (int) Math.ceil(y2 * scale)
-        );
+        int edgePadding = Math.max(1, (int) Math.ceil(1.0D / uiScale(Minecraft.getInstance())));
+        graphics.enableScissor(x1, y1, x2 + edgePadding, y2 + edgePadding);
     }
 
     private WheelProfile draggedProfile() {
@@ -7018,7 +7031,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (commandInput == null) {
-            commandInput = new EditBox(minecraft.font, 0, 0, 100, 12, Component.literal("Command"));
+            commandInput = new EditBox(minecraft.font, 0, 0, 100, 12, OmniWheelText.component("omniwheel.action.command"));
             commandInput.setMaxLength(256);
             commandInput.setBordered(false);
             commandInput.setTextColor(TEXT);
@@ -7217,20 +7230,14 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private enum DraftActionType {
-        COMMAND("Command"),
-        CHAT("Chat"),
-        FUNCTION("Function"),
-        LOCAL_MESSAGE("Local Msg"),
-        OPEN_CHAT("Open Chat"),
-        COPY_TEXT("Copy Text"),
-        OPEN_SCREEN("Open Screen"),
-        SUBMENU("Submenu");
-
-        private final String label;
-
-        DraftActionType(String label) {
-            this.label = label;
-        }
+        COMMAND,
+        CHAT,
+        FUNCTION,
+        LOCAL_MESSAGE,
+        OPEN_CHAT,
+        COPY_TEXT,
+        OPEN_SCREEN,
+        SUBMENU;
 
         private DraftActionType next() {
             return switch (this) {

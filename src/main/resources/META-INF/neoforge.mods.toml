@@ -15,13 +15,13 @@ description='''${mod_description}'''
 [[dependencies.${mod_id}]]
     modId="neoforge"
     type="required"
-    versionRange="[${neo_version},)"
+    versionRange="${neo_version_range}"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
 
 [[dependencies.${mod_id}]]
     modId="minecraft"
     type="required"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
