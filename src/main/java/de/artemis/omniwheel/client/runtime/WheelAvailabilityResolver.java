@@ -12,6 +12,7 @@ import de.artemis.omniwheel.common.action.OpenScreenAction;
 import de.artemis.omniwheel.common.action.OpenWheelAction;
 import de.artemis.omniwheel.common.action.SwitchProfileAction;
 import de.artemis.omniwheel.common.action.WheelAction;
+import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
@@ -203,14 +204,15 @@ public final class WheelAvailabilityResolver {
         WheelProfile activeProfile = OmniWheelClientRuntime.getInstance().activeProfile();
         List<WheelEntry> entries = new ArrayList<>(profiles.size());
         for (WheelProfile profile : profiles) {
-            String glyph = profile.displayName().isBlank()
+            String displayName = OmniWheelText.resolve(profile.displayName());
+            String glyph = displayName.isBlank()
                     ? "P"
-                    : Character.toString(Character.toUpperCase(profile.displayName().charAt(0)));
+                    : Character.toString(Character.toUpperCase(displayName.charAt(0)));
             int color = profile.id().equals(activeProfile.id()) ? 0xFF8BDAF8 : WheelEntry.DEFAULT_COLOR;
             entries.add(new WheelEntry(
                     "profile_" + profile.id(),
                     profile.displayName(),
-                    profile.id().equals(activeProfile.id()) ? "Currently active profile." : "Activate this profile.",
+                    profile.id().equals(activeProfile.id()) ? "omniwheel.profiles_wheel.current" : "omniwheel.profiles_wheel.activate",
                     glyph,
                     color,
                     new SwitchProfileAction(profile.id())
