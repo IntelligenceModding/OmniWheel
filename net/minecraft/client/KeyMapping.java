@@ -31,7 +31,6 @@ public class KeyMapping implements Comparable<KeyMapping>, IKeyMappingExtension 
     boolean isDown;
     private int clickCount;
     private final int order;
-    // Neo: Injected Key Mapping controls
     private net.neoforged.neoforge.client.settings.KeyModifier keyModifierDefault = net.neoforged.neoforge.client.settings.KeyModifier.NONE;
     private net.neoforged.neoforge.client.settings.KeyModifier keyModifier = net.neoforged.neoforge.client.settings.KeyModifier.NONE;
     private net.neoforged.neoforge.client.settings.IKeyConflictContext keyConflictContext = net.neoforged.neoforge.client.settings.KeyConflictContext.UNIVERSAL;
@@ -115,37 +114,24 @@ public class KeyMapping implements Comparable<KeyMapping>, IKeyMappingExtension 
         this.registerMapping(this.key);
     }
 
-    // Neo: Injected Key Mapping constructors to assist modders
-    /**
-     * Convenience constructor for creating KeyMappings with keyConflictContext set.
-     */
     public KeyMapping(String name, net.neoforged.neoforge.client.settings.IKeyConflictContext keyConflictContext, InputConstants.Type inputType, int keyCode, KeyMapping.Category category) {
         this(name, keyConflictContext, inputType.getOrCreate(keyCode), category);
     }
 
-    /**
-     * Convenience constructor for creating KeyMappings with keyConflictContext set.
-     */
     public KeyMapping(String name, net.neoforged.neoforge.client.settings.IKeyConflictContext keyConflictContext, InputConstants.Key keyCode, KeyMapping.Category category) {
         this(name, keyConflictContext, net.neoforged.neoforge.client.settings.KeyModifier.NONE, keyCode, category);
     }
 
-    /**
-     * Convenience constructor for creating KeyMappings with keyConflictContext and keyModifier set.
-     */
     public KeyMapping(String name, net.neoforged.neoforge.client.settings.IKeyConflictContext keyConflictContext, net.neoforged.neoforge.client.settings.KeyModifier keyModifier, InputConstants.Type inputType, int keyCode, KeyMapping.Category category) {
         this(name, keyConflictContext, keyModifier, inputType.getOrCreate(keyCode), category);
     }
 
-    /**
-     * Convenience constructor for creating KeyMappings with keyConflictContext and keyModifier set.
-     */
     public KeyMapping(String name, net.neoforged.neoforge.client.settings.IKeyConflictContext keyConflictContext, net.neoforged.neoforge.client.settings.KeyModifier keyModifier, InputConstants.Key keyCode, KeyMapping.Category category) {
         this.name = name;
         this.key = keyCode;
         this.defaultKey = keyCode;
         this.category = category;
-        this.order = 0; // TODO 1.21.11: should we add additional constructor overloads to specify this?
+        this.order = 0;
         this.keyConflictContext = keyConflictContext;
         this.keyModifier = keyModifier;
         this.keyModifierDefault = keyModifier;
@@ -248,9 +234,6 @@ public class KeyMapping implements Comparable<KeyMapping>, IKeyMappingExtension 
             if (keyModifier.matches(that.getKey()) || otherKeyModifier.matches(getKey())) {
                 return true;
             } else if (getKey().equals(that.getKey())) {
-                // IN_GAME key contexts have a conflict when at least one modifier is NONE.
-                // For example: If you hold shift to crouch, you can still press E to open your inventory. This means that a Shift+E hotkey is in conflict with E.
-                // GUI and other key contexts do not have this limitation.
                 return keyModifier == otherKeyModifier ||
                     (getKeyConflictContext().conflicts(net.neoforged.neoforge.client.settings.KeyConflictContext.IN_GAME) &&
                     (keyModifier == net.neoforged.neoforge.client.settings.KeyModifier.NONE || otherKeyModifier == net.neoforged.neoforge.client.settings.KeyModifier.NONE));
@@ -318,9 +301,6 @@ public class KeyMapping implements Comparable<KeyMapping>, IKeyMappingExtension 
             return register(Identifier.withDefaultNamespace(name));
         }
 
-        /**
-         * @deprecated Neo: use {@link net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent#registerCategory(Category)} instead
-         */
         @Deprecated
         public static KeyMapping.Category register(Identifier id) {
             KeyMapping.Category category = new KeyMapping.Category(id);
