@@ -8,6 +8,7 @@ import de.artemis.omniwheel.common.action.LocalMessageAction;
 import de.artemis.omniwheel.common.action.OpenChatAction;
 import de.artemis.omniwheel.common.action.SwitchProfileAction;
 import de.artemis.omniwheel.common.action.WheelAction;
+import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
@@ -116,14 +117,17 @@ public final class ClientActionExecutor {
 
         String resolved = PlaceholderResolver.resolve(action.text(), minecraft);
         minecraft.keyboardHandler.setClipboard(resolved);
-        minecraft.player.displayClientMessage(Component.literal("Copied to clipboard"), true);
+        minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.copied_to_clipboard"), true);
     }
 
     private void executeSwitchProfile(SwitchProfileAction action) {
         Minecraft minecraft = Minecraft.getInstance();
         runtime().profileManager().setActiveProfile(action.profileId());
         if (minecraft.player != null) {
-            minecraft.player.displayClientMessage(Component.literal("Active profile: " + runtime().activeProfile().displayName()), true);
+            minecraft.player.displayClientMessage(
+                    OmniWheelText.component("omniwheel.message.active_profile", OmniWheelText.resolve(runtime().activeProfile().displayName())),
+                    true
+            );
         }
     }
 

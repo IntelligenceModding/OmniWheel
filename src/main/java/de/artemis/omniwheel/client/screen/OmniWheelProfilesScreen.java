@@ -2,16 +2,16 @@ package de.artemis.omniwheel.client.screen;
 
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
+import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
 
 public final class OmniWheelProfilesScreen extends Screen {
     private final OmniWheelProfilesOverlay editor;
     private final Screen parent;
 
     public OmniWheelProfilesScreen(OmniWheelClientRuntime runtime, Screen parent) {
-        super(Component.literal("OmniWheel Manager"));
+        super(OmniWheelText.component("omniwheel.screen.profile_manager"));
         this.editor = new OmniWheelProfilesOverlay(runtime);
         this.parent = parent;
     }
