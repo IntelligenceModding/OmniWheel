@@ -1,0 +1,160 @@
+name: Bug Report
+description: Report a reproducible problem with Omni Wheel
+title: "[Bug] "
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem with Omni Wheel.
+
+        Please provide enough information for the issue to be reproduced and investigated.
+
+  - type: input
+    id: minecraft-version
+    attributes:
+      label: Minecraft Version
+      description: Which Minecraft version are you using?
+      placeholder: "Example: 26.1.2"
+    validations:
+      required: true
+
+  - type: input
+    id: mod-version
+    attributes:
+      label: Omni Wheel Version
+      description: Which version of Omni Wheel are you using?
+      placeholder: "Example: 1.1r"
+    validations:
+      required: true
+
+  - type: input
+    id: loader
+    attributes:
+      label: Mod Loader
+      description: Which mod loader and version are you using?
+      placeholder: "Example: NeoForge 21.7.25-beta"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-area
+    attributes:
+      label: Affected Feature
+      description: Which part of Omni Wheel is affected?
+      options:
+        - Radial Wheel
+        - Profiles
+        - Submenus
+        - Commands
+        - Chat Actions
+        - Client-Side Actions
+        - Keyboard Shortcuts
+        - Mouse / Click Input
+        - Numpad Input
+        - Placeholders
+        - Profile Manager
+        - Configuration / Saving
+        - Tutorials
+        - Rendering / Interface
+        - Multiplayer Behavior
+        - Other
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem clearly.
+      placeholder: Explain what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen instead?
+      placeholder: Explain what you expected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide clear steps that can be used to reproduce the issue.
+      placeholder: |
+        1. Launch the game with ...
+        2. Open Omni Wheel ...
+        3. Select/configure ...
+        4. The issue occurs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Relevant Omni Wheel Configuration
+      description: If the problem involves a profile, wheel entry, shortcut, placeholder, submenu, or other configuration, describe it here.
+      placeholder: |
+        Example:
+        - Profile: Survival
+        - Wheel layout: 8 segments
+        - Entry type: Command
+        - Shortcut: G
+        - Command: /spawn
+
+  - type: dropdown
+    id: multiplayer
+    attributes:
+      label: Where Does the Issue Occur?
+      description: Does the problem happen in singleplayer, multiplayer, or both?
+      options:
+        - Singleplayer only
+        - Multiplayer only
+        - Both singleplayer and multiplayer
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other Installed Mods
+      description: List other mods that may be relevant. If the issue may be compatibility-related, provide the full mod list if possible.
+      placeholder: |
+        Example:
+        - JEI 19.22.0.315
+        - Example Mod 1.2.3
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Crash Report
+      description: Attach or paste relevant logs or crash reports. Use a file attachment or code block for long logs.
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Add screenshots, videos, server information, profile details, configuration examples, or anything else that may help.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before Submitting
+      options:
+        - label: I searched existing issues and did not find the same problem.
+          required: true
+        - label: I am using an Omni Wheel version intended for my Minecraft version.
+          required: true
+        - label: I am using compatible versions of the required dependencies.
+          required: true
+        - label: I can reproduce this issue.
+          required: true
