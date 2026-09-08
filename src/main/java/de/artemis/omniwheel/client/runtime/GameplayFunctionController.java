@@ -2,6 +2,7 @@ package de.artemis.omniwheel.client.runtime;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
+import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.action.GameplayFunction;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
@@ -127,7 +128,14 @@ public final class GameplayFunctionController {
 
     private void notifyToggle(Minecraft minecraft, GameplayFunction function, boolean enabled) {
         if (minecraft.player != null) {
-            minecraft.player.displayClientMessage(Component.literal(function.displayName() + ": " + (enabled ? "On" : "Off")), true);
+            minecraft.player.displayClientMessage(
+                    OmniWheelText.component(
+                            "omniwheel.message.toggle_state",
+                            function.displayName(),
+                            OmniWheelText.translate(enabled ? "omniwheel.common.on" : "omniwheel.common.off")
+                    ),
+                    true
+            );
         }
     }
 
