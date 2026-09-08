@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import de.artemis.omniwheel.common.OmniWheelText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,21 +22,31 @@ public final class ContextValueFormatter {
     }
 
     public static List<CopyValue> extractCopyValues(String template, Minecraft minecraft) {
+        template = OmniWheelText.resolve(template);
         List<CopyValue> values = new ArrayList<>();
         if (minecraft.player == null || minecraft.level == null) {
             return values;
         }
 
         if (containsCoordinates(template)) {
-            values.add(new CopyValue("Coords: " + currentCoordinatesDisplay(minecraft), currentCoordinatesClipboard(minecraft), "Coordinates"));
+            values.add(new CopyValue(
+                    OmniWheelText.translate("omniwheel.context.coords", currentCoordinatesDisplay(minecraft)),
+                    currentCoordinatesClipboard(minecraft),
+                    OmniWheelText.translate("omniwheel.context.coordinates")
+            ));
         }
         if (template.contains("{dimension}")) {
-            values.add(new CopyValue("Dimension: " + currentDimensionDisplay(minecraft), currentDimensionRaw(minecraft), "Dimension"));
+            values.add(new CopyValue(
+                    OmniWheelText.translate("omniwheel.context.dimension", currentDimensionDisplay(minecraft)),
+                    currentDimensionRaw(minecraft),
+                    OmniWheelText.translate("omniwheel.context.dimension_label")
+            ));
         }
         return values;
     }
 
     public static String resolveForDisplay(String template, Minecraft minecraft) {
+        template = OmniWheelText.resolve(template);
         if (minecraft.player == null || minecraft.level == null) {
             return template;
         }
@@ -43,6 +54,7 @@ public final class ContextValueFormatter {
     }
 
     public static Component buildInteractiveComponent(String template, Minecraft minecraft) {
+        template = OmniWheelText.resolve(template);
         if (minecraft.player == null || minecraft.level == null) {
             return Component.literal(template);
         }
@@ -64,10 +76,10 @@ public final class ContextValueFormatter {
             }
 
             if (nextIndex == coordIndex) {
-                result.append(copyableLiteral(currentCoordinatesDisplay(minecraft), currentCoordinatesClipboard(minecraft), "Copy coordinates"));
+                result.append(copyableLiteral(currentCoordinatesDisplay(minecraft), currentCoordinatesClipboard(minecraft), "omniwheel.context.copy_coordinates"));
                 cursor = nextIndex + coordinateTokenLength(template, nextIndex);
             } else {
-                result.append(copyableLiteral(currentDimensionDisplay(minecraft), currentDimensionRaw(minecraft), "Copy dimension id"));
+                result.append(copyableLiteral(currentDimensionDisplay(minecraft), currentDimensionRaw(minecraft), "omniwheel.context.copy_dimension_id"));
                 cursor = nextIndex + "{dimension}".length();
             }
         }
@@ -96,10 +108,10 @@ public final class ContextValueFormatter {
                 + minecraft.player.blockPosition().getZ();
     }
 
-    private static Component copyableLiteral(String display, String raw, String hoverText) {
+    private static Component copyableLiteral(String display, String raw, String hoverKey) {
         return Component.literal(display).withStyle(COPY_STYLE
                 .withClickEvent(new ClickEvent.CopyToClipboard(raw))
-                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hoverText + ": " + raw))));
+                .withHoverEvent(new HoverEvent.ShowText(OmniWheelText.component(hoverKey, raw))));
     }
 
     private static String resolveLiteral(String raw, Minecraft minecraft) {
@@ -147,9 +159,9 @@ public final class ContextValueFormatter {
 
     private static String formatDimensionId(String raw) {
         return switch (raw) {
-            case "minecraft:overworld" -> "Overworld";
-            case "minecraft:the_nether" -> "Nether";
-            case "minecraft:the_end" -> "The End";
+            case "minecraft:overworld" -> OmniWheelText.translate("omniwheel.dimension.overworld");
+            case "minecraft:the_nether" -> OmniWheelText.translate("omniwheel.dimension.nether");
+            case "minecraft:the_end" -> OmniWheelText.translate("omniwheel.dimension.end");
             default -> titleCase(raw.contains(":") ? raw.substring(raw.indexOf(':') + 1) : raw);
         };
     }

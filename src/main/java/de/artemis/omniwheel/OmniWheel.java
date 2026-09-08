@@ -1,6 +1,5 @@
 package de.artemis.omniwheel;
 
-import de.artemis.omniwheel.common.config.OmniWheelConfig;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
@@ -11,6 +10,5 @@ public final class OmniWheel implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        OmniWheelConfig.load();
     }
 }
