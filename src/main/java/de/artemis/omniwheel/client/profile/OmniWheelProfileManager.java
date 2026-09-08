@@ -2,6 +2,7 @@ package de.artemis.omniwheel.client.profile;
 
 import de.artemis.omniwheel.client.profile.store.OmniWheelProfileRepository;
 import de.artemis.omniwheel.client.profile.store.ProfileCollection;
+import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 
@@ -90,7 +91,7 @@ public final class OmniWheelProfileManager {
         ensureLoaded();
         String profileId = nextProfileId();
         String displayName = nextDisplayName();
-        WheelDefinition rootWheel = new WheelDefinition("main", "Main", "", 8, List.of());
+        WheelDefinition rootWheel = new WheelDefinition("main", "omniwheel.default.wheel.main", "", 8, List.of());
         WheelProfile createdProfile = new WheelProfile(
                 profileId,
                 displayName,
@@ -216,10 +217,10 @@ public final class OmniWheelProfileManager {
 
     private String nextDisplayName() {
         int index = 1;
-        while (hasDisplayName("Custom " + index)) {
+        while (hasDisplayName(OmniWheelText.translate("omniwheel.manager.created.custom_profile", index))) {
             index++;
         }
-        return "Custom " + index;
+        return OmniWheelText.translate("omniwheel.manager.created.custom_profile", index);
     }
 
     private boolean hasDisplayName(String displayName) {
