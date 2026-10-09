@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.profile.store;
 
 import de.artemis.omniwheel.OmniWheel;
 import de.artemis.omniwheel.client.profile.DefaultProfiles;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

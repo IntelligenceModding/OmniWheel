@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.143'
+    id 'net.minecraftforge.gradle' version '7.0.40'
     id 'idea'
 }
 
@@ -9,7 +9,7 @@ tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-version = minecraft_version + "-" + mod_version
+version = "${mod_version}-forge-mc${minecraft_version}"
 group = mod_group_id
 
 base {
@@ -18,47 +18,37 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-neoForge {
-    version = project.neo_version
+sourceSets.main.output.resourcesDir = file("$buildDir/classes/java/main")
 
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
-
+minecraft {
+    mappings channel: 'official', version: project.minecraft_version
     runs {
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
-            logLevel = org.slf4j.event.Level.INFO
-            gameDirectory = project.layout.projectDirectory.dir("run/${name}")
+            systemProperty 'forge.logging.console.level', 'info'
+            workingDir.convention project.layout.projectDirectory.dir("run/${name}")
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
         }
 
-        client {
-            client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        gameTestServer {
-            type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-    }
-
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
+        register('client') {
         }
     }
 }
 
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
 dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
 }
 
 publishing {
@@ -82,8 +72,8 @@ tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
-            neo_version            : neo_version,
-            neo_version_range      : neo_version_range,
+            forge_version          : forge_version,
+            forge_version_range    : forge_version_range,
             loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
@@ -94,7 +84,7 @@ tasks.named('processResources', ProcessResources).configure {
     ]
 
     inputs.properties replaceProperties
-    filesMatching('META-INF/neoforge.mods.toml') {
+    filesMatching('META-INF/mods.toml') {
         expand replaceProperties
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
