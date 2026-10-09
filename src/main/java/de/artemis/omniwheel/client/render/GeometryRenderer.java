@@ -21,7 +21,8 @@ public final class GeometryRenderer {
 
         Matrix4f pose = graphics.pose().last().pose();
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = tesselator.getBuilder();
+        buffer.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
         addVertex(buffer, pose, centerX, centerY, color);
 
         int steps = Math.max(24, (int) (radius * 0.65F));
@@ -32,7 +33,7 @@ public final class GeometryRenderer {
             addVertex(buffer, pose, x, y, color);
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 
@@ -91,7 +92,8 @@ public final class GeometryRenderer {
 
         Matrix4f pose = graphics.pose().last().pose();
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = tesselator.getBuilder();
+        buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
         double span = Math.max(Math.abs(innerEndAngle - innerStartAngle), Math.abs(outerEndAngle - outerStartAngle));
         int steps = Math.max(8, (int) Math.ceil(span * 18.0D));
@@ -108,7 +110,7 @@ public final class GeometryRenderer {
             addVertex(buffer, pose, centerX + (innerCos * innerRadius), centerY + (innerSin * innerRadius), color);
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 
@@ -117,6 +119,6 @@ public final class GeometryRenderer {
         float red = ((color >> 16) & 0xFF) / 255.0F;
         float green = ((color >> 8) & 0xFF) / 255.0F;
         float blue = (color & 0xFF) / 255.0F;
-        buffer.addVertex(pose, x, y, 0.0F).setColor(red, green, blue, alpha);
+        buffer.vertex(pose, x, y, 0.0F).color(red, green, blue, alpha).endVertex();
     }
 }

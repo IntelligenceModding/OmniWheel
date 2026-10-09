@@ -2,7 +2,6 @@ package de.artemis.omniwheel.client.render;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
@@ -189,12 +188,12 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        Holder<MobEffect> effectHolder = BuiltInRegistries.MOB_EFFECT.getHolder(effectId).orElse(null);
-        if (effectHolder == null) {
+        MobEffect effect = BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
+        if (effect == null) {
             return false;
         }
 
-        TextureAtlasSprite sprite = minecraft.getMobEffectTextures().get(effectHolder);
+        TextureAtlasSprite sprite = minecraft.getMobEffectTextures().get(effect);
         if (sprite == null) {
             return false;
         }
@@ -215,7 +214,7 @@ public final class EntryIconRenderer {
         int size = Math.max(12, Math.round(18.0F * scale));
         int x = Math.round(centerX - (size * 0.5F));
         int y = Math.round(centerY - (size * 0.5F));
-        graphics.blitSprite(spriteId, x, y, size, size);
+        graphics.blit(spriteId, x, y, 0.0F, 0.0F, size, size, size, size);
         return true;
     }
 

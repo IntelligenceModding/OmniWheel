@@ -20,7 +20,10 @@ public final class ClientModEvents {
         OmniWheelClientRuntime.getInstance().renderOverlay(event.getGuiGraphics());
     }
 
-    public static void onClientTick(TickEvent.ClientTickEvent.Post event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         while (OmniWheelKeyMappings.OPEN_MANAGER.consumeClick()) {
             OmniWheelClientRuntime.getInstance().openProfileManagerShortcut();
@@ -34,7 +37,7 @@ public final class ClientModEvents {
     }
 
     public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
-        if (OmniWheelClientRuntime.getInstance().handleMouseScroll(event.getDeltaX(), event.getDeltaY())) {
+        if (OmniWheelClientRuntime.getInstance().handleMouseScroll(0.0D, event.getScrollDelta())) {
             event.setCanceled(true);
         }
     }

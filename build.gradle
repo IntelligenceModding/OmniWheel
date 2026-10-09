@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '7.0.40'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
     id 'idea'
 }
 
@@ -16,17 +16,17 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 sourceSets.main.output.resourcesDir = file("$buildDir/classes/java/main")
 
 minecraft {
     mappings channel: 'official', version: project.minecraft_version
     runs {
-        configureEach {
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-            systemProperty 'forge.logging.console.level', 'info'
-            workingDir.convention project.layout.projectDirectory.dir("run/${name}")
+        client {
+            workingDirectory project.file('run/client')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'info'
 
             mods {
                 "${mod_id}" {
@@ -34,21 +34,16 @@ minecraft {
                 }
             }
         }
-
-        register('client') {
-        }
     }
 }
 
 repositories {
-    minecraft.mavenizer(it)
-    maven fg.forgeMaven
-    maven fg.minecraftLibsMaven
+    maven { url = 'https://maven.minecraftforge.net/' }
     mavenCentral()
 }
 
 dependencies {
-    implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 }
 
 publishing {

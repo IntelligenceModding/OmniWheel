@@ -16,9 +16,9 @@ Explain the purpose of the change rather than only listing modified files.
 <!--
 Example:
 
-- Minecraft version: 1.21.1
+- Minecraft version: 1.20.1
 - Mod loader: Forge
-- Target branch: 1.21.1-forge
+- Target branch: 1.20.1-forge
 -->
 
 ## Changes
@@ -42,7 +42,7 @@ Please mention:
 Example:
 
 - `gradlew.bat build` completed successfully.
-- Tested the changes in the 1.21.1 Forge development client.
+- Tested the changes in the 1.20.1 Forge development client.
 - Tested radial wheel opening, selection, and closing.
 - Tested affected profiles, shortcuts, submenus, commands, or actions where applicable.
 -->

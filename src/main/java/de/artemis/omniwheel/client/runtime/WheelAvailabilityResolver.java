@@ -48,19 +48,30 @@ public final class WheelAvailabilityResolver {
         if (!entry.active()) {
             return false;
         }
-        return switch (entry.action()) {
-            case CommandAction commandAction -> isCommandAvailable(commandAction);
-            case ChatAction ignored -> isChatAvailable();
-            case FunctionAction functionAction -> functionAction.function() != GameplayFunction.OMNI_BACK
+        WheelAction action = entry.action();
+        if (action instanceof CommandAction commandAction) {
+            return isCommandAvailable(commandAction);
+        }
+        if (action instanceof ChatAction) {
+            return isChatAvailable();
+        }
+        if (action instanceof FunctionAction functionAction) {
+            return functionAction.function() != GameplayFunction.OMNI_BACK
                     && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function());
-            case OpenChatAction openChatAction -> isOpenChatAvailable(openChatAction);
-            case CopyTextAction ignored -> true;
-            case LocalMessageAction ignored -> true;
-            case OpenScreenAction ignored -> true;
-            case SwitchProfileAction ignored -> true;
-            case OpenWheelAction openWheelAction -> isWheelEntryVisible(profile, openWheelAction, wheelPath);
-            default -> false;
-        };
+        }
+        if (action instanceof OpenChatAction openChatAction) {
+            return isOpenChatAvailable(openChatAction);
+        }
+        if (action instanceof CopyTextAction
+                || action instanceof LocalMessageAction
+                || action instanceof OpenScreenAction
+                || action instanceof SwitchProfileAction) {
+            return true;
+        }
+        if (action instanceof OpenWheelAction openWheelAction) {
+            return isWheelEntryVisible(profile, openWheelAction, wheelPath);
+        }
+        return false;
     }
 
     private boolean isWheelEntryVisible(WheelProfile profile, OpenWheelAction action, Deque<String> wheelPath) {

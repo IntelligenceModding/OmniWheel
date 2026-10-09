@@ -132,52 +132,44 @@ public final class ProfileJsonCodec {
 
         String activeId = dto.activeProfileId != null && !dto.activeProfileId.isBlank()
                 ? dto.activeProfileId
-                : profiles.getFirst().id();
+                : profiles.get(0).id();
         return new ProfileCollection(activeId, profiles);
     }
 
     private StoredAction toDto(WheelAction action) {
         StoredAction stored = new StoredAction();
-        switch (action) {
-            case CommandAction commandAction -> {
-                stored.type = "command";
-                if (commandAction.commands().size() == 1) {
-                    stored.value = commandAction.commands().getFirst();
-                } else {
-                    stored.values = new ArrayList<>(commandAction.commands());
-                }
-                stored.requireConfirmation = commandAction.requireConfirmation();
+        if (action instanceof CommandAction commandAction) {
+            stored.type = "command";
+            if (commandAction.commands().size() == 1) {
+                stored.value = commandAction.commands().get(0);
+            } else {
+                stored.values = new ArrayList<>(commandAction.commands());
             }
-            case ChatAction chatAction -> {
-                stored.type = "chat";
-                stored.value = chatAction.message();
-                stored.requireConfirmation = chatAction.requireConfirmation();
-            }
-            case FunctionAction functionAction -> {
-                stored.type = "function";
-                stored.value = functionAction.function().id();
-            }
-            case LocalMessageAction localMessageAction -> {
-                stored.type = "local_message";
-                stored.value = localMessageAction.message();
-            }
-            case OpenChatAction openChatAction -> {
-                stored.type = "open_chat";
-                stored.value = openChatAction.initialText();
-            }
-            case CopyTextAction copyTextAction -> {
-                stored.type = "copy_text";
-                stored.value = copyTextAction.text();
-            }
-            case OpenWheelAction openWheelAction -> {
-                stored.type = "open_wheel";
-                stored.value = openWheelAction.wheelId();
-            }
-            case OpenScreenAction openScreenAction -> {
-                stored.type = "open_screen";
-                stored.value = openScreenAction.target().name().toLowerCase(Locale.ROOT);
-            }
-            default -> throw new IllegalArgumentException("Unsupported action type: " + action.getClass().getName());
+            stored.requireConfirmation = commandAction.requireConfirmation();
+        } else if (action instanceof ChatAction chatAction) {
+            stored.type = "chat";
+            stored.value = chatAction.message();
+            stored.requireConfirmation = chatAction.requireConfirmation();
+        } else if (action instanceof FunctionAction functionAction) {
+            stored.type = "function";
+            stored.value = functionAction.function().id();
+        } else if (action instanceof LocalMessageAction localMessageAction) {
+            stored.type = "local_message";
+            stored.value = localMessageAction.message();
+        } else if (action instanceof OpenChatAction openChatAction) {
+            stored.type = "open_chat";
+            stored.value = openChatAction.initialText();
+        } else if (action instanceof CopyTextAction copyTextAction) {
+            stored.type = "copy_text";
+            stored.value = copyTextAction.text();
+        } else if (action instanceof OpenWheelAction openWheelAction) {
+            stored.type = "open_wheel";
+            stored.value = openWheelAction.wheelId();
+        } else if (action instanceof OpenScreenAction openScreenAction) {
+            stored.type = "open_screen";
+            stored.value = openScreenAction.target().name().toLowerCase(Locale.ROOT);
+        } else {
+            throw new IllegalArgumentException("Unsupported action type: " + action.getClass().getName());
         }
         return stored;
     }
