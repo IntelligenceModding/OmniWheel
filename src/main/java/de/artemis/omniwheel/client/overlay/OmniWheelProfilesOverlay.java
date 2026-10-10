@@ -31,6 +31,8 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.core.Registry;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
@@ -2010,7 +2012,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         int boxWidth = tutorialStep.width();
-        List<FormattedCharSequence> bodyLines = minecraft.font.split(Component.literal(tutorialStep.body()), boxWidth - 20);
+        List<FormattedCharSequence> bodyLines = minecraft.font.split(new TextComponent(tutorialStep.body()), boxWidth - 20);
         int bodyHeight = Math.max(8, bodyLines.size() * 9);
         int buttonHeight = 20;
         int buttonGap = 6;
@@ -2223,7 +2225,7 @@ public final class OmniWheelProfilesOverlay {
         for (KeyMapping keyMapping : minecraft.options.keyMappings) {
             for (int key : spec.keys()) {
                 if (keyMapping.matches(key, -1)) {
-                    conflicts.add(Component.translatable(keyMapping.getName()).getString());
+                    conflicts.add(new TranslatableComponent(keyMapping.getName()).getString());
                     break;
                 }
             }
@@ -2275,7 +2277,7 @@ public final class OmniWheelProfilesOverlay {
                             && Screen.class.isAssignableFrom(parameterTypes[0])
                             && parameterTypes[1].isInstance(minecraft.options)
                             && Component.class.isAssignableFrom(parameterTypes[2])) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options, Component.translatable("controls.keybinds.title")));
+                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options, new TranslatableComponent("controls.keybinds.title")));
                         return;
                     }
                 }
@@ -2417,7 +2419,7 @@ public final class OmniWheelProfilesOverlay {
                 wrappedLines.add(line);
                 continue;
             }
-            List<FormattedCharSequence> split = minecraft.font.split(Component.literal(formattedSequenceToString(line)), maxWidth);
+            List<FormattedCharSequence> split = minecraft.font.split(new TextComponent(formattedSequenceToString(line)), maxWidth);
             if (split.isEmpty()) {
                 wrappedLines.add(line);
             } else {
@@ -3966,7 +3968,7 @@ public final class OmniWheelProfilesOverlay {
                 continue;
             }
             String iconId = "effect:" + id;
-            String displayName = Component.translatable(effect.getDescriptionId()).getString();
+            String displayName = new TranslatableComponent(effect.getDescriptionId()).getString();
             String searchText = (iconId + " " + displayName).toLowerCase(java.util.Locale.ROOT);
             options.add(new IconPickerOption(iconId, searchText));
         }
@@ -4106,7 +4108,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static void ensureCreativeTabContentsBuilt() {
-        // 1.19.2 builds creative tab contents directly through CreativeModeTab#fillItemList.
+        // Forge 1.18.2 builds creative tab contents directly through CreativeModeTab#fillItemList.
     }
 
     private List<IconPickerOption> filteredIconPickerOptions() {

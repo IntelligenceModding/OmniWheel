@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Minecraft-1.19.2-3C8527?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.19.2">
+  <img src="https://img.shields.io/badge/Minecraft-1.18.2-3C8527?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.18.2">
   &nbsp;&nbsp;&nbsp;
-  <img src="https://img.shields.io/badge/Loader-Forge-F16436?style=for-the-badge" alt="Forge">
+  <img src="https://img.shields.io/badge/Loader-Forge%2040.x-F16436?style=for-the-badge" alt="Forge 40.x">
 </p>
 
 <p align="center">

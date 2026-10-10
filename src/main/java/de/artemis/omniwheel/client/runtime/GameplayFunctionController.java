@@ -14,7 +14,7 @@ import net.minecraft.client.gui.screens.social.SocialInteractionsScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import org.lwjgl.glfw.GLFW;
@@ -185,7 +185,7 @@ public final class GameplayFunctionController {
 
     private static void openSocialInteractions(Minecraft minecraft) {
         if (!isSocialInteractionsAvailable(minecraft)) {
-            minecraft.player.displayClientMessage(Component.translatable("multiplayer.socialInteractions.not_available"), true);
+            minecraft.player.displayClientMessage(new TranslatableComponent("multiplayer.socialInteractions.not_available"), true);
             return;
         }
         minecraft.setScreen(new SocialInteractionsScreen());
@@ -239,7 +239,7 @@ public final class GameplayFunctionController {
 
     private static void toggleFullscreen(Minecraft minecraft) {
         minecraft.getWindow().toggleFullScreen();
-        minecraft.options.fullscreen().set(minecraft.getWindow().isFullscreen());
+        minecraft.options.fullscreen = minecraft.getWindow().isFullscreen();
     }
 
     private static void toggleSmoothCamera(Minecraft minecraft) {

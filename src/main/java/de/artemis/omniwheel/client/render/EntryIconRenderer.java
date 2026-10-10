@@ -15,13 +15,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.LinkedHashMap;
-import java.util.Optional;
 
 public final class EntryIconRenderer {
     private static final String EFFECT_PREFIX = "effect:";
@@ -319,12 +319,14 @@ public final class EntryIconRenderer {
             return List.of();
         }
 
-        Optional<Resource> resource = minecraft.getResourceManager().getResource(definitionId);
-        if (resource.isEmpty()) {
+        Resource resource;
+        try {
+            resource = minecraft.getResourceManager().getResource(definitionId);
+        } catch (IOException ignored) {
             return List.of();
         }
 
-        try (Reader reader = resource.get().openAsReader()) {
+        try (Reader reader = new InputStreamReader(resource.getInputStream())) {
             JsonObject data = GsonHelper.parse(reader);
             JsonArray textures = GsonHelper.getAsJsonArray(data, "textures", null);
             if (textures == null || textures.isEmpty()) {
@@ -386,7 +388,12 @@ public final class EntryIconRenderer {
     }
 
     private static boolean textureResourceExists(Minecraft minecraft, ResourceLocation texture) {
-        return minecraft.getResourceManager().getResource(texture).isPresent();
+        try {
+            minecraft.getResourceManager().getResource(texture);
+            return true;
+        } catch (IOException ignored) {
+            return false;
+        }
     }
 
     private static ResourceLocation minecraftTexture(String path) {

@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.ClientRegistry;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -90,11 +90,11 @@ public final class OmniWheelKeyMappings {
     private OmniWheelKeyMappings() {
     }
 
-    public static void register(RegisterKeyMappingsEvent event) {
-        event.register(OPEN_WHEEL);
-        event.register(OPEN_MANAGER);
+    public static void register() {
+        ClientRegistry.registerKeyBinding(OPEN_WHEEL);
+        ClientRegistry.registerKeyBinding(OPEN_MANAGER);
         for (KeyMapping keyMapping : RADIAL_POSITION_KEYS) {
-            event.register(keyMapping);
+            ClientRegistry.registerKeyBinding(keyMapping);
         }
     }
 }

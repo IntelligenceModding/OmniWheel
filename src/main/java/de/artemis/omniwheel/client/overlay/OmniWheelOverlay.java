@@ -22,6 +22,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 import org.lwjgl.glfw.GLFW;
@@ -755,7 +756,7 @@ public final class OmniWheelOverlay {
         float minScale = 0.55F;
         for (float scale = 1.0F; scale >= minScale; scale -= 0.05F) {
             int scaledWidth = Math.max(1, Math.round(maxWidth / scale));
-            List<FormattedCharSequence> lines = minecraft.font.split(Component.literal(text), scaledWidth);
+            List<FormattedCharSequence> lines = minecraft.font.split(new TextComponent(text), scaledWidth);
             if (lines.size() > maxLines) {
                 continue;
             }
@@ -769,13 +770,13 @@ public final class OmniWheelOverlay {
 
         float fallbackScale = minScale;
         int fallbackWidth = Math.max(1, Math.round(maxWidth / fallbackScale));
-        List<FormattedCharSequence> fallbackLines = new ArrayList<>(minecraft.font.split(Component.literal(text), fallbackWidth));
+        List<FormattedCharSequence> fallbackLines = new ArrayList<>(minecraft.font.split(new TextComponent(text), fallbackWidth));
         if (fallbackLines.size() > maxLines) {
             fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
             if (!fallbackLines.isEmpty()) {
                 int maxChars = Math.max(3, Math.round(fallbackWidth / 6.0F));
                 String shortened = shortenPlainText(text, maxChars);
-                fallbackLines = new ArrayList<>(minecraft.font.split(Component.literal(shortened), fallbackWidth));
+                fallbackLines = new ArrayList<>(minecraft.font.split(new TextComponent(shortened), fallbackWidth));
                 if (fallbackLines.size() > maxLines) {
                     fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
                 }
@@ -818,7 +819,7 @@ public final class OmniWheelOverlay {
 
         int boxWidth = tutorialStep.width();
         TextLayout title = layoutText(minecraft, tutorialStep.title(), boxWidth - 20, 16, 1);
-        List<FormattedCharSequence> bodyLines = minecraft.font.split(Component.literal(tutorialStep.body()), boxWidth - 20);
+        List<FormattedCharSequence> bodyLines = minecraft.font.split(new TextComponent(tutorialStep.body()), boxWidth - 20);
         int bodyHeight = Math.max(8, bodyLines.size() * 9);
         int buttonHeight = 20;
         int buttonGap = 6;

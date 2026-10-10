@@ -146,7 +146,7 @@ public final class TutorialProgressStore {
         if (user == null) {
             return "unknown";
         }
-        var profileId = user.getProfileId();
+        var profileId = user.getGameProfile().getId();
         if (profileId != null) {
             return normalizeKey(profileId.toString());
         }

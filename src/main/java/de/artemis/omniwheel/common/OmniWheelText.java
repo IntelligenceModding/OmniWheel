@@ -2,6 +2,7 @@ package de.artemis.omniwheel.common;
 
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
 
 public final class OmniWheelText {
     private OmniWheelText() {
@@ -12,7 +13,7 @@ public final class OmniWheelText {
     }
 
     public static Component component(String key, Object... args) {
-        return Component.translatable(key, args);
+        return new TranslatableComponent(key, args);
     }
 
     public static String resolve(String value) {

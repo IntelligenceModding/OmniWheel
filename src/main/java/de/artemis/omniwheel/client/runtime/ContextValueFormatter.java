@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextComponent;
 import de.artemis.omniwheel.common.OmniWheelText;
 
 import java.util.ArrayList;
@@ -56,10 +57,10 @@ public final class ContextValueFormatter {
     public static Component buildInteractiveComponent(String template, Minecraft minecraft) {
         template = OmniWheelText.resolve(template);
         if (minecraft.player == null || minecraft.level == null) {
-            return Component.literal(template);
+            return new TextComponent(template);
         }
 
-        MutableComponent result = Component.empty();
+        MutableComponent result = new TextComponent("");
         int cursor = 0;
         while (cursor < template.length()) {
             int coordIndex = findNextCoordinateToken(template, cursor);
@@ -67,12 +68,12 @@ public final class ContextValueFormatter {
             int nextIndex = minPositive(coordIndex, dimensionIndex);
 
             if (nextIndex < 0) {
-                result.append(Component.literal(resolveLiteral(template.substring(cursor), minecraft)));
+                result.append(new TextComponent(resolveLiteral(template.substring(cursor), minecraft)));
                 break;
             }
 
             if (nextIndex > cursor) {
-                result.append(Component.literal(resolveLiteral(template.substring(cursor, nextIndex), minecraft)));
+                result.append(new TextComponent(resolveLiteral(template.substring(cursor, nextIndex), minecraft)));
             }
 
             if (nextIndex == coordIndex) {
@@ -109,7 +110,7 @@ public final class ContextValueFormatter {
     }
 
     private static Component copyableLiteral(String display, String raw, String hoverKey) {
-        return Component.literal(display).withStyle(COPY_STYLE
+        return new TextComponent(display).withStyle(COPY_STYLE
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, raw))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, OmniWheelText.component(hoverKey, raw))));
     }

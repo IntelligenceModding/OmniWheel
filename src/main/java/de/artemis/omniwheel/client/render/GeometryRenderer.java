@@ -2,7 +2,6 @@ package de.artemis.omniwheel.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -32,7 +31,7 @@ public final class GeometryRenderer {
             addVertex(buffer, pose, x, y, color);
         }
 
-        BufferUploader.drawWithShader(buffer.end());
+        tesselator.end();
         RenderSystem.disableBlend();
     }
 
@@ -109,7 +108,7 @@ public final class GeometryRenderer {
             addVertex(buffer, pose, centerX + (innerCos * innerRadius), centerY + (innerSin * innerRadius), color);
         }
 
-        BufferUploader.drawWithShader(buffer.end());
+        tesselator.end();
         RenderSystem.disableBlend();
     }
 

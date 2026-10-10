@@ -8,9 +8,9 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(OmniWheel.MOD_ID)
 public final class OmniWheelClient {
-    public OmniWheelClient(FMLJavaModLoadingContext context) {
-        IEventBus modEventBus = context.getModEventBus();
-        modEventBus.addListener(ClientModEvents::registerKeyMappings);
+    public OmniWheelClient() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.addListener(ClientModEvents::onClientSetup);
         MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onChatOverlay);
         MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
