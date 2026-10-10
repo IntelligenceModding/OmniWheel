@@ -1,9 +1,10 @@
 package de.artemis.omniwheel.client.screen;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import de.artemis.omniwheel.common.OmniWheelText;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
 public final class OmniWheelProfilesScreen extends Screen {
@@ -17,15 +18,15 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public void added() {
-        super.added();
-        editor.openForScreen();
-    }
-
-    @Override
     public void removed() {
         editor.closeForScreen();
         super.removed();
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        editor.openForScreen();
     }
 
     @Override
@@ -88,7 +89,7 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        editor.render(graphics);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        editor.render(new GuiGraphics(poseStack));
     }
 }

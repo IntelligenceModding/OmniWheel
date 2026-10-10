@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client;
 
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
@@ -17,7 +18,7 @@ public final class ClientModEvents {
     }
 
     public static void onChatOverlay(CustomizeGuiOverlayEvent.Chat event) {
-        OmniWheelClientRuntime.getInstance().renderOverlay(event.getGuiGraphics());
+        OmniWheelClientRuntime.getInstance().renderOverlay(new GuiGraphics(event.getPoseStack()));
     }
 
     public static void onClientTick(TickEvent.ClientTickEvent event) {

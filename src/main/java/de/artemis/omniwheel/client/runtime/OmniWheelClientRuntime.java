@@ -3,6 +3,7 @@ package de.artemis.omniwheel.client.runtime;
 import de.artemis.omniwheel.client.overlay.OmniWheelOverlay;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.profile.OmniWheelProfileManager;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.screen.OmniWheelProfilesScreen;
 import de.artemis.omniwheel.client.tutorial.TutorialProgressStore;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -14,7 +15,6 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.lang.reflect.Method;

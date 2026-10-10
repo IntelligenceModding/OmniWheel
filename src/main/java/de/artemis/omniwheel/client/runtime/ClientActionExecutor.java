@@ -63,7 +63,7 @@ public final class ClientActionExecutor {
             if (resolved.startsWith("/")) {
                 resolved = resolved.substring(1);
             }
-            minecraft.player.connection.sendCommand(resolved);
+            minecraft.player.commandUnsigned(resolved);
         }
     }
 
@@ -73,7 +73,7 @@ public final class ClientActionExecutor {
             return;
         }
 
-        minecraft.player.connection.sendChat(ContextValueFormatter.resolveForDisplay(action.message(), minecraft));
+        minecraft.player.chatSigned(ContextValueFormatter.resolveForDisplay(action.message(), minecraft), null);
     }
 
     private void executeFunction(FunctionAction action) {

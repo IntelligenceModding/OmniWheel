@@ -2,6 +2,7 @@ package de.artemis.omniwheel.client.overlay;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.runtime.EntryShortcutMatcher;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import de.artemis.omniwheel.client.tutorial.TutorialType;
@@ -23,18 +24,17 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.Registry;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -546,7 +546,7 @@ public final class OmniWheelProfilesOverlay {
             graphics.pose().translate(0.0F, commandSuggestionsYOffset, 200.0F);
             if (!renderWrappedUsage) {
                 commandSuggestions.render(
-                        graphics,
+                        graphics.pose(),
                         (int) currentMouseX(minecraft),
                         (int) currentMouseY(minecraft) - commandSuggestionsYOffset
                 );
@@ -1362,25 +1362,28 @@ public final class OmniWheelProfilesOverlay {
         updateProfilesScrollbarBounds(contentHeight);
         textFields.get(EditorField.PROFILE_NAME).visible = false;
 
-        enableUiScissor(graphics, x, y, x + profilesListWidth, y + profilesAreaHeight);
-        int visibleRowIndex = 0;
-        for (WheelProfile profile : profiles) {
-            if (draggedProfileActive && profile.id().equals(draggedProfileId)) {
-                continue;
-            }
+        enableUiScissor(graphics, x + 1, y + 1, x + profilesListWidth - 1, y + profilesAreaHeight - 1);
+        try {
+            int visibleRowIndex = 0;
+            for (WheelProfile profile : profiles) {
+                if (draggedProfileActive && profile.id().equals(draggedProfileId)) {
+                    continue;
+                }
 
-            int displayIndex = visibleRowIndex;
-            if (draggedProfileActive && visibleRowIndex >= draggedProfileTargetIndex) {
-                displayIndex++;
-            }
+                int displayIndex = visibleRowIndex;
+                if (draggedProfileActive && visibleRowIndex >= draggedProfileTargetIndex) {
+                    displayIndex++;
+                }
 
-            int rowY = profileRowY(displayIndex);
-            if (rowY + PROFILE_ROW_HEIGHT >= y && rowY <= y + profilesAreaHeight) {
-                drawProfileRow(graphics, minecraft, profile, x, rowY, profilesListWidth, false);
+                int rowY = profileRowY(displayIndex);
+                if (rowY + PROFILE_ROW_HEIGHT >= y && rowY <= y + profilesAreaHeight) {
+                    drawProfileRow(graphics, minecraft, profile, x, rowY, profilesListWidth, false);
+                }
+                visibleRowIndex++;
             }
-            visibleRowIndex++;
+        } finally {
+            graphics.disableScissor();
         }
-        graphics.disableScissor();
 
         if (draggedProfileActive) {
             drawProfileDropIndicator(graphics, x, profileRowY(draggedProfileTargetIndex), profilesListWidth);
@@ -1431,10 +1434,7 @@ public final class OmniWheelProfilesOverlay {
 
         graphics.fill(x, y, x + width, y + PROFILE_ROW_HEIGHT, rowColor);
         if (dragged || selected) {
-            graphics.fill(x, y, x + width, y + 1, ACTION);
-            graphics.fill(x, y + PROFILE_ROW_HEIGHT - 1, x + width, y + PROFILE_ROW_HEIGHT, ACTION);
-            graphics.fill(x, y, x + 1, y + PROFILE_ROW_HEIGHT, ACTION);
-            graphics.fill(x + width - 1, y, x + width, y + PROFILE_ROW_HEIGHT, ACTION);
+            drawRowOutline(graphics, x, y, width, PROFILE_ROW_HEIGHT, ACTION, !dragged);
         }
 
         String stateLabel = text(activeProfile ? "omniwheel.manager.profile.active" : selected ? "omniwheel.manager.profile.selected" : "omniwheel.manager.profile.select");
@@ -1488,10 +1488,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(x, y, x + width, y + PROFILE_ROW_HEIGHT, rowColor);
         if (dragged || selected) {
             int accentColor = active ? ACTION : ACTION_DISABLED;
-            graphics.fill(x, y, x + width, y + 1, accentColor);
-            graphics.fill(x, y + PROFILE_ROW_HEIGHT - 1, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
-            graphics.fill(x, y, x + 1, y + PROFILE_ROW_HEIGHT, accentColor);
-            graphics.fill(x + width - 1, y, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
+            drawRowOutline(graphics, x, y, width, PROFILE_ROW_HEIGHT, accentColor, !dragged);
         }
 
         String metaCount = text("omniwheel.manager.wheel_meta", wheel.entries().size(), pageCountForEntries(wheel.entries().size()));
@@ -1531,10 +1528,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(x, y, x + width, y + PROFILE_ROW_HEIGHT, rowColor);
         if (dragged || selected) {
             int accentColor = entry.active() ? ACTION : ACTION_DISABLED;
-            graphics.fill(x, y, x + width, y + 1, accentColor);
-            graphics.fill(x, y + PROFILE_ROW_HEIGHT - 1, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
-            graphics.fill(x, y, x + 1, y + PROFILE_ROW_HEIGHT, accentColor);
-            graphics.fill(x + width - 1, y, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
+            drawRowOutline(graphics, x, y, width, PROFILE_ROW_HEIGHT, accentColor, !dragged);
         }
 
         int arrowOffset = 0;
@@ -1560,6 +1554,18 @@ public final class OmniWheelProfilesOverlay {
         graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, displayText(entry.label()), textWidth), textStartX, y + 7, labelColor, false);
         graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, actionSummary(entry.action()), textWidth), textStartX, y + 17, summaryColor, false);
         graphics.drawString(minecraft.font, entryTypeLabel(entry), x + width - typeWidth - 8, y + 11, !entry.active() ? ACTION_DISABLED : selected ? ACTION : TEXT_SECONDARY, false);
+    }
+
+    private void drawRowOutline(GuiGraphics graphics, int x, int y, int width, int height, int color, boolean insetForScrollClip) {
+        int inset = insetForScrollClip ? 1 : 0;
+        int left = x + inset;
+        int top = y + inset;
+        int right = x + width - inset;
+        int bottom = y + height - inset;
+        graphics.fill(left, top, right, top + 1, color);
+        graphics.fill(left, bottom - 1, right, bottom, color);
+        graphics.fill(left, top, left + 1, bottom, color);
+        graphics.fill(right - 1, top, right, bottom, color);
     }
 
     private void drawWheelsScrollbar(GuiGraphics graphics, boolean visible) {
@@ -1634,24 +1640,27 @@ public final class OmniWheelProfilesOverlay {
         updateWheelsScrollbarBounds(contentHeight);
         if (wheel != null) {
             int draggedInsertVisibleIndex = draggedWheelActive ? draggedWheelVisibleInsertIndex(visibleRows) : -1;
-            enableUiScissor(graphics, x, y, x + wheelsListWidth, y + wheelsAreaHeight);
-            int visibleRowIndex = 0;
-            for (int index = 0; index < visibleRows.size(); index++) {
-                EntryListRow row = visibleRows.get(index);
-                if (draggedWheelActive && shouldSkipDraggedWheelRow(row)) {
-                    continue;
+            enableUiScissor(graphics, x + 1, y + 1, x + wheelsListWidth - 1, y + wheelsAreaHeight - 1);
+            try {
+                int visibleRowIndex = 0;
+                for (int index = 0; index < visibleRows.size(); index++) {
+                    EntryListRow row = visibleRows.get(index);
+                    if (draggedWheelActive && shouldSkipDraggedWheelRow(row)) {
+                        continue;
+                    }
+                    int displayIndex = visibleRowIndex;
+                    if (draggedWheelActive && visibleRowIndex >= draggedInsertVisibleIndex) {
+                        displayIndex++;
+                    }
+                    int rowY = wheelRowY(displayIndex);
+                    if (rowY + PROFILE_ROW_HEIGHT >= y && rowY <= y + wheelsAreaHeight) {
+                        drawEntryListRow(graphics, minecraft, row, x, rowY, wheelsListWidth, false);
+                    }
+                    visibleRowIndex++;
                 }
-                int displayIndex = visibleRowIndex;
-                if (draggedWheelActive && visibleRowIndex >= draggedInsertVisibleIndex) {
-                    displayIndex++;
-                }
-                int rowY = wheelRowY(displayIndex);
-                if (rowY + PROFILE_ROW_HEIGHT >= y && rowY <= y + wheelsAreaHeight) {
-                    drawEntryListRow(graphics, minecraft, row, x, rowY, wheelsListWidth, false);
-                }
-                visibleRowIndex++;
+            } finally {
+                graphics.disableScissor();
             }
-            graphics.disableScissor();
             if (draggedWheelActive) {
                 drawWheelDropIndicator(graphics, x, wheelRowY(draggedInsertVisibleIndex), wheelsListWidth);
                 EntryListRow draggedRow = draggedEntryRow();
@@ -1727,7 +1736,7 @@ public final class OmniWheelProfilesOverlay {
         }
         if (commandInput != null) {
             commandInput.setVisible(false);
-            commandInput.setFocused(false);
+            commandInput.setFocus(false);
         }
 
         if (showNameSection) {
@@ -2293,45 +2302,48 @@ public final class OmniWheelProfilesOverlay {
         int fieldWidth = Math.max(96, commandListWidth - removeButtonWidth - removeButtonGap);
 
         enableUiScissor(graphics, commandListX, commandListY, commandListX + commandListWidth, commandListY + commandListHeight);
-        for (int index = 0; index < commandValueFields.size(); index++) {
-            int fieldY = y + (index * rowStep) - commandListScrollOffset;
-            if (fieldY + 34 < commandListY || fieldY > commandListY + commandListHeight) {
-                commandValueFields.get(index).visible = false;
-                continue;
+        try {
+            for (int index = 0; index < commandValueFields.size(); index++) {
+                int fieldY = y + (index * rowStep) - commandListScrollOffset;
+                if (fieldY + 34 < commandListY || fieldY > commandListY + commandListHeight) {
+                    commandValueFields.get(index).visible = false;
+                    continue;
+                }
+                if (isUsingVanillaCommandInput(index)) {
+                    drawActiveCommandField(graphics, minecraft, x, fieldY, fieldWidth, text("omniwheel.manager.command_number", index + 1), index);
+                } else {
+                    drawTextFieldState(
+                            graphics,
+                            minecraft,
+                            commandValueFields.get(index),
+                            x,
+                            fieldY,
+                            fieldWidth,
+                            text("omniwheel.manager.command_number", index + 1),
+                            true
+                    );
+                }
+                if (showRemoveButtons) {
+                    drawCommandRemoveButton(
+                            graphics,
+                            minecraft,
+                            x + fieldWidth + removeButtonGap,
+                            fieldY + 12,
+                            removeButtonWidth,
+                            22,
+                            index
+                    );
+                }
             }
-            if (isUsingVanillaCommandInput(index)) {
-                drawActiveCommandField(graphics, minecraft, x, fieldY, fieldWidth, text("omniwheel.manager.command_number", index + 1), index);
-            } else {
-                drawTextFieldState(
-                        graphics,
-                        minecraft,
-                        commandValueFields.get(index),
-                        x,
-                        fieldY,
-                        fieldWidth,
-                        text("omniwheel.manager.command_number", index + 1),
-                        true
-                );
+            addCommandButtonX = x;
+            addCommandButtonY = y + (commandValueFields.size() * rowStep) - commandListScrollOffset;
+            addCommandButtonWidth = commandListWidth;
+            addCommandButtonHeight = buttonHeight;
+            if (addCommandButtonY + addCommandButtonHeight > commandListY && addCommandButtonY < commandListY + commandListHeight) {
+                addButton(graphics, minecraft, addCommandButtonX, addCommandButtonY, addCommandButtonWidth, text("omniwheel.manager.add_command"), true, this::addCommandValueField);
             }
-            if (showRemoveButtons) {
-                drawCommandRemoveButton(
-                        graphics,
-                        minecraft,
-                        x + fieldWidth + removeButtonGap,
-                        fieldY + 12,
-                        removeButtonWidth,
-                        22,
-                        index
-                );
-            }
-        }
-        graphics.disableScissor();
-        addCommandButtonX = x;
-        addCommandButtonY = y + (commandValueFields.size() * rowStep) - commandListScrollOffset;
-        addCommandButtonWidth = commandListWidth;
-        addCommandButtonHeight = buttonHeight;
-        if (addCommandButtonY + addCommandButtonHeight > commandListY && addCommandButtonY < commandListY + commandListHeight) {
-            addButton(graphics, minecraft, addCommandButtonX, addCommandButtonY, addCommandButtonWidth, text("omniwheel.manager.add_command"), true, this::addCommandValueField);
+        } finally {
+            graphics.disableScissor();
         }
         drawCommandListScrollbar(graphics, needsScrollbar);
     }
@@ -2350,13 +2362,13 @@ public final class OmniWheelProfilesOverlay {
 
         if (ensureCommandInput()) {
             commandInput.setX(x + 8);
-            commandInput.setY(y + 19);
+            commandInput.y = y + 19;
             commandInput.setWidth(Math.max(8, width - 16));
             commandInput.setHeight(12);
             commandInput.setVisible(true);
-            commandInput.setFocused(true);
+            commandInput.setFocus(true);
             commandSuggestionsYOffset = (y + 39) - 72;
-            commandInput.renderWidget(graphics, (int) currentMouseX(minecraft), (int) currentMouseY(minecraft), 0.0F);
+            commandInput.render(graphics.pose(), (int) currentMouseX(minecraft), (int) currentMouseY(minecraft), 0.0F);
         }
     }
 
@@ -2376,7 +2388,7 @@ public final class OmniWheelProfilesOverlay {
         try {
             Field field = CommandSuggestions.class.getDeclaredField("commandUsagePosition");
             field.setAccessible(true);
-            field.setInt(commandSuggestions, commandInput.getX());
+            field.setInt(commandSuggestions, commandInput.x);
         } catch (ReflectiveOperationException ignored) {
         }
     }
@@ -2413,14 +2425,14 @@ public final class OmniWheelProfilesOverlay {
             }
         }
 
-        int lineY = commandInput.getY() + 19;
-        int lineX = commandInput.getX();
+        int lineY = commandInput.y + 19;
+        int lineX = commandInput.x;
         for (int index = 0; index < wrappedLines.size(); index++) {
             FormattedCharSequence line = wrappedLines.get(index);
             int y = lineY + (index * 12);
             int width = minecraft.font.width(line);
             graphics.fill(lineX - 1, y, lineX + width + 1, y + 12, Integer.MIN_VALUE);
-            graphics.drawString(minecraft.font, line, lineX, y + 2, 0xFFFF8080);
+            graphics.drawString(minecraft.font, line, lineX, y + 2, 0xFFFF8080, false);
         }
     }
 
@@ -2497,37 +2509,40 @@ public final class OmniWheelProfilesOverlay {
         graphics.drawString(minecraft.font, text("omniwheel.manager.field.function"), x, y, TEXT_SECONDARY, false);
         graphics.fill(functionListX, functionListY, functionListX + functionListWidth, functionListY + functionListHeight, FIELD);
 
-        enableUiScissor(graphics, functionListX, functionListY, functionListX + functionListWidth, functionListY + functionListHeight);
-        for (int index = 0; index < functions.size(); index++) {
-            GameplayFunction function = functions.get(index);
-            int rowY = functionListY + (index * rowStep) - functionListScrollOffset;
-            if (rowY + rowHeight < functionListY || rowY > functionListY + functionListHeight) {
-                continue;
-            }
+        enableUiScissor(graphics, functionListX + 1, functionListY + 1, functionListX + functionListWidth - 1, functionListY + functionListHeight - 1);
+        try {
+            for (int index = 0; index < functions.size(); index++) {
+                GameplayFunction function = functions.get(index);
+                int rowY = functionListY + (index * rowStep) - functionListScrollOffset;
+                if (rowY + rowHeight < functionListY || rowY > functionListY + functionListHeight) {
+                    continue;
+                }
 
-            boolean selected = function == entryFunctionDraft;
-            boolean focusedRow = focusedActionIndex == actions.size();
-            graphics.fill(functionListX + 1, rowY, functionListX + functionListWidth - 1, rowY + rowHeight, selected ? ROW_SELECTED : ROW);
-            if (selected) {
-                graphics.fill(functionListX + 1, rowY, functionListX + functionListWidth - 1, rowY + 1, ACTION);
-                graphics.fill(functionListX + 1, rowY + rowHeight - 1, functionListX + functionListWidth - 1, rowY + rowHeight, ACTION);
-            }
-            if (focusedRow) {
-                drawFocusedActionOutline(graphics, functionListX, rowY, functionListWidth, rowHeight);
-            }
+                boolean selected = function == entryFunctionDraft;
+                boolean focusedRow = focusedActionIndex == actions.size();
+                graphics.fill(functionListX + 1, rowY, functionListX + functionListWidth - 1, rowY + rowHeight, selected ? ROW_SELECTED : ROW);
+                if (selected) {
+                    graphics.fill(functionListX + 1, rowY, functionListX + functionListWidth - 1, rowY + 1, ACTION);
+                    graphics.fill(functionListX + 1, rowY + rowHeight - 1, functionListX + functionListWidth - 1, rowY + rowHeight, ACTION);
+                }
+                if (focusedRow) {
+                    drawFocusedActionOutline(graphics, functionListX, rowY, functionListWidth, rowHeight);
+                }
 
-            String title = ellipsizeToWidth(minecraft.font, function.displayName(), functionListWidth - 18);
-            String detail = ellipsizeToWidth(minecraft.font, function.category().label() + " | " + functionModeLabel(function.mode()), functionListWidth - 18);
-            graphics.drawString(minecraft.font, title, functionListX + 8, rowY + 7, TEXT, false);
-            graphics.drawString(minecraft.font, detail, functionListX + 8, rowY + 19, selected ? ACTION : TEXT_SECONDARY, false);
+                String title = ellipsizeToWidth(minecraft.font, function.displayName(), functionListWidth - 18);
+                String detail = ellipsizeToWidth(minecraft.font, function.category().label() + " | " + functionModeLabel(function.mode()), functionListWidth - 18);
+                graphics.drawString(minecraft.font, title, functionListX + 8, rowY + 7, TEXT, false);
+                graphics.drawString(minecraft.font, detail, functionListX + 8, rowY + 19, selected ? ACTION : TEXT_SECONDARY, false);
 
-            final GameplayFunction selectedFunction = function;
-            actions.add(new ClickAction(functionListX, rowY, functionListWidth, rowHeight, true, () -> {
-                entryFunctionDraft = selectedFunction;
-                autosaveCurrentEntryDraft();
-            }));
+                final GameplayFunction selectedFunction = function;
+                addClippedAction(functionListX, rowY, functionListWidth, rowHeight, functionListX, functionListY, functionListWidth, functionListHeight, true, () -> {
+                    entryFunctionDraft = selectedFunction;
+                    autosaveCurrentEntryDraft();
+                });
+            }
+        } finally {
+            graphics.disableScissor();
         }
-        graphics.disableScissor();
         graphics.fill(functionListX, functionListY, functionListX + functionListWidth, functionListY + 1, FIELD_EDGE);
         graphics.fill(functionListX, functionListY + functionListHeight - 1, functionListX + functionListWidth, functionListY + functionListHeight, FIELD_EDGE);
         graphics.fill(functionListX, functionListY, functionListX + 1, functionListY + functionListHeight, FIELD_EDGE);
@@ -2612,42 +2627,45 @@ public final class OmniWheelProfilesOverlay {
         float mouseX = currentMouseX(minecraft);
         float mouseY = currentMouseY(minecraft);
 
-        enableUiScissor(graphics, iconPickerGridX, iconPickerGridY, iconPickerGridX + iconPickerGridWidth, iconPickerGridY + iconPickerGridHeight);
-        for (int index = 0; index < visibleOptions.size(); index++) {
-            IconPickerOption option = visibleOptions.get(index);
-            int row = index / columns;
-            int column = index % columns;
-            int cellX = iconPickerGridX + contentPadding + horizontalInset + (column * (cellSize + cellGap));
-            int cellY = iconPickerGridY + contentPadding + (row * (cellSize + cellGap)) - iconPickerScrollOffset;
-            if (cellY + cellSize < iconPickerGridY || cellY > iconPickerGridY + iconPickerGridHeight) {
-                continue;
-            }
+        enableUiScissor(graphics, iconPickerGridX + 1, iconPickerGridY + 1, iconPickerGridX + iconPickerGridWidth - 1, iconPickerGridY + iconPickerGridHeight - 1);
+        try {
+            for (int index = 0; index < visibleOptions.size(); index++) {
+                IconPickerOption option = visibleOptions.get(index);
+                int row = index / columns;
+                int column = index % columns;
+                int cellX = iconPickerGridX + contentPadding + horizontalInset + (column * (cellSize + cellGap));
+                int cellY = iconPickerGridY + contentPadding + (row * (cellSize + cellGap)) - iconPickerScrollOffset;
+                if (cellY + cellSize < iconPickerGridY || cellY > iconPickerGridY + iconPickerGridHeight) {
+                    continue;
+                }
 
-            boolean selected = option.id().equals(selectedIconId);
-            boolean hovered = mouseX >= cellX && mouseX <= cellX + cellSize && mouseY >= cellY && mouseY <= cellY + cellSize;
-            boolean focused = focusedActionIndex == actions.size();
-            int fillColor = selected ? ROW_SELECTED : hovered ? ROW : FIELD;
-            int edgeColor = selected ? ACTION : FIELD_EDGE;
-            graphics.fill(cellX, cellY, cellX + cellSize, cellY + cellSize, fillColor);
-            graphics.fill(cellX, cellY, cellX + cellSize, cellY + 1, edgeColor);
-            graphics.fill(cellX, cellY + cellSize - 1, cellX + cellSize, cellY + cellSize, edgeColor);
-            graphics.fill(cellX, cellY, cellX + 1, cellY + cellSize, edgeColor);
-            graphics.fill(cellX + cellSize - 1, cellY, cellX + cellSize, cellY + cellSize, edgeColor);
-            if (focused) {
-                drawFocusedActionOutline(graphics, cellX, cellY, cellSize, cellSize);
+                boolean selected = option.id().equals(selectedIconId);
+                boolean hovered = mouseX >= cellX && mouseX <= cellX + cellSize && mouseY >= cellY && mouseY <= cellY + cellSize;
+                boolean focused = focusedActionIndex == actions.size();
+                int fillColor = selected ? ROW_SELECTED : hovered ? ROW : FIELD;
+                int edgeColor = selected ? ACTION : FIELD_EDGE;
+                graphics.fill(cellX, cellY, cellX + cellSize, cellY + cellSize, fillColor);
+                graphics.fill(cellX, cellY, cellX + cellSize, cellY + 1, edgeColor);
+                graphics.fill(cellX, cellY + cellSize - 1, cellX + cellSize, cellY + cellSize, edgeColor);
+                graphics.fill(cellX, cellY, cellX + 1, cellY + cellSize, edgeColor);
+                graphics.fill(cellX + cellSize - 1, cellY, cellX + cellSize, cellY + cellSize, edgeColor);
+                if (focused) {
+                    drawFocusedActionOutline(graphics, cellX, cellY, cellSize, cellSize);
+                }
+                if (!EntryIconRenderer.drawIcon(graphics, minecraft, option.id(), cellX + (cellSize * 0.5F), cellY + (cellSize * 0.5F), 1.0F)) {
+                    graphics.drawCenteredString(minecraft.font, "?", cellX + (cellSize / 2), cellY + 7, TEXT);
+                }
+                final String selectedIcon = option.id();
+                addClippedAction(cellX, cellY, cellSize, cellSize, iconPickerGridX, iconPickerGridY, iconPickerGridWidth, iconPickerGridHeight, true, () -> selectIconFromPicker(selectedIcon));
+                if (pendingIconPickerFocusId != null && pendingIconPickerFocusId.equals(selectedIcon)) {
+                    focusedActionIndex = actions.size() - 1;
+                    pendingIconPickerFocusId = null;
+                    activeList = NavigationList.EDITOR;
+                }
             }
-            if (!EntryIconRenderer.drawIcon(graphics, minecraft, option.id(), cellX + (cellSize * 0.5F), cellY + (cellSize * 0.5F), 1.0F)) {
-                graphics.drawCenteredString(minecraft.font, "?", cellX + (cellSize / 2), cellY + 7, TEXT);
-            }
-            final String selectedIcon = option.id();
-            actions.add(new ClickAction(cellX, cellY, cellSize, cellSize, true, () -> selectIconFromPicker(selectedIcon)));
-            if (pendingIconPickerFocusId != null && pendingIconPickerFocusId.equals(selectedIcon)) {
-                focusedActionIndex = actions.size() - 1;
-                pendingIconPickerFocusId = null;
-                activeList = NavigationList.EDITOR;
-            }
+        } finally {
+            graphics.disableScissor();
         }
-        graphics.disableScissor();
         graphics.fill(iconPickerGridX, iconPickerGridY, iconPickerGridX + iconPickerGridWidth, iconPickerGridY + 1, FIELD_EDGE);
         graphics.fill(iconPickerGridX, iconPickerGridY + iconPickerGridHeight - 1, iconPickerGridX + iconPickerGridWidth, iconPickerGridY + iconPickerGridHeight, FIELD_EDGE);
         graphics.fill(iconPickerGridX, iconPickerGridY, iconPickerGridX + 1, iconPickerGridY + iconPickerGridHeight, FIELD_EDGE);
@@ -2675,31 +2693,36 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(x, y, x + 1, y + height, FIELD_EDGE);
         graphics.fill(x + width - 1, y, x + width, y + height, FIELD_EDGE);
 
-        for (int index = 0; index < entries.size(); index++) {
-            WheelEntry wheelEntry = entries.get(index);
-            int row = index / 2;
-            int column = index % 2;
-            int cardX = x + (column * (cardWidth + columnGap));
-            int cardY = y + (row * (cardHeight + rowGap)) - entriesScrollOffset;
-            if (cardY + cardHeight < y || cardY > y + height) {
-                continue;
+        enableUiScissor(graphics, x + 1, y + 1, x + width - 1, y + height - 1);
+        try {
+            for (int index = 0; index < entries.size(); index++) {
+                WheelEntry wheelEntry = entries.get(index);
+                int row = index / 2;
+                int column = index % 2;
+                int cardX = x + (column * (cardWidth + columnGap));
+                int cardY = y + (row * (cardHeight + rowGap)) - entriesScrollOffset;
+                if (cardY + cardHeight < y || cardY > y + height) {
+                    continue;
+                }
+
+                boolean selected = wheelEntry.id().equals(selectedEntryId);
+                graphics.fill(cardX, cardY, cardX + cardWidth, cardY + cardHeight, selected ? ROW_SELECTED : ROW);
+                graphics.fill(cardX + 8, cardY + 9, cardX + 20, cardY + 21, wheelEntry.color());
+                graphics.drawString(minecraft.font, shorten(displayText(wheelEntry.label()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 7, TEXT, false);
+                graphics.drawString(minecraft.font, shorten(actionSummary(wheelEntry.action()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 20, TEXT_SECONDARY, false);
+                if (!EntryIconRenderer.drawIcon(graphics, minecraft, wheelEntry.glyph(), cardX + cardWidth - 9.0F, cardY + 19.0F, 0.75F)) {
+                    graphics.drawString(minecraft.font, wheelEntry.glyph(), cardX + cardWidth - 14, cardY + 14, wheelEntry.color(), false);
+                }
+
+                final String entryId = wheelEntry.id();
+                addClippedAction(cardX, cardY, cardWidth, cardHeight, x, y, width, height, true, () -> {
+                    persistPendingEdits();
+                    selectedEntryId = entryId;
+                    loadEntryDraft(selectedEntry());
+                });
             }
-
-            boolean selected = wheelEntry.id().equals(selectedEntryId);
-            graphics.fill(cardX, cardY, cardX + cardWidth, cardY + cardHeight, selected ? ROW_SELECTED : ROW);
-            graphics.fill(cardX + 8, cardY + 9, cardX + 20, cardY + 21, wheelEntry.color());
-            graphics.drawString(minecraft.font, shorten(displayText(wheelEntry.label()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 7, TEXT, false);
-            graphics.drawString(minecraft.font, shorten(actionSummary(wheelEntry.action()), Math.max(8, (cardWidth - 42) / 6)), cardX + 28, cardY + 20, TEXT_SECONDARY, false);
-        if (!EntryIconRenderer.drawIcon(graphics, minecraft, wheelEntry.glyph(), cardX + cardWidth - 9.0F, cardY + 19.0F, 0.75F)) {
-            graphics.drawString(minecraft.font, wheelEntry.glyph(), cardX + cardWidth - 14, cardY + 14, wheelEntry.color(), false);
-        }
-
-            final String entryId = wheelEntry.id();
-            actions.add(new ClickAction(cardX, cardY, cardWidth, cardHeight, true, () -> {
-                persistPendingEdits();
-                selectedEntryId = entryId;
-                loadEntryDraft(selectedEntry());
-            }));
+        } finally {
+            graphics.disableScissor();
         }
 
         if (contentHeight > height) {
@@ -2829,6 +2852,17 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
         graphics.fill(textX + startOffset, selectionY, textX + endOffset, selectionY + selectionHeight, 0x90456B89);
+    }
+
+    private void addClippedAction(int x, int y, int width, int height, int clipX, int clipY, int clipWidth, int clipHeight, boolean enabled, Runnable handler) {
+        int clippedX = Math.max(x, clipX);
+        int clippedY = Math.max(y, clipY);
+        int clippedMaxX = Math.min(x + width, clipX + clipWidth);
+        int clippedMaxY = Math.min(y + height, clipY + clipHeight);
+        if (clippedMaxX <= clippedX || clippedMaxY <= clippedY) {
+            return;
+        }
+        actions.add(new ClickAction(clippedX, clippedY, clippedMaxX - clippedX, clippedMaxY - clippedY, enabled, handler));
     }
 
     private void addButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, boolean enabled, Runnable handler) {
@@ -3849,7 +3883,7 @@ public final class OmniWheelProfilesOverlay {
         iconPickerSearchDraft = "";
         textFields.get(EditorField.ICON_PICKER_SEARCH).setValue("");
         if (commandInput != null) {
-            commandInput.setFocused(false);
+            commandInput.setFocus(false);
             commandInput.setVisible(false);
         }
         if (hostScreen() != null && hostScreen().getFocused() == commandInput) {
@@ -3926,9 +3960,8 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
         List<IconPickerOption> options = new ArrayList<>();
-        options.addAll(loadParticleIconOptions());
-        for (ResourceLocation id : BuiltInRegistries.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id);
+        for (ResourceLocation id : Registry.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+            MobEffect effect = Registry.MOB_EFFECT.get(id);
             if (effect == null) {
                 continue;
             }
@@ -3979,8 +4012,8 @@ public final class OmniWheelProfilesOverlay {
         addIconPickerOption(options, "gui:icon/ping_3", "ui icon ping network three");
         addIconPickerOption(options, "gui:icon/ping_4", "ui icon ping network four");
         addIconPickerOption(options, "gui:icon/ping_5", "ui icon ping network five");
-        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            Item item = BuiltInRegistries.ITEM.get(id);
+        for (ResourceLocation id : Registry.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+            Item item = Registry.ITEM.get(id);
             if (item == null || item == Items.AIR) {
                 continue;
             }
@@ -3989,73 +4022,6 @@ public final class OmniWheelProfilesOverlay {
             options.add(new IconPickerOption(id.toString(), searchText));
         }
         iconPickerOptions = options;
-    }
-
-    private List<IconPickerOption> loadParticleIconOptions() {
-        Minecraft minecraft = Minecraft.getInstance();
-        List<IconPickerOption> options = new ArrayList<>();
-        Set<String> seenVisualSignatures = new HashSet<>();
-        for (ResourceLocation id : BuiltInRegistries.PARTICLE_TYPE.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            String iconId = "particle:" + id;
-            String path = id.getPath();
-            if (path.equals("ash")
-                    || path.equals("crimson_spore")
-                    || path.equals("cherry_leaves")
-                    || path.equals("damage_indicator")
-                    || path.equals("dragon_breath")
-                    || path.equals("dolphin")
-                    || path.equals("dripping_honey")
-                    || path.equals("dripping_lava")
-                    || path.equals("dripping_obsidian_tear")
-                    || path.equals("dripping_water")
-                    || path.equals("falling_honey")
-                    || path.equals("falling_lava")
-                    || path.equals("falling_nectar")
-                    || path.equals("falling_obsidian_tear")
-                    || path.equals("falling_spore_blossom")
-                    || path.equals("falling_water")
-                    || path.equals("fishing")
-                    || path.equals("flash")
-                    || path.equals("infested")
-                    || path.equals("crit")
-                    || path.equals("landing_honey")
-                    || path.equals("landing_lava")
-                    || path.equals("landing_obsidian_tear")
-                    || path.equals("lava")
-                    || path.equals("mycelium")
-                    || path.equals("ominous_spawning")
-                    || path.equals("rain")
-                    || path.equals("splash")
-                    || path.equals("spore_blossom_air")
-                    || path.equals("underwater")
-                    || path.equals("warped_spore")
-                    || path.equals("white_ash")
-                    || path.contains("dripstone")
-                    || path.contains("trial_spawner")
-                    || path.contains("vault")) {
-                continue;
-            }
-            if (!EntryIconRenderer.isParticleIcon(iconId)) {
-                continue;
-            }
-            // Only expose sprite-backed particles that actually have animation frames or at least one frame.
-            if (!particleDefinitionExists(minecraft, id)) {
-                continue;
-            }
-            String visualSignature = EntryIconRenderer.particleVisualSignature(minecraft, iconId);
-            if (visualSignature.isEmpty() || !seenVisualSignatures.add(visualSignature)) {
-                continue;
-            }
-            String pathWords = id.getPath().replace('_', ' ');
-            String searchText = (iconId + " particle " + id + " " + pathWords).toLowerCase(java.util.Locale.ROOT);
-            options.add(new IconPickerOption(iconId, searchText));
-        }
-        return options;
-    }
-
-    private static boolean particleDefinitionExists(Minecraft minecraft, ResourceLocation particleId) {
-        ResourceLocation definitionId = ResourceLocation.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
-        return definitionId != null && minecraft.getResourceManager().getResource(definitionId).isPresent();
     }
 
     private static void addIconPickerOption(List<IconPickerOption> options, String id, String searchTerms) {
@@ -4105,17 +4071,26 @@ public final class OmniWheelProfilesOverlay {
     private static Map<ResourceLocation, String> loadCreativeTabSearchTerms() {
         ensureCreativeTabContentsBuilt();
         Map<ResourceLocation, LinkedHashSet<String>> termsByItem = new HashMap<>();
-        for (CreativeModeTab tab : BuiltInRegistries.CREATIVE_MODE_TAB) {
+        for (CreativeModeTab tab : CreativeModeTab.TABS) {
+            if (tab == null) {
+                continue;
+            }
             String tabName = tab.getDisplayName().getString();
             if (tabName.isBlank()) {
                 continue;
             }
             String normalized = tabName.toLowerCase(java.util.Locale.ROOT);
-            for (ItemStack stack : tab.getDisplayItems()) {
+            NonNullList<ItemStack> tabItems = NonNullList.create();
+            try {
+                tab.fillItemList(tabItems);
+            } catch (RuntimeException ignored) {
+                continue;
+            }
+            for (ItemStack stack : tabItems) {
                 if (stack.isEmpty()) {
                     continue;
                 }
-                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                ResourceLocation itemId = Registry.ITEM.getKey(stack.getItem());
                 if (itemId == null) {
                     continue;
                 }
@@ -4131,22 +4106,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static void ensureCreativeTabContentsBuilt() {
-        try {
-            Field cachedParametersField = CreativeModeTabs.class.getDeclaredField("CACHED_PARAMETERS");
-            cachedParametersField.setAccessible(true);
-            Object cachedParameters = cachedParametersField.get(null);
-            if (cachedParameters == null) {
-                return;
-            }
-
-            Method buildAllTabContents = CreativeModeTabs.class.getDeclaredMethod(
-                    "buildAllTabContents",
-                    cachedParameters.getClass()
-            );
-            buildAllTabContents.setAccessible(true);
-            buildAllTabContents.invoke(null, cachedParameters);
-        } catch (ReflectiveOperationException ignored) {
-        }
+        // 1.19.2 builds creative tab contents directly through CreativeModeTab#fillItemList.
     }
 
     private List<IconPickerOption> filteredIconPickerOptions() {
@@ -4261,7 +4221,7 @@ public final class OmniWheelProfilesOverlay {
         if (id == null) {
             return "";
         }
-        Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
+        Item item = Registry.ITEM.getOptional(id).orElse(null);
         if (item == null || item == Items.AIR) {
             return "";
         }
@@ -5632,8 +5592,8 @@ public final class OmniWheelProfilesOverlay {
                     focusCommandField(index);
                     activateTextEntry();
                     if (isUsingVanillaCommandInput(index)) {
-                        double clampedX = Math.max(commandInput.getX(), Math.min(mouseX, commandInput.getX() + commandInput.getWidth() - 1));
-                        double clampedY = Math.max(commandInput.getY(), Math.min(mouseY, commandInput.getY() + commandInput.getHeight() - 1));
+                        double clampedX = Math.max(commandInput.x, Math.min(mouseX, commandInput.x + commandInput.getWidth() - 1));
+                        double clampedY = Math.max(commandInput.y, Math.min(mouseY, commandInput.y + commandInput.getHeight() - 1));
                         commandInput.mouseClicked(clampedX, clampedY, 0);
                     } else {
                         field.click(minecraft.font, mouseX);
@@ -5951,7 +5911,7 @@ public final class OmniWheelProfilesOverlay {
             syncActiveCommandInput();
             if (commandInput != null) {
                 commandInput.setVisible(true);
-                commandInput.setFocused(true);
+                commandInput.setFocus(true);
             }
         }
     }
@@ -5959,7 +5919,7 @@ public final class OmniWheelProfilesOverlay {
     private void deactivateTextEntry() {
         textEntryActive = false;
         if (commandInput != null) {
-            commandInput.setFocused(false);
+            commandInput.setFocus(false);
             commandInput.setVisible(false);
         }
         Screen hostScreen = hostScreen();
@@ -5978,7 +5938,7 @@ public final class OmniWheelProfilesOverlay {
         }
         focusedCommandFieldIndex = -1;
         if (commandInput != null) {
-            commandInput.setFocused(false);
+            commandInput.setFocus(false);
             commandInput.setVisible(false);
         }
         Screen hostScreen = hostScreen();
@@ -6119,7 +6079,7 @@ public final class OmniWheelProfilesOverlay {
         }
         focusedCommandFieldIndex = -1;
         if (commandInput != null) {
-            commandInput.setFocused(false);
+            commandInput.setFocus(false);
             commandInput.setVisible(false);
         }
         Screen hostScreen = hostScreen();
@@ -7105,7 +7065,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         hostScreen.setFocused(commandInput);
-        commandInput.setFocused(true);
+        commandInput.setFocus(true);
         syncActiveCommandInput();
         return true;
     }
@@ -7146,7 +7106,7 @@ public final class OmniWheelProfilesOverlay {
 
     private void clearCommandInput() {
         if (commandInput != null) {
-            commandInput.setFocused(false);
+            commandInput.setFocus(false);
             commandInput.setVisible(false);
         }
         commandSuggestionsYOffset = 0;

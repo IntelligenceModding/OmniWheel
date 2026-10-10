@@ -213,7 +213,7 @@ public final class GameplayFunctionController {
     }
 
     private static void jump(Minecraft minecraft) {
-        if (!minecraft.player.onGround()) {
+        if (!minecraft.player.isOnGround()) {
             return;
         }
         minecraft.player.jumpFromGround();
