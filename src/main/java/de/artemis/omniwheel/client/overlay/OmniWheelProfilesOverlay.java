@@ -1,6 +1,6 @@
 package de.artemis.omniwheel.client.overlay;
 
-import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.util.InputMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.runtime.EntryShortcutMatcher;
@@ -21,30 +21,27 @@ import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.gui.Font;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.CommandSuggestions;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.Registry;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.client.gui.CommandSuggestionHelper;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.IReorderingProcessor;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.potion.Effect;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -109,7 +106,7 @@ public final class OmniWheelProfilesOverlay {
             0xFFA7B6C6
     };
     private static final int[] POLLED_KEYS = createPolledKeys();
-    private static Map<ResourceLocation, String> CREATIVE_TAB_SEARCH_TERMS = Map.of();
+    private static Map<ResourceLocation, String> CREATIVE_TAB_SEARCH_TERMS = com.google.common.collect.ImmutableMap.of();
     private static boolean CREATIVE_TAB_SEARCH_TERMS_LOADED;
 
     private final OmniWheelClientRuntime runtime;
@@ -120,8 +117,8 @@ public final class OmniWheelProfilesOverlay {
     private final Map<Integer, Long> nextKeyRepeatAt = new HashMap<>();
     private final Set<String> expandedWheelIds = new HashSet<>();
     private NavigationList activeList = NavigationList.PROFILES;
-    private EditBox commandInput;
-    private CommandSuggestions commandSuggestions;
+    private TextFieldWidget commandInput;
+    private CommandSuggestionHelper commandSuggestions;
     private Screen commandSuggestionsScreen;
     private boolean syncingCommandInput;
     private int commandSuggestionsYOffset;
@@ -314,7 +311,7 @@ public final class OmniWheelProfilesOverlay {
     private String entrySubmenuWheelId;
     private ScreenTarget entryScreenTargetDraft = ScreenTarget.PROFILE_MANAGER;
     private boolean iconPickerOpen;
-    private List<IconPickerOption> iconPickerOptions = List.of();
+    private List<IconPickerOption> iconPickerOptions = com.google.common.collect.ImmutableList.of();
 
     public OmniWheelProfilesOverlay(OmniWheelClientRuntime runtime) {
         this.runtime = runtime;
@@ -767,24 +764,35 @@ public final class OmniWheelProfilesOverlay {
 
     private void anchorActivePanelSelection() {
         switch (activeList) {
-            case PROFILES -> {
+            case PROFILES: {
+
                 if (selectedProfileId == null) {
                     selectProfileByIndex(0);
                 }
+
+                break;
             }
-            case WHEELS -> {
+            case WHEELS: {
+
                 List<EntryListRow> rows = visibleEntryRows();
                 if (rows.isEmpty()) {
                     focusFirstActionInZone(NavigationList.WHEELS);
                 } else if (selectedEntryRowIndex(rows) < 0) {
                     selectEntryRowByIndex(0);
                 }
+
+                break;
             }
-            case EDITOR -> {
+            case EDITOR: {
+
                 if (currentFocusTarget() == null) {
                     focusFirstVisibleTarget();
                 }
+
+                break;
             }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (activeList));
         }
     }
 
@@ -1074,11 +1082,19 @@ public final class OmniWheelProfilesOverlay {
 
     private boolean handleMoveShortcut(int keyCode) {
         int delta = keyCode == GLFW.GLFW_KEY_UP ? -1 : 1;
-        return switch (activeList) {
-            case PROFILES -> moveSelectedProfileBy(delta);
-            case WHEELS -> moveSelectedEntryBy(delta);
-            case EDITOR -> false;
-        };
+        switch (activeList) {
+            case PROFILES: {
+                return moveSelectedProfileBy(delta);
+            }
+            case WHEELS: {
+                return moveSelectedEntryBy(delta);
+            }
+            case EDITOR: {
+                return false;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (activeList));
+        }
     }
 
     private boolean handlePanelSwitchKeyPressed(int keyCode) {
@@ -1121,13 +1137,23 @@ public final class OmniWheelProfilesOverlay {
         }
 
         int pageStep = Math.max(1, Math.max(1, iconPickerGridHeight - (ICON_PICKER_CONTENT_PADDING * 2)));
-        return switch (keyCode) {
-            case GLFW.GLFW_KEY_PAGE_UP -> scrollIconPickerBy(-pageStep);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> scrollIconPickerBy(pageStep);
-            case GLFW.GLFW_KEY_HOME -> scrollIconPickerTo(0);
-            case GLFW.GLFW_KEY_END -> scrollIconPickerTo(maxIconPickerScrollOffset());
-            default -> false;
-        };
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_PAGE_UP: {
+                return scrollIconPickerBy(-pageStep);
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN: {
+                return scrollIconPickerBy(pageStep);
+            }
+            case GLFW.GLFW_KEY_HOME: {
+                return scrollIconPickerTo(0);
+            }
+            case GLFW.GLFW_KEY_END: {
+                return scrollIconPickerTo(maxIconPickerScrollOffset());
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private boolean handleFunctionListKeyPressed(int keyCode) {
@@ -1142,13 +1168,23 @@ public final class OmniWheelProfilesOverlay {
         }
 
         int pageStep = Math.max(1, Math.max(1, functionListHeight - 12));
-        return switch (keyCode) {
-            case GLFW.GLFW_KEY_PAGE_UP -> scrollFunctionListBy(-pageStep);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> scrollFunctionListBy(pageStep);
-            case GLFW.GLFW_KEY_HOME -> scrollFunctionListTo(0);
-            case GLFW.GLFW_KEY_END -> scrollFunctionListTo(maxFunctionListScrollOffset());
-            default -> false;
-        };
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_PAGE_UP: {
+                return scrollFunctionListBy(-pageStep);
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN: {
+                return scrollFunctionListBy(pageStep);
+            }
+            case GLFW.GLFW_KEY_HOME: {
+                return scrollFunctionListTo(0);
+            }
+            case GLFW.GLFW_KEY_END: {
+                return scrollFunctionListTo(maxFunctionListScrollOffset());
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private boolean handleCommandListKeyPressed(int keyCode) {
@@ -1166,13 +1202,23 @@ public final class OmniWheelProfilesOverlay {
         }
 
         int pageStep = Math.max(1, Math.max(1, commandListHeight - 12));
-        return switch (keyCode) {
-            case GLFW.GLFW_KEY_PAGE_UP -> scrollCommandListBy(-pageStep);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> scrollCommandListBy(pageStep);
-            case GLFW.GLFW_KEY_HOME -> scrollCommandListTo(0);
-            case GLFW.GLFW_KEY_END -> scrollCommandListTo(maxCommandListScrollOffset());
-            default -> false;
-        };
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_PAGE_UP: {
+                return scrollCommandListBy(-pageStep);
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN: {
+                return scrollCommandListBy(pageStep);
+            }
+            case GLFW.GLFW_KEY_HOME: {
+                return scrollCommandListTo(0);
+            }
+            case GLFW.GLFW_KEY_END: {
+                return scrollCommandListTo(maxCommandListScrollOffset());
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private boolean handleDeleteShortcut() {
@@ -1231,8 +1277,8 @@ public final class OmniWheelProfilesOverlay {
             return false;
         }
 
-        if (entry.action() instanceof OpenWheelAction openWheelAction) {
-            toggleExpandedSubmenu(selectedWheelId, entry, openWheelAction.wheelId());
+        if (entry.action() instanceof OpenWheelAction) {
+            toggleExpandedSubmenu(selectedWheelId, entry, ((OpenWheelAction) entry.action()).wheelId());
             return true;
         }
 
@@ -1773,18 +1819,44 @@ public final class OmniWheelProfilesOverlay {
         }
 
         boolean readOnlyValue = entryActionTypeDraft == DraftActionType.OPEN_SCREEN;
-        String valueLabel = switch (entryActionTypeDraft) {
-            case OPEN_SCREEN -> text("omniwheel.manager.field.screen");
-            case COMMAND -> text("omniwheel.manager.field.commands");
-            case FUNCTION -> text("omniwheel.manager.field.function");
-            case CHAT -> text("omniwheel.manager.field.message");
-            default -> text("omniwheel.manager.field.value");
-        };
-        String valueText = switch (entryActionTypeDraft) {
-            case OPEN_SCREEN -> screenTargetLabel(entryScreenTargetDraft);
-            case FUNCTION -> entryFunctionDraft.displayName();
-            default -> entryValueDraft;
-        };
+        String valueLabel;
+        switch (entryActionTypeDraft) {
+            case OPEN_SCREEN: {
+                valueLabel = text("omniwheel.manager.field.screen");
+                break;
+            }
+            case COMMAND: {
+                valueLabel = text("omniwheel.manager.field.commands");
+                break;
+            }
+            case FUNCTION: {
+                valueLabel = text("omniwheel.manager.field.function");
+                break;
+            }
+            case CHAT: {
+                valueLabel = text("omniwheel.manager.field.message");
+                break;
+            }
+            default: {
+                valueLabel = text("omniwheel.manager.field.value");
+                break;
+            }
+        }
+        String valueText;
+        switch (entryActionTypeDraft) {
+            case OPEN_SCREEN: {
+                valueText = screenTargetLabel(entryScreenTargetDraft);
+                break;
+            }
+            case FUNCTION: {
+                valueText = entryFunctionDraft.displayName();
+                break;
+            }
+            default: {
+                valueText = entryValueDraft;
+                break;
+            }
+        }
         int lowerSectionY = editorY + 184;
         if (showLowerSection) {
             if (entryActionTypeDraft == DraftActionType.COMMAND) {
@@ -2012,7 +2084,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         int boxWidth = tutorialStep.width();
-        List<FormattedCharSequence> bodyLines = minecraft.font.split(new TextComponent(tutorialStep.body()), boxWidth - 20);
+        List<IReorderingProcessor> bodyLines = minecraft.font.split(new StringTextComponent(tutorialStep.body()), boxWidth - 20);
         int bodyHeight = Math.max(8, bodyLines.size() * 9);
         int buttonHeight = 20;
         int buttonGap = 6;
@@ -2029,7 +2101,7 @@ public final class OmniWheelProfilesOverlay {
         graphics.drawString(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
         graphics.drawString(minecraft.font, tutorialStep.title(), boxX + 10, boxY + 10, TEXT, false);
         int lineY = boxY + 26;
-        for (FormattedCharSequence line : bodyLines) {
+        for (IReorderingProcessor line : bodyLines) {
             graphics.drawString(minecraft.font, line, boxX + 10, lineY, TEXT_SECONDARY, false);
             lineY += 9;
         }
@@ -2098,57 +2170,71 @@ public final class OmniWheelProfilesOverlay {
             return null;
         }
 
-        Font font = Minecraft.getInstance().font;
+        FontRenderer font = Minecraft.getInstance().font;
         String title;
         String body;
         int cardWidth;
-        return switch (Math.min(managerTutorialStepIndex, MANAGER_TUTORIAL_STEP_COUNT - 1)) {
-            case 0 -> {
+        switch (Math.min(managerTutorialStepIndex, MANAGER_TUTORIAL_STEP_COUNT - 1)) {
+            case 0: {
+
                 title = text("omniwheel.tutorial.manager.profiles.title");
                 body = text("omniwheel.tutorial.manager.profiles.body");
                 cardWidth = tutorialCardWidth(font, title, body, 180, 248);
-                yield new TutorialStep(title, body, profilesPanelX + profilesPanelWidth + 18, profilesPanelY + 42, cardWidth);
+                return new TutorialStep(title, body, profilesPanelX + profilesPanelWidth + 18, profilesPanelY + 42, cardWidth);
+
             }
-            case 1 -> {
+            case 1: {
+
                 title = text("omniwheel.tutorial.manager.entries.title");
                 body = text("omniwheel.tutorial.manager.entries.body");
                 cardWidth = tutorialCardWidth(font, title, body, 190, 264);
-                yield new TutorialStep(title, body, wheelsPanelX + wheelsPanelWidth + 18, wheelsPanelY + 42, cardWidth);
+                return new TutorialStep(title, body, wheelsPanelX + wheelsPanelWidth + 18, wheelsPanelY + 42, cardWidth);
+
             }
-            case 2 -> {
+            case 2: {
+
                 title = text("omniwheel.tutorial.manager.name.title");
                 body = text("omniwheel.tutorial.manager.name.body");
                 cardWidth = tutorialCardWidth(font, title, body, 186, 250);
-                yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 42, cardWidth);
+                return new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 42, cardWidth);
+
             }
-            case 3 -> {
+            case 3: {
+
                 title = text("omniwheel.tutorial.manager.icon.title");
                 body = text("omniwheel.tutorial.manager.icon.body");
                 cardWidth = tutorialCardWidth(font, title, body, 192, 258);
-                yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 80, cardWidth);
+                return new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 80, cardWidth);
+
             }
-            case 4 -> {
+            case 4: {
+
                 title = text("omniwheel.tutorial.manager.colors.title");
                 body = text("omniwheel.tutorial.manager.colors.body");
                 cardWidth = tutorialCardWidth(font, title, body, 196, 266);
-                yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 42, cardWidth);
+                return new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 42, cardWidth);
+
             }
-            case 5 -> {
+            case 5: {
+
                 title = text("omniwheel.tutorial.manager.action.title");
                 body = text("omniwheel.tutorial.manager.action.body");
                 cardWidth = tutorialCardWidth(font, title, body, 202, 276);
-                yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 208, cardWidth);
+                return new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 208, cardWidth);
+
             }
-            default -> {
+            default: {
+
                 title = text("omniwheel.tutorial.manager.shortcuts.title");
                 body = text("omniwheel.tutorial.manager.shortcuts.body");
                 cardWidth = tutorialCardWidth(font, title, body, 196, 266);
-                yield new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 154, cardWidth);
+                return new TutorialStep(title, body, editorPanelX - cardWidth - 18, editorPanelY + 154, cardWidth);
+
             }
-        };
+        }
     }
 
-    private static int tutorialCardWidth(Font font, String title, String body, int minWidth, int maxWidth) {
+    private static int tutorialCardWidth(FontRenderer font, String title, String body, int minWidth, int maxWidth) {
         int buttonFloorWidth = 166;
         int titleWidth = font.width(title) + 20;
         int bodyWidth = font.width(body) + 20;
@@ -2222,10 +2308,10 @@ public final class OmniWheelProfilesOverlay {
             return conflicts;
         }
 
-        for (KeyMapping keyMapping : minecraft.options.keyMappings) {
+        for (KeyBinding KeyBinding : minecraft.options.keyMappings) {
             for (int key : spec.keys()) {
-                if (keyMapping.matches(key, -1)) {
-                    conflicts.add(new TranslatableComponent(keyMapping.getName()).getString());
+                if (KeyBinding.matches(key, -1)) {
+                    conflicts.add(new TranslationTextComponent(KeyBinding.getName()).getString());
                     break;
                 }
             }
@@ -2254,35 +2340,8 @@ public final class OmniWheelProfilesOverlay {
 
     private void openControlsMenu() {
         Minecraft minecraft = Minecraft.getInstance();
-        Screen parent = hostScreen();
-        if (minecraft.screen == null || minecraft.options == null) {
-            return;
-        }
-
-        for (String className : List.of(
-                "net.minecraft.client.gui.screens.options.controls.ControlsScreen",
-                "net.minecraft.client.gui.screens.options.controls.KeyBindsScreen"
-        )) {
-            try {
-                Class<?> screenClass = Class.forName(className);
-                for (var constructor : screenClass.getConstructors()) {
-                    Class<?>[] parameterTypes = constructor.getParameterTypes();
-                    if (parameterTypes.length == 2
-                            && Screen.class.isAssignableFrom(parameterTypes[0])
-                            && parameterTypes[1].isInstance(minecraft.options)) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options));
-                        return;
-                    }
-                    if (parameterTypes.length == 3
-                            && Screen.class.isAssignableFrom(parameterTypes[0])
-                            && parameterTypes[1].isInstance(minecraft.options)
-                            && Component.class.isAssignableFrom(parameterTypes[2])) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options, new TranslatableComponent("controls.keybinds.title")));
-                        return;
-                    }
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
+        if (minecraft.screen != null) {
+            minecraft.setScreen(new net.minecraft.client.gui.screen.ControlsScreen(hostScreen(), minecraft.options));
         }
     }
 
@@ -2388,7 +2447,7 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
         try {
-            Field field = CommandSuggestions.class.getDeclaredField("commandUsagePosition");
+            Field field = net.minecraftforge.fml.common.ObfuscationReflectionHelper.findField(CommandSuggestionHelper.class, "field_228104_m_");
             field.setAccessible(true);
             field.setInt(commandSuggestions, commandInput.x);
         } catch (ReflectiveOperationException ignored) {
@@ -2399,7 +2458,7 @@ public final class OmniWheelProfilesOverlay {
         if (commandSuggestions == null || commandInput == null || commandSuggestionsVisible()) {
             return false;
         }
-        List<FormattedCharSequence> usage = commandUsageLines();
+        List<IReorderingProcessor> usage = commandUsageLines();
         return !usage.isEmpty() && commandUsageWidth() > commandInput.getWidth();
     }
 
@@ -2407,19 +2466,19 @@ public final class OmniWheelProfilesOverlay {
         if (commandInput == null) {
             return;
         }
-        List<FormattedCharSequence> usage = commandUsageLines();
+        List<IReorderingProcessor> usage = commandUsageLines();
         if (usage.isEmpty()) {
             return;
         }
 
-        List<FormattedCharSequence> wrappedLines = new ArrayList<>();
+        List<IReorderingProcessor> wrappedLines = new ArrayList<>();
         int maxWidth = Math.max(8, commandInput.getWidth());
-        for (FormattedCharSequence line : usage) {
+        for (IReorderingProcessor line : usage) {
             if (minecraft.font.width(line) <= maxWidth) {
                 wrappedLines.add(line);
                 continue;
             }
-            List<FormattedCharSequence> split = minecraft.font.split(new TextComponent(formattedSequenceToString(line)), maxWidth);
+            List<IReorderingProcessor> split = minecraft.font.split(new StringTextComponent(formattedSequenceToString(line)), maxWidth);
             if (split.isEmpty()) {
                 wrappedLines.add(line);
             } else {
@@ -2430,7 +2489,7 @@ public final class OmniWheelProfilesOverlay {
         int lineY = commandInput.y + 19;
         int lineX = commandInput.x;
         for (int index = 0; index < wrappedLines.size(); index++) {
-            FormattedCharSequence line = wrappedLines.get(index);
+            IReorderingProcessor line = wrappedLines.get(index);
             int y = lineY + (index * 12);
             int width = minecraft.font.width(line);
             graphics.fill(lineX - 1, y, lineX + width + 1, y + 12, Integer.MIN_VALUE);
@@ -2438,26 +2497,26 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private List<FormattedCharSequence> commandUsageLines() {
+    private List<IReorderingProcessor> commandUsageLines() {
         if (commandSuggestions == null) {
-            return List.of();
+            return com.google.common.collect.ImmutableList.of();
         }
         try {
-            Field field = CommandSuggestions.class.getDeclaredField("commandUsage");
+            Field field = net.minecraftforge.fml.common.ObfuscationReflectionHelper.findField(CommandSuggestionHelper.class, "field_228103_l_");
             field.setAccessible(true);
             Object value = field.get(commandSuggestions);
-            if (value instanceof List<?> list) {
-                List<FormattedCharSequence> lines = new ArrayList<>();
-                for (Object entry : list) {
-                    if (entry instanceof FormattedCharSequence sequence) {
-                        lines.add(sequence);
+            if (value instanceof List<?>) {
+                List<IReorderingProcessor> lines = new ArrayList<>();
+                for (Object entry : ((List<?>) value)) {
+                    if (entry instanceof IReorderingProcessor) {
+                        lines.add(((IReorderingProcessor) entry));
                     }
                 }
                 return lines;
             }
         } catch (ReflectiveOperationException ignored) {
         }
-        return List.of();
+        return com.google.common.collect.ImmutableList.of();
     }
 
     private int commandUsageWidth() {
@@ -2465,7 +2524,7 @@ public final class OmniWheelProfilesOverlay {
             return 0;
         }
         try {
-            Field field = CommandSuggestions.class.getDeclaredField("commandUsageWidth");
+            Field field = net.minecraftforge.fml.common.ObfuscationReflectionHelper.findField(CommandSuggestionHelper.class, "field_228105_n_");
             field.setAccessible(true);
             return field.getInt(commandSuggestions);
         } catch (ReflectiveOperationException ignored) {
@@ -2478,7 +2537,7 @@ public final class OmniWheelProfilesOverlay {
             return false;
         }
         try {
-            Field field = CommandSuggestions.class.getDeclaredField("suggestions");
+            Field field = net.minecraftforge.fml.common.ObfuscationReflectionHelper.findField(CommandSuggestionHelper.class, "field_228108_q_");
             field.setAccessible(true);
             return field.get(commandSuggestions) != null;
         } catch (ReflectiveOperationException ignored) {
@@ -2486,7 +2545,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private static String formattedSequenceToString(FormattedCharSequence sequence) {
+    private static String formattedSequenceToString(IReorderingProcessor sequence) {
         StringBuilder builder = new StringBuilder();
         sequence.accept((index, style, codePoint) -> {
             builder.appendCodePoint(codePoint);
@@ -2843,7 +2902,7 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawFieldSelection(GuiGraphics graphics, Font font, TextFieldState field, int textX, int selectionY, int selectionHeight, int contentWidth) {
+    private void drawFieldSelection(GuiGraphics graphics, FontRenderer font, TextFieldState field, int textX, int selectionY, int selectionHeight, int contentWidth) {
         if (!field.hasSelection()) {
             return;
         }
@@ -3000,30 +3059,30 @@ public final class OmniWheelProfilesOverlay {
         entryShowLabelDraft = entry.showLabel();
         entryShowShortcutDraft = entry.showShortcut();
         entryActionTypeDraft = DraftActionType.fromAction(entry.action());
-        entryFunctionDraft = entry.action() instanceof FunctionAction functionAction ? functionAction.function() : GameplayFunction.OPEN_INVENTORY;
-        entrySubmenuWheelId = entry.action() instanceof OpenWheelAction openWheelAction ? openWheelAction.wheelId() : null;
-        entryScreenTargetDraft = entry.action() instanceof OpenScreenAction openScreenAction ? openScreenAction.target() : ScreenTarget.PROFILE_MANAGER;
+        entryFunctionDraft = entry.action() instanceof FunctionAction ? ((FunctionAction) entry.action()).function() : GameplayFunction.OPEN_INVENTORY;
+        entrySubmenuWheelId = entry.action() instanceof OpenWheelAction ? ((OpenWheelAction) entry.action()).wheelId() : null;
+        entryScreenTargetDraft = entry.action() instanceof OpenScreenAction ? ((OpenScreenAction) entry.action()).target() : ScreenTarget.PROFILE_MANAGER;
         WheelAction action = entry.action();
-        if (action instanceof CommandAction commandAction) {
-            entryValueDraft = formatCommandValues(commandAction.commands());
-        } else if (action instanceof ChatAction chatAction) {
-            entryValueDraft = displayText(chatAction.message());
-        } else if (action instanceof FunctionAction functionAction) {
-            entryValueDraft = functionAction.function().displayName();
-        } else if (action instanceof CopyTextAction copyTextAction) {
-            entryValueDraft = copyTextAction.text();
-        } else if (action instanceof LocalMessageAction localMessageAction) {
-            entryValueDraft = displayText(localMessageAction.message());
-        } else if (action instanceof OpenChatAction openChatAction) {
-            entryValueDraft = openChatAction.initialText();
+        if (action instanceof CommandAction) {
+            entryValueDraft = formatCommandValues(((CommandAction) action).commands());
+        } else if (action instanceof ChatAction) {
+            entryValueDraft = displayText(((ChatAction) action).message());
+        } else if (action instanceof FunctionAction) {
+            entryValueDraft = ((FunctionAction) action).function().displayName();
+        } else if (action instanceof CopyTextAction) {
+            entryValueDraft = ((CopyTextAction) action).text();
+        } else if (action instanceof LocalMessageAction) {
+            entryValueDraft = displayText(((LocalMessageAction) action).message());
+        } else if (action instanceof OpenChatAction) {
+            entryValueDraft = ((OpenChatAction) action).initialText();
         } else if (action instanceof OpenScreenAction) {
             entryValueDraft = entryScreenTargetDraft.name();
         } else {
             entryValueDraft = "";
         }
         commandValueDrafts.clear();
-        if (entry.action() instanceof CommandAction commandAction) {
-            commandValueDrafts.addAll(commandAction.commands());
+        if (entry.action() instanceof CommandAction) {
+            commandValueDrafts.addAll(((CommandAction) entry.action()).commands());
         }
         syncCommandValueFields();
         textFields.get(EditorField.ENTRY_LABEL).setValue(entryLabelDraft);
@@ -3041,7 +3100,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         String wheelId = nextWheelId(profile, "custom_wheel");
-        WheelDefinition wheel = new WheelDefinition(wheelId, text("omniwheel.manager.created.wheel"), "", 8, List.of());
+        WheelDefinition wheel = new WheelDefinition(wheelId, text("omniwheel.manager.created.wheel"), "", 8, com.google.common.collect.ImmutableList.of());
         persistProfile(withWheel(profile, wheel));
         selectedWheelId = wheelId;
         selectedEntryId = null;
@@ -3110,7 +3169,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         String submenuId = nextWheelId(profile, "submenu");
-        WheelDefinition submenu = new WheelDefinition(submenuId, text("omniwheel.manager.created.submenu_wheel"), "", 8, List.of());
+        WheelDefinition submenu = new WheelDefinition(submenuId, text("omniwheel.manager.created.submenu_wheel"), "", 8, com.google.common.collect.ImmutableList.of());
         WheelEntry entry = new WheelEntry(
                 nextEntryId(wheel),
                 text("omniwheel.manager.created.submenu_entry"),
@@ -3135,27 +3194,40 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
 
-        WheelAction action = switch (actionType) {
-            case COMMAND -> new CommandAction("/command", false);
-            case CHAT -> new ChatAction(text("omniwheel.manager.created.chat_value"), false);
-            case FUNCTION -> new FunctionAction(GameplayFunction.OPEN_INVENTORY);
-            default -> new CommandAction("/command", false);
-        };
+        WheelAction action;
+        String label;
+        String glyph;
+        switch (actionType) {
+            case COMMAND: {
+                action = new CommandAction("/command", false);
+                label = text("omniwheel.manager.created.command_entry");
+                glyph = "C";
+                break;
+            }
+            case CHAT: {
+                action = new ChatAction(text("omniwheel.manager.created.chat_value"), false);
+                label = text("omniwheel.manager.created.message_entry");
+                glyph = "M";
+                break;
+            }
+            case FUNCTION: {
+                action = new FunctionAction(GameplayFunction.OPEN_INVENTORY);
+                label = text("omniwheel.manager.created.function_entry");
+                glyph = "F";
+                break;
+            }
+            default: {
+                action = new CommandAction("/command", false);
+                label = text("omniwheel.manager.created.entry");
+                glyph = "E";
+                break;
+            }
+        }
         WheelEntry entry = new WheelEntry(
                 nextEntryId(wheel),
-                switch (actionType) {
-                    case COMMAND -> text("omniwheel.manager.created.command_entry");
-                    case CHAT -> text("omniwheel.manager.created.message_entry");
-                    case FUNCTION -> text("omniwheel.manager.created.function_entry");
-                    default -> text("omniwheel.manager.created.entry");
-                },
+                label,
                 "",
-                switch (actionType) {
-                    case COMMAND -> "C";
-                    case CHAT -> "M";
-                    case FUNCTION -> "F";
-                    default -> "E";
-                },
+                glyph,
                 WheelEntry.DEFAULT_COLOR,
                 action
         );
@@ -3224,16 +3296,34 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private WheelAction buildDraftAction(WheelAction currentAction) {
-        return switch (entryActionTypeDraft) {
-            case COMMAND -> new CommandAction(normalizedCommandDrafts(), false);
-            case CHAT -> new ChatAction(preservedActionValue(currentAction, ChatAction.class, entryValueDraft, text("omniwheel.manager.created.chat_value")), false);
-            case FUNCTION -> new FunctionAction(entryFunctionDraft);
-            case LOCAL_MESSAGE -> new LocalMessageAction(preservedActionValue(currentAction, LocalMessageAction.class, entryValueDraft, ""));
-            case OPEN_CHAT -> new OpenChatAction(fallbackText(entryValueDraft, ""));
-            case COPY_TEXT -> new CopyTextAction(preservedActionValue(currentAction, CopyTextAction.class, entryValueDraft, ""));
-            case OPEN_SCREEN -> new OpenScreenAction(entryScreenTargetDraft);
-            case SUBMENU -> new OpenWheelAction(Objects.requireNonNullElse(entrySubmenuWheelId, selectedWheelId));
-        };
+        switch (entryActionTypeDraft) {
+            case COMMAND: {
+                return new CommandAction(normalizedCommandDrafts(), false);
+            }
+            case CHAT: {
+                return new ChatAction(preservedActionValue(currentAction, ChatAction.class, entryValueDraft, text("omniwheel.manager.created.chat_value")), false);
+            }
+            case FUNCTION: {
+                return new FunctionAction(entryFunctionDraft);
+            }
+            case LOCAL_MESSAGE: {
+                return new LocalMessageAction(preservedActionValue(currentAction, LocalMessageAction.class, entryValueDraft, ""));
+            }
+            case OPEN_CHAT: {
+                return new OpenChatAction(fallbackText(entryValueDraft, ""));
+            }
+            case COPY_TEXT: {
+                return new CopyTextAction(preservedActionValue(currentAction, CopyTextAction.class, entryValueDraft, ""));
+            }
+            case OPEN_SCREEN: {
+                return new OpenScreenAction(entryScreenTargetDraft);
+            }
+            case SUBMENU: {
+                return new OpenWheelAction((entrySubmenuWheelId != null ? entrySubmenuWheelId : selectedWheelId));
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (entryActionTypeDraft));
+        }
     }
 
     public void persistPendingEdits() {
@@ -3342,7 +3432,7 @@ public final class OmniWheelProfilesOverlay {
 
         for (WheelDefinition wheel : profile.wheels().values()) {
             for (WheelEntry entry : wheel.entries()) {
-                if (entry.action() instanceof OpenWheelAction openWheelAction && openWheelAction.wheelId().equals(selectedWheelId)) {
+                if (entry.action() instanceof OpenWheelAction && ((OpenWheelAction) entry.action()).wheelId().equals(selectedWheelId)) {
                     return false;
                 }
             }
@@ -3413,8 +3503,8 @@ public final class OmniWheelProfilesOverlay {
                 entry.shortcut()
         );
         persistProfile(withEntry(profile, wheel.id(), updatedEntry));
-        if (!updatedEntry.active() && updatedEntry.action() instanceof OpenWheelAction openWheelAction) {
-            expandedWheelIds.remove(openWheelAction.wheelId());
+        if (!updatedEntry.active() && updatedEntry.action() instanceof OpenWheelAction) {
+            expandedWheelIds.remove(((OpenWheelAction) updatedEntry.action()).wheelId());
         }
         loadEntryDraft(updatedEntry);
         syncSelection(true);
@@ -3471,7 +3561,7 @@ public final class OmniWheelProfilesOverlay {
 
     private List<WheelEntry> currentWheelEntries() {
         WheelDefinition wheel = selectedWheel();
-        return wheel == null ? List.of() : wheel.entries();
+        return wheel == null ? com.google.common.collect.ImmutableList.of() : wheel.entries();
     }
 
     private String activeWheelContextId() {
@@ -3479,10 +3569,10 @@ public final class OmniWheelProfilesOverlay {
         WheelEntry entry = selectedEntry();
         if (profile != null
                 && entry != null
-                && entry.action() instanceof OpenWheelAction openWheelAction
-                && expandedWheelIds.contains(openWheelAction.wheelId())
-                && profile.wheels().containsKey(openWheelAction.wheelId())) {
-            return openWheelAction.wheelId();
+                && entry.action() instanceof OpenWheelAction
+                && expandedWheelIds.contains(((OpenWheelAction) entry.action()).wheelId())
+                && profile.wheels().containsKey(((OpenWheelAction) entry.action()).wheelId())) {
+            return ((OpenWheelAction) entry.action()).wheelId();
         }
         return selectedWheelId;
     }
@@ -3499,7 +3589,7 @@ public final class OmniWheelProfilesOverlay {
     private List<EntryListRow> visibleEntryRows() {
         WheelProfile profile = selectedProfile();
         if (profile == null) {
-            return List.of();
+            return com.google.common.collect.ImmutableList.of();
         }
 
         List<EntryListRow> rows = new ArrayList<>();
@@ -3514,14 +3604,14 @@ public final class OmniWheelProfilesOverlay {
 
         WheelDefinition wheel = profile.wheel(wheelId);
         for (WheelEntry entry : wheel.entries()) {
-            boolean expandable = entry.action() instanceof OpenWheelAction openWheelAction
-                    && profile.wheels().containsKey(openWheelAction.wheelId());
+            boolean expandable = entry.action() instanceof OpenWheelAction
+                    && profile.wheels().containsKey(((OpenWheelAction) entry.action()).wheelId());
             boolean expanded = expandable
-                    && entry.action() instanceof OpenWheelAction openWheelAction
-                    && expandedWheelIds.contains(openWheelAction.wheelId());
+                    && entry.action() instanceof OpenWheelAction
+                    && expandedWheelIds.contains(((OpenWheelAction) entry.action()).wheelId());
             rows.add(new EntryListRow(entry, wheelId, depth, expandable, expanded));
-            if (expanded && entry.action() instanceof OpenWheelAction openWheelAction) {
-                buildVisibleEntryRows(profile, openWheelAction.wheelId(), depth + 1, new HashSet<>(path), rows);
+            if (expanded && entry.action() instanceof OpenWheelAction) {
+                buildVisibleEntryRows(profile, ((OpenWheelAction) entry.action()).wheelId(), depth + 1, new HashSet<>(path), rows);
             }
         }
     }
@@ -3550,9 +3640,9 @@ public final class OmniWheelProfilesOverlay {
     private boolean canOpenSelectedSubmenu() {
         WheelEntry entry = selectedEntry();
         return entry != null
-                && entry.action() instanceof OpenWheelAction openWheelAction
+                && entry.action() instanceof OpenWheelAction
                 && selectedProfile() != null
-                && selectedProfile().wheels().containsKey(openWheelAction.wheelId());
+                && selectedProfile().wheels().containsKey(((OpenWheelAction) entry.action()).wheelId());
     }
 
     private void openSelectedSubmenu() {
@@ -3593,7 +3683,7 @@ public final class OmniWheelProfilesOverlay {
 
         for (WheelDefinition wheel : profile.wheels().values()) {
             for (WheelEntry entry : wheel.entries()) {
-                if (entry.action() instanceof OpenWheelAction openWheelAction && openWheelAction.wheelId().equals(selectedWheelId)) {
+                if (entry.action() instanceof OpenWheelAction && ((OpenWheelAction) entry.action()).wheelId().equals(selectedWheelId)) {
                     return wheel.id();
                 }
             }
@@ -3626,7 +3716,7 @@ public final class OmniWheelProfilesOverlay {
         }
         for (WheelDefinition wheel : profile.wheels().values()) {
             for (WheelEntry entry : wheel.entries()) {
-                if (entry.action() instanceof OpenWheelAction openWheelAction && openWheelAction.wheelId().equals(wheelId)) {
+                if (entry.action() instanceof OpenWheelAction && ((OpenWheelAction) entry.action()).wheelId().equals(wheelId)) {
                     return wheel.id();
                 }
             }
@@ -3846,7 +3936,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static boolean looksLikeResourceLocationCandidate(String text) {
-        if (text == null || text.isBlank()) {
+        if (text == null || text.trim().isEmpty()) {
             return false;
         }
         boolean structured = text.indexOf(':') >= 0 || text.indexOf('_') >= 0 || text.indexOf('/') >= 0 || text.indexOf('.') >= 0 || text.indexOf('-') >= 0;
@@ -3962,13 +4052,13 @@ public final class OmniWheelProfilesOverlay {
             return;
         }
         List<IconPickerOption> options = new ArrayList<>();
-        for (ResourceLocation id : Registry.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            MobEffect effect = Registry.MOB_EFFECT.get(id);
+        for (ResourceLocation id : Registry.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).collect(java.util.stream.Collectors.toList())) {
+            Effect effect = Registry.MOB_EFFECT.get(id);
             if (effect == null) {
                 continue;
             }
             String iconId = "effect:" + id;
-            String displayName = new TranslatableComponent(effect.getDescriptionId()).getString();
+            String displayName = new TranslationTextComponent(effect.getDescriptionId()).getString();
             String searchText = (iconId + " " + displayName).toLowerCase(java.util.Locale.ROOT);
             options.add(new IconPickerOption(iconId, searchText));
         }
@@ -3999,22 +4089,18 @@ public final class OmniWheelProfilesOverlay {
         addIconPickerOption(options, "gui:hud/heart/withered_half", "survival heart health withered half");
         addIconPickerOption(options, "gui:hud/heart/absorbing_full", "survival heart health absorption full");
         addIconPickerOption(options, "gui:hud/heart/absorbing_half", "survival heart health absorption half");
-        addIconPickerOption(options, "gui:hud/heart/frozen_full", "survival heart health frozen full");
-        addIconPickerOption(options, "gui:hud/heart/frozen_half", "survival heart health frozen half");
         addIconPickerOption(options, "gui:hud/heart/vehicle_full", "survival heart vehicle mount full");
         addIconPickerOption(options, "gui:hud/heart/vehicle_half", "survival heart vehicle mount half");
         addIconPickerOption(options, "gui:icon/checkmark", "ui icon checkmark confirm");
-        addIconPickerOption(options, "gui:icon/search", "ui icon search magnifying glass");
         addIconPickerOption(options, "gui:icon/language", "ui icon language translate");
         addIconPickerOption(options, "gui:icon/accessibility", "ui icon accessibility");
-        addIconPickerOption(options, "gui:icon/draft_report", "ui icon report warning note");
         addIconPickerOption(options, "gui:icon/ping_unknown", "ui icon ping unknown network");
         addIconPickerOption(options, "gui:icon/ping_1", "ui icon ping network one");
         addIconPickerOption(options, "gui:icon/ping_2", "ui icon ping network two");
         addIconPickerOption(options, "gui:icon/ping_3", "ui icon ping network three");
         addIconPickerOption(options, "gui:icon/ping_4", "ui icon ping network four");
         addIconPickerOption(options, "gui:icon/ping_5", "ui icon ping network five");
-        for (ResourceLocation id : Registry.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+        for (ResourceLocation id : Registry.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).collect(java.util.stream.Collectors.toList())) {
             Item item = Registry.ITEM.get(id);
             if (item == null || item == Items.AIR) {
                 continue;
@@ -4035,25 +4121,8 @@ public final class OmniWheelProfilesOverlay {
                 .append(id)
                 .append(' ')
                 .append(stack.getHoverName().getString());
-        for (TagKey<Item> tag : item.builtInRegistryHolder().tags().toList()) {
-            ResourceLocation tagId = tag.location();
-            search.append(' ')
-                    .append(tagId)
-                    .append(' ')
-                    .append('#')
-                    .append(tagId)
-                    .append(' ')
-                    .append(".#")
-                    .append(tagId)
-                    .append(' ')
-                    .append('#')
-                    .append(tagId.getPath())
-                    .append(' ')
-                    .append(".#")
-                    .append(tagId.getPath());
-        }
         String creativeTabTerms = creativeTabSearchTerms(id);
-        if (!creativeTabTerms.isBlank()) {
+        if (!creativeTabTerms.trim().isEmpty()) {
             search.append(' ').append(creativeTabTerms);
         }
         return search.toString().toLowerCase(java.util.Locale.ROOT);
@@ -4071,14 +4140,13 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static Map<ResourceLocation, String> loadCreativeTabSearchTerms() {
-        ensureCreativeTabContentsBuilt();
         Map<ResourceLocation, LinkedHashSet<String>> termsByItem = new HashMap<>();
-        for (CreativeModeTab tab : CreativeModeTab.TABS) {
+        for (ItemGroup tab : ItemGroup.TABS) {
             if (tab == null) {
                 continue;
             }
             String tabName = tab.getDisplayName().getString();
-            if (tabName.isBlank()) {
+            if (tabName.trim().isEmpty()) {
                 continue;
             }
             String normalized = tabName.toLowerCase(java.util.Locale.ROOT);
@@ -4105,10 +4173,6 @@ public final class OmniWheelProfilesOverlay {
             result.put(entry.getKey(), String.join(" ", entry.getValue()));
         }
         return result;
-    }
-
-    private static void ensureCreativeTabContentsBuilt() {
-        // Forge 1.18.2 builds creative tab contents directly through CreativeModeTab#fillItemList.
     }
 
     private List<IconPickerOption> filteredIconPickerOptions() {
@@ -4270,14 +4334,14 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static String actionSummary(WheelAction action) {
-        if (action instanceof CommandAction commandAction) {
-            return text(commandAction.commands().size() > 1 ? "omniwheel.action.commands" : "omniwheel.action.command");
+        if (action instanceof CommandAction) {
+            return text(((CommandAction) action).commands().size() > 1 ? "omniwheel.action.commands" : "omniwheel.action.command");
         }
         if (action instanceof ChatAction) {
             return text("omniwheel.action.chat");
         }
-        if (action instanceof FunctionAction functionAction) {
-            return functionAction.function().displayName();
+        if (action instanceof FunctionAction) {
+            return ((FunctionAction) action).function().displayName();
         }
         if (action instanceof OpenWheelAction) {
             return text("omniwheel.action.submenu");
@@ -4327,16 +4391,26 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static String screenTargetLabel(ScreenTarget target) {
-        return switch (target) {
-            case PROFILE_MANAGER -> text("omniwheel.screen.profile_manager");
-        };
+        switch (target) {
+            case PROFILE_MANAGER: {
+                return text("omniwheel.screen.profile_manager");
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (target));
+        }
     }
 
     private static String functionModeLabel(GameplayFunction.FunctionMode mode) {
-        return switch (mode) {
-            case TRIGGER -> text("omniwheel.function.mode.trigger");
-            case TOGGLE -> text("omniwheel.function.mode.toggle");
-        };
+        switch (mode) {
+            case TRIGGER: {
+                return text("omniwheel.function.mode.trigger");
+            }
+            case TOGGLE: {
+                return text("omniwheel.function.mode.toggle");
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (mode));
+        }
     }
 
     private static String text(String key, Object... args) {
@@ -4365,12 +4439,12 @@ public final class OmniWheelProfilesOverlay {
 
     private static String preservedActionValue(WheelAction currentAction, Class<? extends WheelAction> actionType, String draft, String fallback) {
         String stored = fallback;
-        if (currentAction instanceof ChatAction chatAction && actionType == ChatAction.class) {
-            stored = chatAction.message();
-        } else if (currentAction instanceof LocalMessageAction localMessageAction && actionType == LocalMessageAction.class) {
-            stored = localMessageAction.message();
-        } else if (currentAction instanceof CopyTextAction copyTextAction && actionType == CopyTextAction.class) {
-            stored = copyTextAction.text();
+        if (currentAction instanceof ChatAction && actionType == ChatAction.class) {
+            stored = ((ChatAction) currentAction).message();
+        } else if (currentAction instanceof LocalMessageAction && actionType == LocalMessageAction.class) {
+            stored = ((LocalMessageAction) currentAction).message();
+        } else if (currentAction instanceof CopyTextAction && actionType == CopyTextAction.class) {
+            stored = ((CopyTextAction) currentAction).text();
         }
         return preservedDraftText(draft, stored);
     }
@@ -4384,7 +4458,7 @@ public final class OmniWheelProfilesOverlay {
                 commands.add(trimmed);
             }
         }
-        return commands.isEmpty() ? List.of("/command") : List.copyOf(commands);
+        return commands.isEmpty() ? com.google.common.collect.ImmutableList.of("/command") : com.google.common.collect.ImmutableList.copyOf(commands);
     }
 
     private static String formatCommandValues(List<String> commands) {
@@ -4444,7 +4518,7 @@ public final class OmniWheelProfilesOverlay {
                 commands.add(trimmed);
             }
         }
-        return commands.isEmpty() ? List.of("/command") : List.copyOf(commands);
+        return commands.isEmpty() ? com.google.common.collect.ImmutableList.of("/command") : com.google.common.collect.ImmutableList.copyOf(commands);
     }
 
     private static String shorten(String text, int maxLength) {
@@ -4458,7 +4532,7 @@ public final class OmniWheelProfilesOverlay {
         return itemCount <= 0 ? 0 : ((itemCount - 1) * PROFILE_ROW_STEP) + PROFILE_ROW_HEIGHT;
     }
 
-    private static String ellipsizeToWidth(Font font, String text, int maxWidth) {
+    private static String ellipsizeToWidth(FontRenderer font, String text, int maxWidth) {
         if (text == null || text.isEmpty() || maxWidth <= 0) {
             return "";
         }
@@ -4541,39 +4615,19 @@ public final class OmniWheelProfilesOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputConstants.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
+        InputMappings.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
     }
 
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private long resolveWindowHandle(net.minecraft.client.MainWindow window) {
+        return window.getWindow();
     }
 
     private static boolean isEscapeDown(Minecraft minecraft) {
-        return InputConstants.isKeyDown(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_KEY_ESCAPE);
+        return InputMappings.isKeyDown(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_KEY_ESCAPE);
     }
 
-    private static long resolveWindowHandleStatic(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private static long resolveWindowHandleStatic(net.minecraft.client.MainWindow window) {
+        return window.getWindow();
     }
 
     private float currentMouseX(Minecraft minecraft) {
@@ -4630,7 +4684,7 @@ public final class OmniWheelProfilesOverlay {
 
     private List<WheelDefinition> orderedWheels() {
         WheelProfile profile = selectedProfile();
-        return profile == null ? List.of() : new ArrayList<>(profile.wheels().values());
+        return profile == null ? com.google.common.collect.ImmutableList.of() : new ArrayList<>(profile.wheels().values());
     }
 
     private int profileRowY(int index) {
@@ -4777,7 +4831,7 @@ public final class OmniWheelProfilesOverlay {
     private List<GameplayFunction> selectableFunctions() {
         return java.util.Arrays.stream(GameplayFunction.values())
                 .filter(function -> function != GameplayFunction.OMNI_BACK)
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private int commandListContentHeight() {
@@ -4845,37 +4899,73 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private boolean handleListNavigationKey(int keyCode) {
-        return switch (resolveNavigationList()) {
-            case PROFILES -> navigateProfilesByKey(keyCode);
-            case WHEELS -> navigateWheelsByKey(keyCode);
-            case EDITOR -> false;
-        };
+        switch (resolveNavigationList()) {
+            case PROFILES: {
+                return navigateProfilesByKey(keyCode);
+            }
+            case WHEELS: {
+                return navigateWheelsByKey(keyCode);
+            }
+            case EDITOR: {
+                return false;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (resolveNavigationList()));
+        }
     }
 
     private boolean navigateProfilesByKey(int keyCode) {
         int pageStep = Math.max(1, profilesAreaHeight / PROFILE_ROW_STEP);
-        return switch (keyCode) {
-            case GLFW.GLFW_KEY_UP -> navigateProfiles(-1);
-            case GLFW.GLFW_KEY_DOWN -> navigateProfilesDown();
-            case GLFW.GLFW_KEY_PAGE_UP -> navigateProfiles(-pageStep);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> navigateProfiles(pageStep);
-            case GLFW.GLFW_KEY_HOME -> selectProfileByIndex(0);
-            case GLFW.GLFW_KEY_END -> selectProfileByIndex(runtime.profileManager().getProfiles().size() - 1);
-            default -> false;
-        };
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_UP: {
+                return navigateProfiles(-1);
+            }
+            case GLFW.GLFW_KEY_DOWN: {
+                return navigateProfilesDown();
+            }
+            case GLFW.GLFW_KEY_PAGE_UP: {
+                return navigateProfiles(-pageStep);
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN: {
+                return navigateProfiles(pageStep);
+            }
+            case GLFW.GLFW_KEY_HOME: {
+                return selectProfileByIndex(0);
+            }
+            case GLFW.GLFW_KEY_END: {
+                return selectProfileByIndex(runtime.profileManager().getProfiles().size() - 1);
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private boolean navigateWheelsByKey(int keyCode) {
         int pageStep = Math.max(1, wheelsAreaHeight / PROFILE_ROW_STEP);
-        return switch (keyCode) {
-            case GLFW.GLFW_KEY_UP -> navigateWheels(-1);
-            case GLFW.GLFW_KEY_DOWN -> navigateWheelsDown();
-            case GLFW.GLFW_KEY_PAGE_UP -> navigateWheels(-pageStep);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> navigateWheels(pageStep);
-            case GLFW.GLFW_KEY_HOME -> selectEntryRowByIndex(0);
-            case GLFW.GLFW_KEY_END -> selectEntryRowByIndex(visibleEntryRows().size() - 1);
-            default -> false;
-        };
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_UP: {
+                return navigateWheels(-1);
+            }
+            case GLFW.GLFW_KEY_DOWN: {
+                return navigateWheelsDown();
+            }
+            case GLFW.GLFW_KEY_PAGE_UP: {
+                return navigateWheels(-pageStep);
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN: {
+                return navigateWheels(pageStep);
+            }
+            case GLFW.GLFW_KEY_HOME: {
+                return selectEntryRowByIndex(0);
+            }
+            case GLFW.GLFW_KEY_END: {
+                return selectEntryRowByIndex(visibleEntryRows().size() - 1);
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private boolean navigateProfilesDown() {
@@ -5434,8 +5524,8 @@ public final class OmniWheelProfilesOverlay {
         ensureWheelVisible(wheelIndex);
         draggedWheelId = row.entry().id();
         draggedWheelOwnerWheelId = row.ownerWheelId();
-        draggedWheelSubmenuTargetId = row.expandable() && row.entry().action() instanceof OpenWheelAction openWheelAction
-                ? openWheelAction.wheelId()
+        draggedWheelSubmenuTargetId = row.expandable() && row.entry().action() instanceof OpenWheelAction
+                ? ((OpenWheelAction) row.entry().action()).wheelId()
                 : null;
         draggedWheelStartIndex = wheelIndex;
         draggedWheelTargetIndex = siblingEntryIndex(row.ownerWheelId(), row.entry().id());
@@ -5622,7 +5712,7 @@ public final class OmniWheelProfilesOverlay {
         long handle = resolveWindowHandle(minecraft.getWindow());
         long now = System.currentTimeMillis();
         for (int key : POLLED_KEYS) {
-            boolean down = InputConstants.isKeyDown(handle, key);
+            boolean down = InputMappings.isKeyDown(handle, key);
             if (down) {
                 if (pressedKeys.add(key)) {
                     handleKeyPress(key);
@@ -5702,33 +5792,41 @@ public final class OmniWheelProfilesOverlay {
         }
 
         switch (key) {
-            case GLFW.GLFW_KEY_BACKSPACE -> {
+            case GLFW.GLFW_KEY_BACKSPACE: {
+
                 field.backspace();
                 applyFocusedFieldDraft();
                 return;
             }
-            case GLFW.GLFW_KEY_DELETE -> {
+            case GLFW.GLFW_KEY_DELETE: {
+
                 field.deleteForward();
                 applyFocusedFieldDraft();
                 return;
             }
-            case GLFW.GLFW_KEY_LEFT -> {
+            case GLFW.GLFW_KEY_LEFT: {
+
                 field.moveCursor(-1, isShiftModifierDown());
                 return;
             }
-            case GLFW.GLFW_KEY_RIGHT -> {
+            case GLFW.GLFW_KEY_RIGHT: {
+
                 field.moveCursor(1, isShiftModifierDown());
                 return;
             }
-            case GLFW.GLFW_KEY_HOME -> {
+            case GLFW.GLFW_KEY_HOME: {
+
                 field.moveToStart(isShiftModifierDown());
                 return;
             }
-            case GLFW.GLFW_KEY_END -> {
+            case GLFW.GLFW_KEY_END: {
+
                 field.moveToEnd(isShiftModifierDown());
                 return;
             }
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+            case GLFW.GLFW_KEY_ENTER:
+            case GLFW.GLFW_KEY_KP_ENTER: {
+
                 if (focusedCommandFieldIndex >= 0) {
                     cycleFocus(false);
                 } else {
@@ -5736,7 +5834,10 @@ public final class OmniWheelProfilesOverlay {
                 }
                 return;
             }
-            default -> {
+            default: {
+
+
+                break;
             }
         }
 
@@ -5759,35 +5860,53 @@ public final class OmniWheelProfilesOverlay {
             return false;
         }
         if (!textEntryActive) {
-            return switch (key) {
-                case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER, GLFW.GLFW_KEY_SPACE -> {
+            switch (key) {
+                case GLFW.GLFW_KEY_ENTER:
+                case GLFW.GLFW_KEY_KP_ENTER:
+                case GLFW.GLFW_KEY_SPACE: {
+
                     activateTextEntry();
-                    yield true;
+                    return true;
+
                 }
-                case GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_KEY_DELETE -> clearHighlightedShortcutField();
-                case GLFW.GLFW_KEY_LEFT -> {
+                case GLFW.GLFW_KEY_BACKSPACE:
+                case GLFW.GLFW_KEY_DELETE: {
+                    return clearHighlightedShortcutField();
+                }
+                case GLFW.GLFW_KEY_LEFT: {
+
                     if (shouldLeaveEditorToEntriesOnLeft() && handlePanelSwitchKeyPressed(key)) {
-                        yield true;
+                        return true;
                     }
-                    yield false;
+                    return false;
+
                 }
-                case GLFW.GLFW_KEY_RIGHT -> shouldStayOnEditorFieldOnRight();
-                case GLFW.GLFW_KEY_UP -> {
+                case GLFW.GLFW_KEY_RIGHT: {
+                    return shouldStayOnEditorFieldOnRight();
+                }
+                case GLFW.GLFW_KEY_UP: {
+
                     cycleFocus(true);
-                    yield true;
+                    return true;
+
                 }
-                case GLFW.GLFW_KEY_DOWN -> {
+                case GLFW.GLFW_KEY_DOWN: {
+
                     cycleFocus(false);
-                    yield true;
+                    return true;
+
                 }
-                default -> false;
-            };
+                default: {
+                    return false;
+                }
+            }
         }
         boolean shiftDown = isShiftModifierDown();
         boolean controlDown = isControlModifierDown();
 
         switch (key) {
-            case GLFW.GLFW_KEY_BACKSPACE -> {
+            case GLFW.GLFW_KEY_BACKSPACE: {
+
                 if (controlDown) {
                     field.deleteWordBackward();
                 } else {
@@ -5795,8 +5914,10 @@ public final class OmniWheelProfilesOverlay {
                 }
                 applyFocusedFieldDraft();
                 return true;
+
             }
-            case GLFW.GLFW_KEY_DELETE -> {
+            case GLFW.GLFW_KEY_DELETE: {
+
                 if (controlDown) {
                     field.deleteWordForward();
                 } else {
@@ -5804,49 +5925,67 @@ public final class OmniWheelProfilesOverlay {
                 }
                 applyFocusedFieldDraft();
                 return true;
+
             }
-            case GLFW.GLFW_KEY_LEFT -> {
+            case GLFW.GLFW_KEY_LEFT: {
+
                 if (controlDown) {
                     field.moveCursorByWord(-1, shiftDown);
                 } else {
                     field.moveCursor(-1, shiftDown);
                 }
                 return true;
+
             }
-            case GLFW.GLFW_KEY_RIGHT -> {
+            case GLFW.GLFW_KEY_RIGHT: {
+
                 if (controlDown) {
                     field.moveCursorByWord(1, shiftDown);
                 } else {
                     field.moveCursor(1, shiftDown);
                 }
                 return true;
+
             }
-            case GLFW.GLFW_KEY_UP -> {
+            case GLFW.GLFW_KEY_UP: {
+
                 cycleFocus(true);
                 return true;
+
             }
-            case GLFW.GLFW_KEY_DOWN -> {
+            case GLFW.GLFW_KEY_DOWN: {
+
                 cycleFocus(false);
                 return true;
+
             }
-            case GLFW.GLFW_KEY_HOME -> {
+            case GLFW.GLFW_KEY_HOME: {
+
                 field.moveToStart(shiftDown);
                 return true;
+
             }
-            case GLFW.GLFW_KEY_END -> {
+            case GLFW.GLFW_KEY_END: {
+
                 field.moveToEnd(shiftDown);
                 return true;
+
             }
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+            case GLFW.GLFW_KEY_ENTER:
+            case GLFW.GLFW_KEY_KP_ENTER: {
+
                 if (focusedCommandFieldIndex >= 0) {
                     cycleFocus(false);
                 } else {
                     deactivateTextEntry();
                 }
                 return true;
+
             }
-            default -> {
+            default: {
+
                 return false;
+
             }
         }
     }
@@ -5861,27 +6000,53 @@ public final class OmniWheelProfilesOverlay {
 
     private void applyFieldDraft(EditorField field, String value) {
         switch (field) {
-            case PROFILE_NAME -> profileNameDraft = value;
-            case WHEEL_TITLE -> wheelTitleDraft = value;
-            case ENTRY_LABEL -> entryLabelDraft = value;
-            case ENTRY_DESCRIPTION -> entryDescriptionDraft = value;
-            case ENTRY_SHORTCUT -> {
+            case PROFILE_NAME: {
+                profileNameDraft = value;
+                break;
+            }
+            case WHEEL_TITLE: {
+                wheelTitleDraft = value;
+                break;
+            }
+            case ENTRY_LABEL: {
+                entryLabelDraft = value;
+                break;
+            }
+            case ENTRY_DESCRIPTION: {
+                entryDescriptionDraft = value;
+                break;
+            }
+            case ENTRY_SHORTCUT: {
+
                 entryShortcutDraft = value;
                 autosaveCurrentEntryDraft();
+
+                break;
             }
-            case ICON_PICKER_SEARCH -> {
+            case ICON_PICKER_SEARCH: {
+
                 iconPickerSearchDraft = value;
                 iconPickerScrollOffset = 0;
+
+                break;
             }
-            case ENTRY_GLYPH -> {
+            case ENTRY_GLYPH: {
+
                 String sanitized = iconFromText(value);
                 if (!Objects.equals(value, sanitized)) {
                     textFields.get(EditorField.ENTRY_GLYPH).setValue(sanitized);
                 }
                 entryGlyphDraft = sanitized;
                 autosaveCurrentEntryDraft();
+
+                break;
             }
-            case ENTRY_VALUE -> entryValueDraft = value;
+            case ENTRY_VALUE: {
+                entryValueDraft = value;
+                break;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (field));
         }
     }
 
@@ -6169,20 +6334,29 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (focusedField == EditorField.ICON_PICKER_SEARCH) {
-            return switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_UP -> true;
-                case GLFW.GLFW_KEY_RIGHT -> {
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT:
+                case GLFW.GLFW_KEY_UP: {
+                    return true;
+                }
+                case GLFW.GLFW_KEY_RIGHT: {
+
                     deactivateTextEntry();
                     focusIconPickerBackButton();
-                    yield true;
+                    return true;
+
                 }
-                case GLFW.GLFW_KEY_DOWN -> {
+                case GLFW.GLFW_KEY_DOWN: {
+
                     deactivateTextEntry();
                     focusIconPickerOptionByIndex(0);
-                    yield true;
+                    return true;
+
                 }
-                default -> false;
-            };
+                default: {
+                    return false;
+                }
+            }
         }
 
         if (focusedActionIndex >= 0) {
@@ -6193,18 +6367,27 @@ public final class OmniWheelProfilesOverlay {
                     iconPickerBackButtonWidth,
                     iconPickerBackButtonHeight
             )) {
-                return switch (keyCode) {
-                    case GLFW.GLFW_KEY_LEFT -> {
+                switch (keyCode) {
+                    case GLFW.GLFW_KEY_LEFT: {
+
                         focusField(EditorField.ICON_PICKER_SEARCH);
-                        yield true;
+                        return true;
+
                     }
-                    case GLFW.GLFW_KEY_DOWN -> {
+                    case GLFW.GLFW_KEY_DOWN: {
+
                         focusIconPickerOptionByIndex(0);
-                        yield true;
+                        return true;
+
                     }
-                    case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_RIGHT -> true;
-                    default -> false;
-                };
+                    case GLFW.GLFW_KEY_UP:
+                    case GLFW.GLFW_KEY_RIGHT: {
+                        return true;
+                    }
+                    default: {
+                        return false;
+                    }
+                }
             }
             if (isActionInIconPicker(actions.get(focusedActionIndex))) {
                 int currentIndex = currentIconPickerOptionIndex();
@@ -6213,40 +6396,50 @@ public final class OmniWheelProfilesOverlay {
                 }
                 List<IconPickerOption> options = filteredIconPickerOptions();
                 int columns = iconPickerColumnCount();
-                return switch (keyCode) {
-                    case GLFW.GLFW_KEY_UP -> {
+                switch (keyCode) {
+                    case GLFW.GLFW_KEY_UP: {
+
                         if (currentIndex < columns) {
                             focusField(EditorField.ICON_PICKER_SEARCH);
-                            yield true;
+                            return true;
                         }
                         focusIconPickerOptionByIndex(currentIndex - columns);
-                        yield true;
+                        return true;
+
                     }
-                    case GLFW.GLFW_KEY_LEFT -> {
+                    case GLFW.GLFW_KEY_LEFT: {
+
                         if (currentIndex % columns == 0) {
-                            yield true;
+                            return true;
                         }
                         focusIconPickerOptionByIndex(currentIndex - 1);
-                        yield true;
+                        return true;
+
                     }
-                    case GLFW.GLFW_KEY_RIGHT -> {
+                    case GLFW.GLFW_KEY_RIGHT: {
+
                         int nextIndex = currentIndex + 1;
                         if (nextIndex >= options.size() || (nextIndex / columns) != (currentIndex / columns)) {
-                            yield true;
+                            return true;
                         }
                         focusIconPickerOptionByIndex(nextIndex);
-                        yield true;
+                        return true;
+
                     }
-                    case GLFW.GLFW_KEY_DOWN -> {
+                    case GLFW.GLFW_KEY_DOWN: {
+
                         int nextIndex = currentIndex + columns;
                         if (nextIndex >= options.size()) {
-                            yield true;
+                            return true;
                         }
                         focusIconPickerOptionByIndex(nextIndex);
-                        yield true;
+                        return true;
+
                     }
-                    default -> false;
-                };
+                    default: {
+                        return false;
+                    }
+                }
             }
         }
 
@@ -6442,12 +6635,12 @@ public final class OmniWheelProfilesOverlay {
                 && focusedActionIndex >= 0
                 && keyCode == GLFW.GLFW_KEY_LEFT
                 && isActionAtBounds(
-                        focusedActionIndex,
-                        iconPickerBackButtonX,
-                        iconPickerBackButtonY,
-                        iconPickerBackButtonWidth,
-                        iconPickerBackButtonHeight
-                )) {
+                focusedActionIndex,
+                iconPickerBackButtonX,
+                iconPickerBackButtonY,
+                iconPickerBackButtonWidth,
+                iconPickerBackButtonHeight
+        )) {
             focusField(EditorField.ICON_PICKER_SEARCH);
             return true;
         }
@@ -6480,24 +6673,64 @@ public final class OmniWheelProfilesOverlay {
                 continue;
             }
 
-            boolean sameLane = switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> candidateBounds.bottom() > currentBounds.top() && candidateBounds.top() < currentBounds.bottom();
-                case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> candidateBounds.right() > currentBounds.left() && candidateBounds.left() < currentBounds.right();
-                default -> false;
-            };
+            boolean sameLane;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT:
+                case GLFW.GLFW_KEY_RIGHT: {
+                    sameLane = candidateBounds.bottom() > currentBounds.top() && candidateBounds.top() < currentBounds.bottom();
+                    break;
+                }
+                case GLFW.GLFW_KEY_UP:
+                case GLFW.GLFW_KEY_DOWN: {
+                    sameLane = candidateBounds.right() > currentBounds.left() && candidateBounds.left() < currentBounds.right();
+                    break;
+                }
+                default: {
+                    sameLane = false;
+                    break;
+                }
+            }
 
-            double primaryDistance = switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT -> Math.max(0, currentBounds.left() - candidateBounds.right());
-                case GLFW.GLFW_KEY_RIGHT -> Math.max(0, candidateBounds.left() - currentBounds.right());
-                case GLFW.GLFW_KEY_UP -> Math.max(0, currentBounds.top() - candidateBounds.bottom());
-                case GLFW.GLFW_KEY_DOWN -> Math.max(0, candidateBounds.top() - currentBounds.bottom());
-                default -> 0.0D;
-            };
-            double secondaryDistance = switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> Math.abs(deltaY);
-                case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> Math.abs(deltaX);
-                default -> 0.0D;
-            };
+            double primaryDistance;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT: {
+                    primaryDistance = Math.max(0, currentBounds.left() - candidateBounds.right());
+                    break;
+                }
+                case GLFW.GLFW_KEY_RIGHT: {
+                    primaryDistance = Math.max(0, candidateBounds.left() - currentBounds.right());
+                    break;
+                }
+                case GLFW.GLFW_KEY_UP: {
+                    primaryDistance = Math.max(0, currentBounds.top() - candidateBounds.bottom());
+                    break;
+                }
+                case GLFW.GLFW_KEY_DOWN: {
+                    primaryDistance = Math.max(0, candidateBounds.top() - currentBounds.bottom());
+                    break;
+                }
+                default: {
+                    primaryDistance = 0.0D;
+                    break;
+                }
+            }
+            double secondaryDistance;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT:
+                case GLFW.GLFW_KEY_RIGHT: {
+                    secondaryDistance = Math.abs(deltaY);
+                    break;
+                }
+                case GLFW.GLFW_KEY_UP:
+                case GLFW.GLFW_KEY_DOWN: {
+                    secondaryDistance = Math.abs(deltaX);
+                    break;
+                }
+                default: {
+                    secondaryDistance = 0.0D;
+                    break;
+                }
+            }
 
             double lanePenalty = sameLane ? 0.0D : 1_000_000.0D;
             double typePenalty = currentFieldLike && !candidateFieldLike ? 100_000.0D : 0.0D;
@@ -6604,10 +6837,10 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private boolean shouldLeaveEditorToEntriesOnLeft() {
-        return focusedCommandFieldIndex < 0 && switch (focusedField) {
-            case ENTRY_LABEL, ENTRY_GLYPH, ENTRY_DESCRIPTION, ENTRY_SHORTCUT -> true;
-            default -> false;
-        };
+        return focusedCommandFieldIndex < 0 && (focusedField == EditorField.ENTRY_LABEL
+                || focusedField == EditorField.ENTRY_GLYPH
+                || focusedField == EditorField.ENTRY_DESCRIPTION
+                || focusedField == EditorField.ENTRY_SHORTCUT);
     }
 
     private boolean shouldStayOnEditorFieldOnRight() {
@@ -6674,11 +6907,24 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private NavigationList navigationListForField(EditorField fieldId) {
-        return switch (fieldId) {
-            case PROFILE_NAME -> NavigationList.PROFILES;
-            case WHEEL_TITLE -> NavigationList.WHEELS;
-            case ICON_PICKER_SEARCH, ENTRY_LABEL, ENTRY_DESCRIPTION, ENTRY_SHORTCUT, ENTRY_GLYPH, ENTRY_VALUE -> NavigationList.EDITOR;
-        };
+        switch (fieldId) {
+            case PROFILE_NAME: {
+                return NavigationList.PROFILES;
+            }
+            case WHEEL_TITLE: {
+                return NavigationList.WHEELS;
+            }
+            case ICON_PICKER_SEARCH:
+            case ENTRY_LABEL:
+            case ENTRY_DESCRIPTION:
+            case ENTRY_SHORTCUT:
+            case ENTRY_GLYPH:
+            case ENTRY_VALUE: {
+                return NavigationList.EDITOR;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (fieldId));
+        }
     }
 
     private NavigationList navigationListForAction(ClickAction action) {
@@ -6764,24 +7010,24 @@ public final class OmniWheelProfilesOverlay {
         if (iconPickerOpen
                 && keyCode == GLFW.GLFW_KEY_LEFT
                 && isActionAtBounds(
-                        focusedActionIndex,
-                        iconPickerBackButtonX,
-                        iconPickerBackButtonY,
-                        iconPickerBackButtonWidth,
-                        iconPickerBackButtonHeight
-                )) {
+                focusedActionIndex,
+                iconPickerBackButtonX,
+                iconPickerBackButtonY,
+                iconPickerBackButtonWidth,
+                iconPickerBackButtonHeight
+        )) {
             focusField(EditorField.ICON_PICKER_SEARCH);
             return true;
         }
         if (iconPickerOpen
                 && keyCode == GLFW.GLFW_KEY_DOWN
                 && isActionAtBounds(
-                        focusedActionIndex,
-                        iconPickerBackButtonX,
-                        iconPickerBackButtonY,
-                        iconPickerBackButtonWidth,
-                        iconPickerBackButtonHeight
-                )) {
+                focusedActionIndex,
+                iconPickerBackButtonX,
+                iconPickerBackButtonY,
+                iconPickerBackButtonWidth,
+                iconPickerBackButtonHeight
+        )) {
             int firstIconActionIndex = firstIconPickerActionIndex();
             if (firstIconActionIndex >= 0) {
                 focusAction(firstIconActionIndex);
@@ -6856,42 +7102,78 @@ public final class OmniWheelProfilesOverlay {
             if (!candidate.enabled) {
                 continue;
             }
-              if (!iconPickerOpen && navigationListForAction(candidate) != currentZone) {
-                  continue;
-              }
-              float candidateCenterX = candidate.x + (candidate.width * 0.5F);
-              float candidateCenterY = candidate.y + (candidate.height * 0.5F);
-              int candidateLeft = candidate.x;
-              int candidateRight = candidate.x + candidate.width;
-              int candidateTop = candidate.y;
-              int candidateBottom = candidate.y + candidate.height;
-              float deltaX = candidateCenterX - currentCenterX;
-              float deltaY = candidateCenterY - currentCenterY;
-              if (!isCandidateInDirection(keyCode, deltaX, deltaY)) {
-                  continue;
-              }
-              boolean sameLane = switch (keyCode) {
-                  case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> candidateBottom > currentTop && candidateTop < currentBottom;
-                  case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> candidateRight > currentLeft && candidateLeft < currentRight;
-                  default -> false;
-              };
-              double primaryDistance = switch (keyCode) {
-                  case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> Math.abs(deltaX);
-                  case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> Math.abs(deltaY);
-                  default -> 0.0D;
-              };
-            double secondaryDistance = switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> Math.abs(deltaY);
-                  case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> Math.abs(deltaX);
-                  default -> 0.0D;
-              };
-              double lanePenalty = sameLane ? 0.0D : 1_000_000.0D;
-              double score = lanePenalty + (primaryDistance * 1000.0D) + (secondaryDistance * secondaryDistance);
-              if (score < bestScore) {
-                  bestScore = score;
-                  bestIndex = index;
-              }
-          }
+            if (!iconPickerOpen && navigationListForAction(candidate) != currentZone) {
+                continue;
+            }
+            float candidateCenterX = candidate.x + (candidate.width * 0.5F);
+            float candidateCenterY = candidate.y + (candidate.height * 0.5F);
+            int candidateLeft = candidate.x;
+            int candidateRight = candidate.x + candidate.width;
+            int candidateTop = candidate.y;
+            int candidateBottom = candidate.y + candidate.height;
+            float deltaX = candidateCenterX - currentCenterX;
+            float deltaY = candidateCenterY - currentCenterY;
+            if (!isCandidateInDirection(keyCode, deltaX, deltaY)) {
+                continue;
+            }
+            boolean sameLane;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT:
+                case GLFW.GLFW_KEY_RIGHT: {
+                    sameLane = candidateBottom > currentTop && candidateTop < currentBottom;
+                    break;
+                }
+                case GLFW.GLFW_KEY_UP:
+                case GLFW.GLFW_KEY_DOWN: {
+                    sameLane = candidateRight > currentLeft && candidateLeft < currentRight;
+                    break;
+                }
+                default: {
+                    sameLane = false;
+                    break;
+                }
+            }
+            double primaryDistance;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT:
+                case GLFW.GLFW_KEY_RIGHT: {
+                    primaryDistance = Math.abs(deltaX);
+                    break;
+                }
+                case GLFW.GLFW_KEY_UP:
+                case GLFW.GLFW_KEY_DOWN: {
+                    primaryDistance = Math.abs(deltaY);
+                    break;
+                }
+                default: {
+                    primaryDistance = 0.0D;
+                    break;
+                }
+            }
+            double secondaryDistance;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT:
+                case GLFW.GLFW_KEY_RIGHT: {
+                    secondaryDistance = Math.abs(deltaY);
+                    break;
+                }
+                case GLFW.GLFW_KEY_UP:
+                case GLFW.GLFW_KEY_DOWN: {
+                    secondaryDistance = Math.abs(deltaX);
+                    break;
+                }
+                default: {
+                    secondaryDistance = 0.0D;
+                    break;
+                }
+            }
+            double lanePenalty = sameLane ? 0.0D : 1_000_000.0D;
+            double score = lanePenalty + (primaryDistance * 1000.0D) + (secondaryDistance * secondaryDistance);
+            if (score < bestScore) {
+                bestScore = score;
+                bestIndex = index;
+            }
+        }
 
         if (bestIndex >= 0) {
             focusAction(bestIndex);
@@ -6907,23 +7189,43 @@ public final class OmniWheelProfilesOverlay {
         ClickAction action = actions.get(focusedActionIndex);
         if (isActionInIconPicker(action)) {
             int pageStep = Math.max(1, Math.max(1, iconPickerGridHeight - (ICON_PICKER_CONTENT_PADDING * 2)));
-            return switch (keyCode) {
-                case GLFW.GLFW_KEY_PAGE_UP -> scrollIconPickerBy(-pageStep);
-                case GLFW.GLFW_KEY_PAGE_DOWN -> scrollIconPickerBy(pageStep);
-                case GLFW.GLFW_KEY_HOME -> scrollIconPickerTo(0);
-                case GLFW.GLFW_KEY_END -> scrollIconPickerTo(maxIconPickerScrollOffset());
-                default -> false;
-            };
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_PAGE_UP: {
+                    return scrollIconPickerBy(-pageStep);
+                }
+                case GLFW.GLFW_KEY_PAGE_DOWN: {
+                    return scrollIconPickerBy(pageStep);
+                }
+                case GLFW.GLFW_KEY_HOME: {
+                    return scrollIconPickerTo(0);
+                }
+                case GLFW.GLFW_KEY_END: {
+                    return scrollIconPickerTo(maxIconPickerScrollOffset());
+                }
+                default: {
+                    return false;
+                }
+            }
         }
         if (isActionInFunctionList(action)) {
             int pageStep = Math.max(1, Math.max(1, functionListHeight - 12));
-            return switch (keyCode) {
-                case GLFW.GLFW_KEY_PAGE_UP -> scrollFunctionListBy(-pageStep);
-                case GLFW.GLFW_KEY_PAGE_DOWN -> scrollFunctionListBy(pageStep);
-                case GLFW.GLFW_KEY_HOME -> scrollFunctionListTo(0);
-                case GLFW.GLFW_KEY_END -> scrollFunctionListTo(maxFunctionListScrollOffset());
-                default -> false;
-            };
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_PAGE_UP: {
+                    return scrollFunctionListBy(-pageStep);
+                }
+                case GLFW.GLFW_KEY_PAGE_DOWN: {
+                    return scrollFunctionListBy(pageStep);
+                }
+                case GLFW.GLFW_KEY_HOME: {
+                    return scrollFunctionListTo(0);
+                }
+                case GLFW.GLFW_KEY_END: {
+                    return scrollFunctionListTo(maxFunctionListScrollOffset());
+                }
+                default: {
+                    return false;
+                }
+            }
         }
         return false;
     }
@@ -6968,29 +7270,39 @@ public final class OmniWheelProfilesOverlay {
     private int pressedDirectionalKeyCount() {
         long windowHandle = resolveWindowHandleStatic(Minecraft.getInstance().getWindow());
         int count = 0;
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT)) {
+        if (InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT)) {
             count++;
         }
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT)) {
+        if (InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT)) {
             count++;
         }
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_UP)) {
+        if (InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_UP)) {
             count++;
         }
-        if (InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_DOWN)) {
+        if (InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_DOWN)) {
             count++;
         }
         return count;
     }
 
     private static boolean isCandidateInDirection(int keyCode, float deltaX, float deltaY) {
-        return switch (keyCode) {
-            case GLFW.GLFW_KEY_LEFT -> deltaX < -1.0F;
-            case GLFW.GLFW_KEY_RIGHT -> deltaX > 1.0F;
-            case GLFW.GLFW_KEY_UP -> deltaY < -1.0F;
-            case GLFW.GLFW_KEY_DOWN -> deltaY > 1.0F;
-            default -> false;
-        };
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT: {
+                return deltaX < -1.0F;
+            }
+            case GLFW.GLFW_KEY_RIGHT: {
+                return deltaX > 1.0F;
+            }
+            case GLFW.GLFW_KEY_UP: {
+                return deltaY < -1.0F;
+            }
+            case GLFW.GLFW_KEY_DOWN: {
+                return deltaY > 1.0F;
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private void ensureFocusedActionStillVisible() {
@@ -7050,7 +7362,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (commandInput == null) {
-            commandInput = new EditBox(minecraft.font, 0, 0, 100, 12, OmniWheelText.component("omniwheel.action.command"));
+            commandInput = new TextFieldWidget(minecraft.font, 0, 0, 100, 12, OmniWheelText.component("omniwheel.action.command"));
             commandInput.setMaxLength(256);
             commandInput.setBordered(false);
             commandInput.setTextColor(TEXT);
@@ -7062,7 +7374,7 @@ public final class OmniWheelProfilesOverlay {
 
         if (commandSuggestions == null || commandSuggestionsScreen != hostScreen) {
             commandSuggestionsScreen = hostScreen;
-            commandSuggestions = new CommandSuggestions(minecraft, hostScreen, commandInput, minecraft.font, true, true, 0, 7, false, Integer.MIN_VALUE);
+            commandSuggestions = new CommandSuggestionHelper(minecraft, hostScreen, commandInput, minecraft.font, true, true, 0, 7, false, Integer.MIN_VALUE);
             commandSuggestions.setAllowSuggestions(true);
         }
 
@@ -7120,8 +7432,8 @@ public final class OmniWheelProfilesOverlay {
         if (minecraft.player == null) {
             return;
         }
-        for (KeyMapping keyMapping : gameplayKeyMappings(minecraft)) {
-            keyMapping.setDown(false);
+        for (KeyBinding KeyBinding : gameplayKeyMappings(minecraft)) {
+            KeyBinding.setDown(false);
         }
         minecraft.player.xxa = 0.0F;
         minecraft.player.yya = 0.0F;
@@ -7132,15 +7444,15 @@ public final class OmniWheelProfilesOverlay {
 
     private void restoreGameplayInput(Minecraft minecraft) {
         long handle = resolveWindowHandle(minecraft.getWindow());
-        for (KeyMapping keyMapping : gameplayKeyMappings(minecraft)) {
-            if (keyMapping.getKey().getType() == InputConstants.Type.KEYSYM) {
-                keyMapping.setDown(InputConstants.isKeyDown(handle, keyMapping.getKey().getValue()));
+        for (KeyBinding KeyBinding : gameplayKeyMappings(minecraft)) {
+            if (KeyBinding.getKey().getType() == InputMappings.Type.KEYSYM) {
+                KeyBinding.setDown(InputMappings.isKeyDown(handle, KeyBinding.getKey().getValue()));
             }
         }
     }
 
-    private static List<KeyMapping> gameplayKeyMappings(Minecraft minecraft) {
-        return List.of(
+    private static List<KeyBinding> gameplayKeyMappings(Minecraft minecraft) {
+        return com.google.common.collect.ImmutableList.of(
                 minecraft.options.keyUp,
                 minecraft.options.keyDown,
                 minecraft.options.keyLeft,
@@ -7157,13 +7469,13 @@ public final class OmniWheelProfilesOverlay {
     private boolean isShiftModifierDown() {
         Minecraft minecraft = Minecraft.getInstance();
         long handle = resolveWindowHandle(minecraft.getWindow());
-        return InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputMappings.isKeyDown(handle, GLFW.GLFW_KEY_LEFT_SHIFT) || InputMappings.isKeyDown(handle, GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
     private boolean isControlModifierDown() {
         Minecraft minecraft = Minecraft.getInstance();
         long handle = resolveWindowHandle(minecraft.getWindow());
-        return InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(handle, GLFW.GLFW_KEY_RIGHT_CONTROL);
+        return InputMappings.isKeyDown(handle, GLFW.GLFW_KEY_LEFT_CONTROL) || InputMappings.isKeyDown(handle, GLFW.GLFW_KEY_RIGHT_CONTROL);
     }
 
     private static Character typedCharacterForKey(int key, boolean shiftDown) {
@@ -7172,35 +7484,83 @@ public final class OmniWheelProfilesOverlay {
             return shiftDown ? Character.toUpperCase(base) : base;
         }
         if (key >= GLFW.GLFW_KEY_0 && key <= GLFW.GLFW_KEY_9) {
-            return switch (key) {
-                case GLFW.GLFW_KEY_0 -> shiftDown ? ')' : '0';
-                case GLFW.GLFW_KEY_1 -> shiftDown ? '!' : '1';
-                case GLFW.GLFW_KEY_2 -> shiftDown ? '@' : '2';
-                case GLFW.GLFW_KEY_3 -> shiftDown ? '#' : '3';
-                case GLFW.GLFW_KEY_4 -> shiftDown ? '$' : '4';
-                case GLFW.GLFW_KEY_5 -> shiftDown ? '%' : '5';
-                case GLFW.GLFW_KEY_6 -> shiftDown ? '^' : '6';
-                case GLFW.GLFW_KEY_7 -> shiftDown ? '&' : '7';
-                case GLFW.GLFW_KEY_8 -> shiftDown ? '*' : '8';
-                case GLFW.GLFW_KEY_9 -> shiftDown ? '(' : '9';
-                default -> null;
-            };
+            switch (key) {
+                case GLFW.GLFW_KEY_0: {
+                    return shiftDown ? ')' : '0';
+                }
+                case GLFW.GLFW_KEY_1: {
+                    return shiftDown ? '!' : '1';
+                }
+                case GLFW.GLFW_KEY_2: {
+                    return shiftDown ? '@' : '2';
+                }
+                case GLFW.GLFW_KEY_3: {
+                    return shiftDown ? '#' : '3';
+                }
+                case GLFW.GLFW_KEY_4: {
+                    return shiftDown ? '$' : '4';
+                }
+                case GLFW.GLFW_KEY_5: {
+                    return shiftDown ? '%' : '5';
+                }
+                case GLFW.GLFW_KEY_6: {
+                    return shiftDown ? '^' : '6';
+                }
+                case GLFW.GLFW_KEY_7: {
+                    return shiftDown ? '&' : '7';
+                }
+                case GLFW.GLFW_KEY_8: {
+                    return shiftDown ? '*' : '8';
+                }
+                case GLFW.GLFW_KEY_9: {
+                    return shiftDown ? '(' : '9';
+                }
+                default: {
+                    return null;
+                }
+            }
         }
-        return switch (key) {
-            case GLFW.GLFW_KEY_SPACE -> ' ';
-            case GLFW.GLFW_KEY_APOSTROPHE -> shiftDown ? '"' : '\'';
-            case GLFW.GLFW_KEY_COMMA -> shiftDown ? '<' : ',';
-            case GLFW.GLFW_KEY_MINUS -> shiftDown ? '_' : '-';
-            case GLFW.GLFW_KEY_PERIOD -> shiftDown ? '>' : '.';
-            case GLFW.GLFW_KEY_SLASH -> shiftDown ? '?' : '/';
-            case GLFW.GLFW_KEY_SEMICOLON -> shiftDown ? ':' : ';';
-            case GLFW.GLFW_KEY_EQUAL -> shiftDown ? '+' : '=';
-            case GLFW.GLFW_KEY_LEFT_BRACKET -> shiftDown ? '{' : '[';
-            case GLFW.GLFW_KEY_BACKSLASH -> shiftDown ? '|' : '\\';
-            case GLFW.GLFW_KEY_RIGHT_BRACKET -> shiftDown ? '}' : ']';
-            case GLFW.GLFW_KEY_GRAVE_ACCENT -> shiftDown ? '~' : '`';
-            default -> null;
-        };
+        switch (key) {
+            case GLFW.GLFW_KEY_SPACE: {
+                return ' ';
+            }
+            case GLFW.GLFW_KEY_APOSTROPHE: {
+                return shiftDown ? '"' : '\'';
+            }
+            case GLFW.GLFW_KEY_COMMA: {
+                return shiftDown ? '<' : ',';
+            }
+            case GLFW.GLFW_KEY_MINUS: {
+                return shiftDown ? '_' : '-';
+            }
+            case GLFW.GLFW_KEY_PERIOD: {
+                return shiftDown ? '>' : '.';
+            }
+            case GLFW.GLFW_KEY_SLASH: {
+                return shiftDown ? '?' : '/';
+            }
+            case GLFW.GLFW_KEY_SEMICOLON: {
+                return shiftDown ? ':' : ';';
+            }
+            case GLFW.GLFW_KEY_EQUAL: {
+                return shiftDown ? '+' : '=';
+            }
+            case GLFW.GLFW_KEY_LEFT_BRACKET: {
+                return shiftDown ? '{' : '[';
+            }
+            case GLFW.GLFW_KEY_BACKSLASH: {
+                return shiftDown ? '|' : '\\';
+            }
+            case GLFW.GLFW_KEY_RIGHT_BRACKET: {
+                return shiftDown ? '}' : ']';
+            }
+            case GLFW.GLFW_KEY_GRAVE_ACCENT: {
+                return shiftDown ? '~' : '`';
+            }
+            default: {
+                return null;
+            }
+        }
     }
 
     private static Map<EditorField, TextFieldState> createTextFields() {
@@ -7259,12 +7619,26 @@ public final class OmniWheelProfilesOverlay {
         SUBMENU;
 
         private DraftActionType next() {
-            return switch (this) {
-                case COMMAND -> CHAT;
-                case CHAT -> FUNCTION;
-                case FUNCTION -> SUBMENU;
-                case LOCAL_MESSAGE, OPEN_CHAT, COPY_TEXT, OPEN_SCREEN, SUBMENU -> COMMAND;
-            };
+            switch (this) {
+                case COMMAND: {
+                    return CHAT;
+                }
+                case CHAT: {
+                    return FUNCTION;
+                }
+                case FUNCTION: {
+                    return SUBMENU;
+                }
+                case LOCAL_MESSAGE:
+                case OPEN_CHAT:
+                case COPY_TEXT:
+                case OPEN_SCREEN:
+                case SUBMENU: {
+                    return COMMAND;
+                }
+                default:
+                    throw new IllegalStateException("Unexpected switch value: " + (this));
+            }
         }
 
         private static DraftActionType fromAction(WheelAction action) {
@@ -7296,13 +7670,124 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private record ClickAction(int x, int y, int width, int height, boolean enabled, Runnable handler) {
+    private static final class ClickAction {
+        private final int x;
+        private final int y;
+        private final int width;
+        private final int height;
+        private final boolean enabled;
+        private final Runnable handler;
+
+        private ClickAction(int x, int y, int width, int height, boolean enabled, Runnable handler) {
+
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.enabled = enabled;
+            this.handler = handler;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        public int height() {
+            return height;
+        }
+
+        public boolean enabled() {
+            return enabled;
+        }
+
+        public Runnable handler() {
+            return handler;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof ClickAction)) return false;
+            ClickAction that = (ClickAction) other;
+            return java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(width, that.width) && java.util.Objects.equals(height, that.height) && java.util.Objects.equals(enabled, that.enabled) && java.util.Objects.equals(handler, that.handler);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(x, y, width, height, enabled, handler);
+        }
+
+        @Override
+        public String toString() {
+            return "ClickAction[" + "x=" + x + ", " + "y=" + y + ", " + "width=" + width + ", " + "height=" + height + ", " + "enabled=" + enabled + ", " + "handler=" + handler + "]";
+        }
+
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
         }
     }
 
-    private record TooltipRegion(int x, int y, int width, int height, String text) {
+    private static final class TooltipRegion {
+        private final int x;
+        private final int y;
+        private final int width;
+        private final int height;
+        private final String text;
+
+        private TooltipRegion(int x, int y, int width, int height, String text) {
+
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.text = text;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        public int height() {
+            return height;
+        }
+
+        public String text() {
+            return text;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TooltipRegion)) return false;
+            TooltipRegion that = (TooltipRegion) other;
+            return java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(width, that.width) && java.util.Objects.equals(height, that.height) && java.util.Objects.equals(text, that.text);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(x, y, width, height, text);
+        }
+
+        @Override
+        public String toString() {
+            return "TooltipRegion[" + "x=" + x + ", " + "y=" + y + ", " + "width=" + width + ", " + "height=" + height + ", " + "text=" + text + "]";
+        }
     }
 
     private enum EditorField {
@@ -7420,7 +7905,7 @@ public final class OmniWheelProfilesOverlay {
             return visible && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
         }
 
-        private void click(Font font, double mouseX) {
+        private void click(FontRenderer font, double mouseX) {
             ensureCursorVisible(font);
             int contentWidth = contentWidth();
             int start = displayStart;
@@ -7441,14 +7926,14 @@ public final class OmniWheelProfilesOverlay {
             ensureCursorVisible(font);
         }
 
-        private String visibleText(Font font, int contentWidth) {
+        private String visibleText(FontRenderer font, int contentWidth) {
             ensureCursorVisible(font);
             int start = displayStart;
             int end = visibleEnd(font, contentWidth, start);
             return value.substring(start, end);
         }
 
-        private int cursorOffset(Font font, int contentWidth) {
+        private int cursorOffset(FontRenderer font, int contentWidth) {
             ensureCursorVisible(font);
             int start = displayStart;
             return font.width(value.substring(start, cursor));
@@ -7480,14 +7965,14 @@ public final class OmniWheelProfilesOverlay {
             return true;
         }
 
-        private int selectionStartOffset(Font font, int contentWidth) {
+        private int selectionStartOffset(FontRenderer font, int contentWidth) {
             ensureCursorVisible(font);
             int start = displayStart;
             int selectionStart = Math.max(start, selectionStart());
             return font.width(value.substring(start, selectionStart));
         }
 
-        private int selectionEndOffset(Font font, int contentWidth) {
+        private int selectionEndOffset(FontRenderer font, int contentWidth) {
             ensureCursorVisible(font);
             int start = displayStart;
             int visibleEnd = visibleEnd(font, contentWidth, start);
@@ -7495,7 +7980,7 @@ public final class OmniWheelProfilesOverlay {
             return font.width(value.substring(start, selectionEnd));
         }
 
-        private int visibleEnd(Font font, int contentWidth, int start) {
+        private int visibleEnd(FontRenderer font, int contentWidth, int start) {
             int end = start;
             while (end < value.length() && font.width(value.substring(start, end + 1)) <= contentWidth) {
                 end++;
@@ -7592,7 +8077,7 @@ public final class OmniWheelProfilesOverlay {
             return Math.max(8, width - (textInset * 2));
         }
 
-        private void ensureCursorVisible(Font font) {
+        private void ensureCursorVisible(FontRenderer font) {
             if (font == null) {
                 return;
             }
@@ -7619,15 +8104,108 @@ public final class OmniWheelProfilesOverlay {
         }
 
         private static String sanitize(String text, int maxLength) {
-            String normalized = Objects.requireNonNullElse(text, "").replace('\r', ' ').replace('\n', ' ');
+            String normalized = (text != null ? text : "").replace('\r', ' ').replace('\n', ' ');
             return normalized.length() > maxLength ? normalized.substring(0, maxLength) : normalized;
         }
     }
 
-    private record EntryListRow(WheelEntry entry, String ownerWheelId, int depth, boolean expandable, boolean expanded) {
+    private static final class EntryListRow {
+        private final WheelEntry entry;
+        private final String ownerWheelId;
+        private final int depth;
+        private final boolean expandable;
+        private final boolean expanded;
+
+        private EntryListRow(WheelEntry entry, String ownerWheelId, int depth, boolean expandable, boolean expanded) {
+
+            this.entry = entry;
+            this.ownerWheelId = ownerWheelId;
+            this.depth = depth;
+            this.expandable = expandable;
+            this.expanded = expanded;
+        }
+
+        public WheelEntry entry() {
+            return entry;
+        }
+
+        public String ownerWheelId() {
+            return ownerWheelId;
+        }
+
+        public int depth() {
+            return depth;
+        }
+
+        public boolean expandable() {
+            return expandable;
+        }
+
+        public boolean expanded() {
+            return expanded;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof EntryListRow)) return false;
+            EntryListRow that = (EntryListRow) other;
+            return java.util.Objects.equals(entry, that.entry) && java.util.Objects.equals(ownerWheelId, that.ownerWheelId) && java.util.Objects.equals(depth, that.depth) && java.util.Objects.equals(expandable, that.expandable) && java.util.Objects.equals(expanded, that.expanded);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(entry, ownerWheelId, depth, expandable, expanded);
+        }
+
+        @Override
+        public String toString() {
+            return "EntryListRow[" + "entry=" + entry + ", " + "ownerWheelId=" + ownerWheelId + ", " + "depth=" + depth + ", " + "expandable=" + expandable + ", " + "expanded=" + expanded + "]";
+        }
     }
 
-    private record FocusTarget(EditorField field, Integer commandFieldIndex, Integer actionIndex) {
+    private static final class FocusTarget {
+        private final EditorField field;
+        private final Integer commandFieldIndex;
+        private final Integer actionIndex;
+
+        private FocusTarget(EditorField field, Integer commandFieldIndex, Integer actionIndex) {
+
+            this.field = field;
+            this.commandFieldIndex = commandFieldIndex;
+            this.actionIndex = actionIndex;
+        }
+
+        public EditorField field() {
+            return field;
+        }
+
+        public Integer commandFieldIndex() {
+            return commandFieldIndex;
+        }
+
+        public Integer actionIndex() {
+            return actionIndex;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof FocusTarget)) return false;
+            FocusTarget that = (FocusTarget) other;
+            return java.util.Objects.equals(field, that.field) && java.util.Objects.equals(commandFieldIndex, that.commandFieldIndex) && java.util.Objects.equals(actionIndex, that.actionIndex);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(field, commandFieldIndex, actionIndex);
+        }
+
+        @Override
+        public String toString() {
+            return "FocusTarget[" + "field=" + field + ", " + "commandFieldIndex=" + commandFieldIndex + ", " + "actionIndex=" + actionIndex + "]";
+        }
+
         private static FocusTarget forField(EditorField field) {
             return new FocusTarget(field, null, null);
         }
@@ -7641,7 +8219,54 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private record FocusBounds(int left, int top, int width, int height) {
+    private static final class FocusBounds {
+        private final int left;
+        private final int top;
+        private final int width;
+        private final int height;
+
+        private FocusBounds(int left, int top, int width, int height) {
+
+            this.left = left;
+            this.top = top;
+            this.width = width;
+            this.height = height;
+        }
+
+        public int left() {
+            return left;
+        }
+
+        public int top() {
+            return top;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        public int height() {
+            return height;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof FocusBounds)) return false;
+            FocusBounds that = (FocusBounds) other;
+            return java.util.Objects.equals(left, that.left) && java.util.Objects.equals(top, that.top) && java.util.Objects.equals(width, that.width) && java.util.Objects.equals(height, that.height);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(left, top, width, height);
+        }
+
+        @Override
+        public String toString() {
+            return "FocusBounds[" + "left=" + left + ", " + "top=" + top + ", " + "width=" + width + ", " + "height=" + height + "]";
+        }
+
         private int right() {
             return left + width;
         }
@@ -7659,9 +8284,95 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private record TutorialStep(String title, String body, int x, int y, int width) {
+    private static final class TutorialStep {
+        private final String title;
+        private final String body;
+        private final int x;
+        private final int y;
+        private final int width;
+
+        private TutorialStep(String title, String body, int x, int y, int width) {
+
+            this.title = title;
+            this.body = body;
+            this.x = x;
+            this.y = y;
+            this.width = width;
+        }
+
+        public String title() {
+            return title;
+        }
+
+        public String body() {
+            return body;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TutorialStep)) return false;
+            TutorialStep that = (TutorialStep) other;
+            return java.util.Objects.equals(title, that.title) && java.util.Objects.equals(body, that.body) && java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(width, that.width);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(title, body, x, y, width);
+        }
+
+        @Override
+        public String toString() {
+            return "TutorialStep[" + "title=" + title + ", " + "body=" + body + ", " + "x=" + x + ", " + "y=" + y + ", " + "width=" + width + "]";
+        }
     }
 
-    private record IconPickerOption(String id, String searchText) {
+    private static final class IconPickerOption {
+        private final String id;
+        private final String searchText;
+
+        private IconPickerOption(String id, String searchText) {
+
+            this.id = id;
+            this.searchText = searchText;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public String searchText() {
+            return searchText;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof IconPickerOption)) return false;
+            IconPickerOption that = (IconPickerOption) other;
+            return java.util.Objects.equals(id, that.id) && java.util.Objects.equals(searchText, that.searchText);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(id, searchText);
+        }
+
+        @Override
+        public String toString() {
+            return "IconPickerOption[" + "id=" + id + ", " + "searchText=" + searchText + "]";
+        }
     }
 }

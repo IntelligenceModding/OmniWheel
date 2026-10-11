@@ -9,17 +9,19 @@ permissions:
 
 jobs:
   build:
-    name: Build
+    name: Forge 1.16.5 / Java 8
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup JDK 17
+      - name: Setup JDKs for Gradle and Minecraft
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: |
+            8
+            17
           distribution: 'temurin'
 
       - name: Setup Gradle

@@ -1,81 +1,81 @@
 package de.artemis.omniwheel.client.input;
 
-import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.KeyMapping;
-import net.minecraftforge.client.ClientRegistry;
+import net.minecraft.client.util.InputMappings;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
 public final class OmniWheelKeyMappings {
     public static final String CATEGORY = "key.categories.omniwheel";
-    public static final KeyMapping OPEN_WHEEL = new KeyMapping(
+    public static final KeyBinding OPEN_WHEEL = new KeyBinding(
             "key.omniwheel.open_wheel",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_R,
             CATEGORY
     );
-    public static final KeyMapping OPEN_MANAGER = new KeyMapping(
+    public static final KeyBinding OPEN_MANAGER = new KeyBinding(
             "key.omniwheel.open_manager",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_M,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_TOP_LEFT = new KeyMapping(
+    public static final KeyBinding RADIAL_TOP_LEFT = new KeyBinding(
             "key.omniwheel.radial_top_left",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_7,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_TOP = new KeyMapping(
+    public static final KeyBinding RADIAL_TOP = new KeyBinding(
             "key.omniwheel.radial_top",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_8,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_TOP_RIGHT = new KeyMapping(
+    public static final KeyBinding RADIAL_TOP_RIGHT = new KeyBinding(
             "key.omniwheel.radial_top_right",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_9,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_LEFT = new KeyMapping(
+    public static final KeyBinding RADIAL_LEFT = new KeyBinding(
             "key.omniwheel.radial_left",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_4,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_CENTER = new KeyMapping(
+    public static final KeyBinding RADIAL_CENTER = new KeyBinding(
             "key.omniwheel.radial_center",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_5,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_RIGHT = new KeyMapping(
+    public static final KeyBinding RADIAL_RIGHT = new KeyBinding(
             "key.omniwheel.radial_right",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_6,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_BOTTOM_LEFT = new KeyMapping(
+    public static final KeyBinding RADIAL_BOTTOM_LEFT = new KeyBinding(
             "key.omniwheel.radial_bottom_left",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_1,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_BOTTOM = new KeyMapping(
+    public static final KeyBinding RADIAL_BOTTOM = new KeyBinding(
             "key.omniwheel.radial_bottom",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_2,
             CATEGORY
     );
-    public static final KeyMapping RADIAL_BOTTOM_RIGHT = new KeyMapping(
+    public static final KeyBinding RADIAL_BOTTOM_RIGHT = new KeyBinding(
             "key.omniwheel.radial_bottom_right",
-            InputConstants.Type.KEYSYM,
+            InputMappings.Type.KEYSYM,
             GLFW.GLFW_KEY_KP_3,
             CATEGORY
     );
-    public static final List<KeyMapping> RADIAL_POSITION_KEYS = List.of(
+    public static final List<KeyBinding> RADIAL_POSITION_KEYS = com.google.common.collect.ImmutableList.of(
             RADIAL_TOP_LEFT,
             RADIAL_TOP,
             RADIAL_TOP_RIGHT,
@@ -93,8 +93,8 @@ public final class OmniWheelKeyMappings {
     public static void register() {
         ClientRegistry.registerKeyBinding(OPEN_WHEEL);
         ClientRegistry.registerKeyBinding(OPEN_MANAGER);
-        for (KeyMapping keyMapping : RADIAL_POSITION_KEYS) {
-            ClientRegistry.registerKeyBinding(keyMapping);
+        for (KeyBinding KeyBinding : RADIAL_POSITION_KEYS) {
+            ClientRegistry.registerKeyBinding(KeyBinding);
         }
     }
 }

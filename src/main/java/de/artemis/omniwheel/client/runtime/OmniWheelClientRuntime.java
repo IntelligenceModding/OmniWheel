@@ -15,9 +15,8 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screen.Screen;
 
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -127,7 +126,12 @@ public final class OmniWheelClientRuntime {
         Minecraft minecraft = Minecraft.getInstance();
         overlay.close();
         switch (target) {
-            case PROFILE_MANAGER -> minecraft.setScreen(new OmniWheelProfilesScreen(this, parent));
+            case PROFILE_MANAGER: {
+                minecraft.setScreen(new OmniWheelProfilesScreen(this, parent));
+                break;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (target));
         }
     }
 
@@ -198,20 +202,20 @@ public final class OmniWheelClientRuntime {
         }
 
         for (WheelEntry entry : wheel.entries()) {
-            if (!entry.shortcut().isBlank() && availabilityResolver.isVisible(profile, entry, new ArrayDeque<>(path))) {
+            if (!entry.shortcut().trim().isEmpty() && availabilityResolver.isVisible(profile, entry, new ArrayDeque<>(path))) {
                 List<String> openPath = null;
-                if (entry.action() instanceof OpenWheelAction openWheelAction && profile.wheels().containsKey(openWheelAction.wheelId())) {
+                if (entry.action() instanceof OpenWheelAction && profile.wheels().containsKey(((OpenWheelAction) entry.action()).wheelId())) {
                     openPath = new ArrayList<>(path);
-                    openPath.add(openWheelAction.wheelId());
+                    openPath.add(((OpenWheelAction) entry.action()).wheelId());
                 }
                 candidates.add(new ShortcutCandidate(wheelId + ":" + entry.id(), entry, openPath));
             }
 
-            if (entry.action() instanceof OpenWheelAction openWheelAction
-                    && profile.wheels().containsKey(openWheelAction.wheelId())
-                    && !path.contains(openWheelAction.wheelId())) {
-                path.addLast(openWheelAction.wheelId());
-                collectShortcutCandidates(profile, openWheelAction.wheelId(), path, new HashSet<>(activePath), candidates);
+            if (entry.action() instanceof OpenWheelAction
+                    && profile.wheels().containsKey(((OpenWheelAction) entry.action()).wheelId())
+                    && !path.contains(((OpenWheelAction) entry.action()).wheelId())) {
+                path.addLast(((OpenWheelAction) entry.action()).wheelId());
+                collectShortcutCandidates(profile, ((OpenWheelAction) entry.action()).wheelId(), path, new HashSet<>(activePath), candidates);
                 path.removeLast();
             }
         }
@@ -225,11 +229,11 @@ public final class OmniWheelClientRuntime {
             }
             return;
         }
-        if (entry.action() instanceof OpenScreenAction openScreenAction) {
-            openTargetScreen(openScreenAction.target(), null);
+        if (entry.action() instanceof OpenScreenAction) {
+            openTargetScreen(((OpenScreenAction) entry.action()).target(), null);
             return;
         }
-        if (entry.action() instanceof FunctionAction functionAction && handleOmniWheelShortcutFunction(functionAction.function())) {
+        if (entry.action() instanceof FunctionAction && handleOmniWheelShortcutFunction(((FunctionAction) entry.action()).function())) {
             return;
         }
         actionExecutor.execute(entry.action());
@@ -237,27 +241,39 @@ public final class OmniWheelClientRuntime {
 
     private boolean handleOmniWheelShortcutFunction(GameplayFunction function) {
         switch (function) {
-            case OMNI_OPEN_PROFILES -> {
-                overlay.openWheelPath(List.of(WheelAvailabilityResolver.PROFILES_WHEEL_ID));
+            case OMNI_OPEN_PROFILES: {
+
+                overlay.openWheelPath(com.google.common.collect.ImmutableList.of(WheelAvailabilityResolver.PROFILES_WHEEL_ID));
                 return true;
+
             }
-            case OMNI_OPEN_MANAGER -> {
+            case OMNI_OPEN_MANAGER: {
+
                 openTargetScreen(ScreenTarget.PROFILE_MANAGER, null);
                 return true;
+
             }
-            case OMNI_NEXT_PROFILE -> {
+            case OMNI_NEXT_PROFILE: {
+
                 cycleActiveProfile(1);
                 return true;
+
             }
-            case OMNI_PREVIOUS_PROFILE -> {
+            case OMNI_PREVIOUS_PROFILE: {
+
                 cycleActiveProfile(-1);
                 return true;
+
             }
-            case OMNI_BACK -> {
+            case OMNI_BACK: {
+
                 return true;
+
             }
-            default -> {
+            default: {
+
                 return false;
+
             }
         }
     }
@@ -281,20 +297,50 @@ public final class OmniWheelClientRuntime {
         profileManager.setActiveProfile(profiles.get(Math.floorMod(currentIndex + delta, profiles.size())).id());
     }
 
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private long resolveWindowHandle(net.minecraft.client.MainWindow window) {
+        return window.getWindow();
     }
 
-    private record ShortcutCandidate(String id, WheelEntry entry, List<String> openPath) {
+    private static final class ShortcutCandidate {
+        private final String id;
+        private final WheelEntry entry;
+        private final List<String> openPath;
+
+        private ShortcutCandidate(String id, WheelEntry entry, List<String> openPath) {
+
+            this.id = id;
+            this.entry = entry;
+            this.openPath = openPath;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public WheelEntry entry() {
+            return entry;
+        }
+
+        public List<String> openPath() {
+            return openPath;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof ShortcutCandidate)) return false;
+            ShortcutCandidate that = (ShortcutCandidate) other;
+            return java.util.Objects.equals(id, that.id) && java.util.Objects.equals(entry, that.entry) && java.util.Objects.equals(openPath, that.openPath);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(id, entry, openPath);
+        }
+
+        @Override
+        public String toString() {
+            return "ShortcutCandidate[" + "id=" + id + ", " + "entry=" + entry + ", " + "openPath=" + openPath + "]";
+        }
     }
 }

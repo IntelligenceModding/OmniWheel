@@ -16,9 +16,7 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-sourceSets.main.output.resourcesDir = file("$buildDir/classes/java/main")
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 minecraft {
     mappings channel: 'official', version: project.minecraft_version
@@ -37,6 +35,22 @@ minecraft {
     }
 }
 
+tasks.matching { it.name == 'genIntellijRuns' }.configureEach {
+    doLast {
+        def java8 = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(8)
+        }.get().metadata.installationPath.asFile.absolutePath
+        def runFile = file('.idea/runConfigurations/runClient.xml')
+        if (runFile.exists()) {
+            def xml = new XmlParser().parse(runFile)
+            def configuration = xml.configuration[0]
+            configuration.appendNode('option', [name: 'ALTERNATIVE_JRE_PATH', value: java8])
+            configuration.appendNode('option', [name: 'ALTERNATIVE_JRE_PATH_ENABLED', value: 'true'])
+            runFile.setText(groovy.xml.XmlUtil.serialize(xml), 'UTF-8')
+        }
+    }
+}
+
 repositories {
     maven { url = 'https://maven.minecraftforge.net/' }
     mavenCentral()
@@ -44,6 +58,13 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.named('test', Test).configure {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
 }
 
 publishing {
@@ -61,6 +82,56 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+tasks.withType(org.gradle.api.publish.maven.tasks.AbstractPublishToMaven).configureEach {
+    dependsOn 'reobfJar'
+}
+
+tasks.named('jar', Jar).configure {
+    finalizedBy 'reobfJar'
+}
+
+tasks.register('verifyPortJar') {
+    dependsOn 'reobfJar'
+    inputs.file(tasks.named('jar').flatMap { it.archiveFile })
+    doLast {
+        def archive = tasks.named('jar').get().archiveFile.get().asFile
+        new java.util.zip.ZipFile(archive).withCloseable { jar ->
+            def classes = 0
+            jar.entries().each { entry ->
+                if (entry.name.endsWith('.class')) {
+                    jar.getInputStream(entry).withCloseable { stream ->
+                        def data = new DataInputStream(stream)
+                        if (data.readInt() != (int) 0xCAFEBABE) {
+                            throw new GradleException("Invalid class in jar: ${entry.name}")
+                        }
+                        data.readUnsignedShort()
+                        if (data.readUnsignedShort() != 52) {
+                            throw new GradleException("Class is not Java 8 bytecode: ${entry.name}")
+                        }
+                        classes++
+                    }
+                }
+            }
+            if (classes == 0 || jar.getEntry('de/artemis/omniwheel/OmniWheelClient.class') == null) {
+                throw new GradleException('Mod classes or entry point missing from jar')
+            }
+            def metadata = jar.getInputStream(jar.getEntry('META-INF/mods.toml')).getText('UTF-8')
+            if (metadata.contains('${') || !metadata.contains('versionRange="[1.16.5]"')) {
+                throw new GradleException('Mod metadata was not expanded for Minecraft 1.16.5')
+            }
+            def pack = new groovy.json.JsonSlurper().parse(jar.getInputStream(jar.getEntry('pack.mcmeta')))
+            if (pack.pack.pack_format != 6) {
+                throw new GradleException('Wrong resource pack format for Minecraft 1.16.5')
+            }
+            logger.lifecycle("Verified ${classes} Java 8 classes and Forge 1.16.5 resources in ${archive.name}")
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn 'verifyPortJar'
 }
 
 tasks.named('processResources', ProcessResources).configure {

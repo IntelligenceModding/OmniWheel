@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.runtime;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.core.BlockPos;
+import net.minecraft.util.math.BlockPos;
 import de.artemis.omniwheel.common.OmniWheelText;
 
 import java.util.LinkedHashMap;

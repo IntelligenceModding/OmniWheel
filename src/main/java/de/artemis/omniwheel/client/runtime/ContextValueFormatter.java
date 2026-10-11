@@ -1,13 +1,13 @@
 package de.artemis.omniwheel.client.runtime;
 
-import net.minecraft.ChatFormatting;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.util.text.event.ClickEvent;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.event.HoverEvent;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.StringTextComponent;
 import de.artemis.omniwheel.common.OmniWheelText;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ import java.util.Locale;
 
 public final class ContextValueFormatter {
     private static final Style COPY_STYLE = Style.EMPTY
-            .withColor(ChatFormatting.AQUA)
+            .withColor(TextFormatting.AQUA)
             .withUnderlined(true);
 
     private ContextValueFormatter() {
@@ -54,13 +54,13 @@ public final class ContextValueFormatter {
         return resolveLiteral(template, minecraft);
     }
 
-    public static Component buildInteractiveComponent(String template, Minecraft minecraft) {
+    public static ITextComponent buildInteractiveComponent(String template, Minecraft minecraft) {
         template = OmniWheelText.resolve(template);
         if (minecraft.player == null || minecraft.level == null) {
-            return new TextComponent(template);
+            return new StringTextComponent(template);
         }
 
-        MutableComponent result = new TextComponent("");
+        IFormattableTextComponent result = new StringTextComponent("");
         int cursor = 0;
         while (cursor < template.length()) {
             int coordIndex = findNextCoordinateToken(template, cursor);
@@ -68,12 +68,12 @@ public final class ContextValueFormatter {
             int nextIndex = minPositive(coordIndex, dimensionIndex);
 
             if (nextIndex < 0) {
-                result.append(new TextComponent(resolveLiteral(template.substring(cursor), minecraft)));
+                result.append(new StringTextComponent(resolveLiteral(template.substring(cursor), minecraft)));
                 break;
             }
 
             if (nextIndex > cursor) {
-                result.append(new TextComponent(resolveLiteral(template.substring(cursor, nextIndex), minecraft)));
+                result.append(new StringTextComponent(resolveLiteral(template.substring(cursor, nextIndex), minecraft)));
             }
 
             if (nextIndex == coordIndex) {
@@ -109,8 +109,8 @@ public final class ContextValueFormatter {
                 + minecraft.player.blockPosition().getZ();
     }
 
-    private static Component copyableLiteral(String display, String raw, String hoverKey) {
-        return new TextComponent(display).withStyle(COPY_STYLE
+    private static ITextComponent copyableLiteral(String display, String raw, String hoverKey) {
+        return new StringTextComponent(display).withStyle(COPY_STYLE
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, raw))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, OmniWheelText.component(hoverKey, raw))));
     }
@@ -159,12 +159,20 @@ public final class ContextValueFormatter {
     }
 
     private static String formatDimensionId(String raw) {
-        return switch (raw) {
-            case "minecraft:overworld" -> OmniWheelText.translate("omniwheel.dimension.overworld");
-            case "minecraft:the_nether" -> OmniWheelText.translate("omniwheel.dimension.nether");
-            case "minecraft:the_end" -> OmniWheelText.translate("omniwheel.dimension.end");
-            default -> titleCase(raw.contains(":") ? raw.substring(raw.indexOf(':') + 1) : raw);
-        };
+        switch (raw) {
+            case "minecraft:overworld": {
+                return OmniWheelText.translate("omniwheel.dimension.overworld");
+            }
+            case "minecraft:the_nether": {
+                return OmniWheelText.translate("omniwheel.dimension.nether");
+            }
+            case "minecraft:the_end": {
+                return OmniWheelText.translate("omniwheel.dimension.end");
+            }
+            default: {
+                return titleCase(raw.contains(":") ? raw.substring(raw.indexOf(':') + 1) : raw);
+            }
+        }
     }
 
     private static String titleCase(String value) {
@@ -174,7 +182,7 @@ public final class ContextValueFormatter {
             if (word.isEmpty()) {
                 continue;
             }
-            if (!builder.isEmpty()) {
+            if (!(builder.length() == 0)) {
                 builder.append(' ');
             }
             builder.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
@@ -182,9 +190,49 @@ public final class ContextValueFormatter {
                 builder.append(word.substring(1).toLowerCase(Locale.ROOT));
             }
         }
-        return builder.isEmpty() ? value : builder.toString();
+        return (builder.length() == 0) ? value : builder.toString();
     }
 
-    public record CopyValue(String display, String raw, String label) {
+    public static final class CopyValue {
+        private final String display;
+        private final String raw;
+        private final String label;
+
+        public CopyValue(String display, String raw, String label) {
+
+            this.display = display;
+            this.raw = raw;
+            this.label = label;
+        }
+
+        public String display() {
+            return display;
+        }
+
+        public String raw() {
+            return raw;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof CopyValue)) return false;
+            CopyValue that = (CopyValue) other;
+            return java.util.Objects.equals(display, that.display) && java.util.Objects.equals(raw, that.raw) && java.util.Objects.equals(label, that.label);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(display, raw, label);
+        }
+
+        @Override
+        public String toString() {
+            return "CopyValue[" + "display=" + display + ", " + "raw=" + raw + ", " + "label=" + label + "]";
+        }
     }
 }

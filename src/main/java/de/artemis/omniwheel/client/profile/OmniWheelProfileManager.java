@@ -17,7 +17,7 @@ public final class OmniWheelProfileManager {
     private final OmniWheelProfileRepository repository = new OmniWheelProfileRepository();
 
     private ProfileCollection profiles;
-    private Map<String, WheelProfile> byId = Map.of();
+    private Map<String, WheelProfile> byId = com.google.common.collect.ImmutableMap.of();
     private String observedChangeToken;
 
     public void ensureLoaded() {
@@ -91,12 +91,12 @@ public final class OmniWheelProfileManager {
         ensureLoaded();
         String profileId = nextProfileId();
         String displayName = nextDisplayName();
-        WheelDefinition rootWheel = new WheelDefinition("main", "omniwheel.default.wheel.main", "", 8, List.of());
+        WheelDefinition rootWheel = new WheelDefinition("main", "omniwheel.default.wheel.main", "", 8, com.google.common.collect.ImmutableList.of());
         WheelProfile createdProfile = new WheelProfile(
                 profileId,
                 displayName,
                 rootWheel.id(),
-                new LinkedHashMap<>(Map.of(rootWheel.id(), rootWheel))
+                new LinkedHashMap<>(com.google.common.collect.ImmutableMap.of(rootWheel.id(), rootWheel))
         );
 
         List<WheelProfile> updatedProfiles = new ArrayList<>(profiles.profiles().size() + 1);
@@ -184,8 +184,7 @@ public final class OmniWheelProfileManager {
             nextActiveProfileId = updatedProfiles.stream()
                     .filter(profile -> profile.id().equals("default"))
                     .findFirst()
-                    .or(() -> updatedProfiles.stream().findFirst())
-                    .orElseThrow()
+                    .orElse(updatedProfiles.get(0))
                     .id();
         }
 

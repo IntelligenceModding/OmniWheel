@@ -24,7 +24,7 @@ public final class OmniWheelProfileRepository {
         }
 
         try {
-            ProfileCollection loaded = codec.decode(Files.readString(storagePath, StandardCharsets.UTF_8));
+            ProfileCollection loaded = codec.decode(new String(Files.readAllBytes(storagePath), StandardCharsets.UTF_8));
             ProfileCollection upgraded = ProfileUpgrader.upgrade(loaded);
             if (upgraded != loaded) {
                 save(upgraded);
@@ -42,7 +42,7 @@ public final class OmniWheelProfileRepository {
     public void save(ProfileCollection collection) {
         try {
             Files.createDirectories(storagePath.getParent());
-            Files.writeString(storagePath, codec.encode(collection), StandardCharsets.UTF_8);
+            Files.write(storagePath, codec.encode(collection).getBytes(StandardCharsets.UTF_8));
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to save OmniWheel profiles to " + storagePath, exception);
         }
@@ -70,7 +70,7 @@ public final class OmniWheelProfileRepository {
     }
 
     private ProfileCollection defaultCollection() {
-        return new ProfileCollection("default", List.of(DefaultProfiles.createDefaultProfile()));
+        return new ProfileCollection("default", com.google.common.collect.ImmutableList.of(DefaultProfiles.createDefaultProfile()));
     }
 
     private void backupBrokenFile() {

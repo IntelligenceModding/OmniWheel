@@ -3,9 +3,9 @@ package de.artemis.omniwheel.client.tutorial;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.User;
+import net.minecraft.util.Session;
 import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.storage.FolderName;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
@@ -24,32 +24,52 @@ public final class TutorialProgressStore {
 
     public boolean isCompleted(TutorialType tutorialType) {
         TutorialState current = currentContextState();
-        return switch (tutorialType) {
-            case RADIAL -> current.radialCompleted;
-            case MANAGER -> current.managerCompleted;
-        };
+        switch (tutorialType) {
+            case RADIAL: {
+                return current.radialCompleted;
+            }
+            case MANAGER: {
+                return current.managerCompleted;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
+        }
     }
 
     public int currentStep(TutorialType tutorialType) {
         TutorialState current = currentContextState();
-        return switch (tutorialType) {
-            case RADIAL -> Math.max(0, current.radialStep);
-            case MANAGER -> Math.max(0, current.managerStep);
-        };
+        switch (tutorialType) {
+            case RADIAL: {
+                return Math.max(0, current.radialStep);
+            }
+            case MANAGER: {
+                return Math.max(0, current.managerStep);
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
+        }
     }
 
     public void setCurrentStep(TutorialType tutorialType, int step) {
         TutorialState current = currentContextState();
         int normalizedStep = Math.max(0, step);
         switch (tutorialType) {
-            case RADIAL -> {
+            case RADIAL: {
+
                 current.radialCompleted = false;
                 current.radialStep = normalizedStep;
+
+                break;
             }
-            case MANAGER -> {
+            case MANAGER: {
+
                 current.managerCompleted = false;
                 current.managerStep = normalizedStep;
+
+                break;
             }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
         }
         save(state);
     }
@@ -57,14 +77,22 @@ public final class TutorialProgressStore {
     public void markCompleted(TutorialType tutorialType) {
         TutorialState current = currentContextState();
         switch (tutorialType) {
-            case RADIAL -> {
+            case RADIAL: {
+
                 current.radialCompleted = true;
                 current.radialStep = 0;
+
+                break;
             }
-            case MANAGER -> {
+            case MANAGER: {
+
                 current.managerCompleted = true;
                 current.managerStep = 0;
+
+                break;
             }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
         }
         save(state);
     }
@@ -84,7 +112,7 @@ public final class TutorialProgressStore {
             return state;
         }
         try {
-            String raw = Files.readString(storagePath, StandardCharsets.UTF_8);
+            String raw = new String(Files.readAllBytes(storagePath), StandardCharsets.UTF_8);
             StoreState loaded = GSON.fromJson(raw, StoreState.class);
             if (loaded == null) {
                 loaded = new StoreState();
@@ -111,7 +139,7 @@ public final class TutorialProgressStore {
     private void save(StoreState tutorialState) {
         try {
             Files.createDirectories(storagePath.getParent());
-            Files.writeString(storagePath, GSON.toJson(tutorialState), StandardCharsets.UTF_8);
+            Files.write(storagePath, GSON.toJson(tutorialState).getBytes(StandardCharsets.UTF_8));
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to save OmniWheel tutorial state to " + storagePath, exception);
         }
@@ -124,7 +152,7 @@ public final class TutorialProgressStore {
         if (minecraft.hasSingleplayerServer() && minecraft.getSingleplayerServer() != null) {
             String worldKey;
             try {
-                worldKey = minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).normalize().toString();
+                worldKey = minecraft.getSingleplayerServer().getWorldPath(FolderName.ROOT).normalize().toString();
             } catch (Exception ignored) {
                 worldKey = minecraft.getSingleplayerServer().getWorldData().getLevelName();
             }
@@ -133,7 +161,7 @@ public final class TutorialProgressStore {
 
         ServerData server = minecraft.getCurrentServer();
         if (server != null) {
-            String serverKey = !server.ip.isBlank() ? server.ip : server.name;
+            String serverKey = !server.ip.trim().isEmpty() ? server.ip : server.name;
             return "mp:" + userKey + ":" + normalizeKey(serverKey);
         }
 
@@ -142,11 +170,11 @@ public final class TutorialProgressStore {
 
     @SuppressWarnings("ConstantValue")
     private static String currentUserKey(Minecraft minecraft) {
-        User user = minecraft.getUser();
+        Session user = minecraft.getUser();
         if (user == null) {
             return "unknown";
         }
-        var profileId = user.getGameProfile().getId();
+        java.util.UUID profileId = user.getGameProfile().getId();
         if (profileId != null) {
             return normalizeKey(profileId.toString());
         }
@@ -154,7 +182,7 @@ public final class TutorialProgressStore {
     }
 
     private static String normalizeKey(String value) {
-        if (value == null || value.isBlank()) {
+        if (value == null || value.trim().isEmpty()) {
             return "unknown";
         }
         return value.trim().replace('\\', '/').toLowerCase(Locale.ROOT);

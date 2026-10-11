@@ -17,9 +17,8 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.network.play.ClientPlayNetHandler;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
@@ -33,7 +32,7 @@ public final class WheelAvailabilityResolver {
         }
         WheelDefinition wheel = profile.wheel(wheelId);
         if (!wheel.active()) {
-            return List.of();
+            return com.google.common.collect.ImmutableList.of();
         }
         List<WheelEntry> visibleEntries = new ArrayList<>();
         for (WheelEntry entry : wheel.entries()) {
@@ -49,18 +48,18 @@ public final class WheelAvailabilityResolver {
             return false;
         }
         WheelAction action = entry.action();
-        if (action instanceof CommandAction commandAction) {
-            return isCommandAvailable(commandAction);
+        if (action instanceof CommandAction) {
+            return isCommandAvailable(((CommandAction) action));
         }
         if (action instanceof ChatAction) {
             return isChatAvailable();
         }
-        if (action instanceof FunctionAction functionAction) {
-            return functionAction.function() != GameplayFunction.OMNI_BACK
-                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function());
+        if (action instanceof FunctionAction) {
+            return ((FunctionAction) action).function() != GameplayFunction.OMNI_BACK
+                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(((FunctionAction) action).function());
         }
-        if (action instanceof OpenChatAction openChatAction) {
-            return isOpenChatAvailable(openChatAction);
+        if (action instanceof OpenChatAction) {
+            return isOpenChatAvailable(((OpenChatAction) action));
         }
         if (action instanceof CopyTextAction
                 || action instanceof LocalMessageAction
@@ -68,8 +67,8 @@ public final class WheelAvailabilityResolver {
                 || action instanceof SwitchProfileAction) {
             return true;
         }
-        if (action instanceof OpenWheelAction openWheelAction) {
-            return isWheelEntryVisible(profile, openWheelAction, wheelPath);
+        if (action instanceof OpenWheelAction) {
+            return isWheelEntryVisible(profile, ((OpenWheelAction) action), wheelPath);
         }
         return false;
     }
@@ -104,11 +103,11 @@ public final class WheelAvailabilityResolver {
                 continue;
             }
             WheelAction action = entry.action();
-            if (action instanceof OpenWheelAction openWheelAction) {
-                if (path.contains(openWheelAction.wheelId())) {
+            if (action instanceof OpenWheelAction) {
+                if (path.contains(((OpenWheelAction) action).wheelId())) {
                     continue;
                 }
-                if (profile.wheels().containsKey(openWheelAction.wheelId()) && hasUsefulVisibleEntry(profile, openWheelAction.wheelId(), new ArrayList<>(path))) {
+                if (profile.wheels().containsKey(((OpenWheelAction) action).wheelId()) && hasUsefulVisibleEntry(profile, ((OpenWheelAction) action).wheelId(), new ArrayList<>(path))) {
                     return true;
                 }
                 continue;
@@ -127,7 +126,7 @@ public final class WheelAvailabilityResolver {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return false;
         }
-        if (!canPlayerChat(minecraft, "canSendCommands")) {
+        if (!canPlayerChat(minecraft, true)) {
             return false;
         }
 
@@ -140,7 +139,7 @@ public final class WheelAvailabilityResolver {
     }
 
     private boolean isSingleCommandAvailable(String commandText, Minecraft minecraft) {
-        ClientPacketListener connection = minecraft.player.connection;
+        ClientPlayNetHandler connection = minecraft.player.connection;
         String command = normalizeCommand(PlaceholderResolver.resolve(commandText, minecraft));
         ParseResults<?> parse = connection.getCommands().parse(command, connection.getSuggestionsProvider());
         return !parse.getReader().canRead() && parse.getExceptions().isEmpty() && parse.getContext().getLastChild().getCommand() != null;
@@ -148,7 +147,7 @@ public final class WheelAvailabilityResolver {
 
     private boolean isChatAvailable() {
         Minecraft minecraft = Minecraft.getInstance();
-        return minecraft.player != null && minecraft.player.connection != null && canPlayerChat(minecraft, "canSendMessages");
+        return minecraft.player != null && minecraft.player.connection != null && canPlayerChat(minecraft, false);
     }
 
     private boolean isOpenChatAvailable(OpenChatAction action) {
@@ -164,17 +163,17 @@ public final class WheelAvailabilityResolver {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return false;
         }
-        if (!canPlayerChat(minecraft, "canSendCommands")) {
+        if (!canPlayerChat(minecraft, true)) {
             return false;
         }
 
         String normalized = normalizeCommand(command);
-        if (normalized.isBlank()) {
+        if (normalized.trim().isEmpty()) {
             return false;
         }
 
         String commandName = normalized.split("\\s+", 2)[0];
-        ClientPacketListener connection = minecraft.player.connection;
+        ClientPlayNetHandler connection = minecraft.player.connection;
         return connection.getCommands().getRoot().getChild(commandName) != null;
     }
 
@@ -190,24 +189,17 @@ public final class WheelAvailabilityResolver {
         return new java.util.ArrayDeque<>(values);
     }
 
-    private static boolean canPlayerChat(Minecraft minecraft, String abilityMethodName) {
-        if (minecraft.player == null) {
-            return false;
-        }
+    private static boolean canPlayerChat(Minecraft minecraft, boolean command) {
+        return minecraft.player != null && canPlayerChat(minecraft.isLocalServer(), minecraft.allowsChat(),
+                minecraft.options.chatVisibility, command);
+    }
 
-        try {
-            Method chatAbilitiesMethod = minecraft.player.getClass().getMethod("chatAbilities");
-            Object chatAbilities = chatAbilitiesMethod.invoke(minecraft.player);
-            if (chatAbilities == null) {
-                return false;
-            }
-
-            Method abilityMethod = chatAbilities.getClass().getMethod(abilityMethodName);
-            Object value = abilityMethod.invoke(chatAbilities);
-            return value instanceof Boolean bool && bool;
-        } catch (ReflectiveOperationException ignored) {
-            return true;
-        }
+    static boolean canPlayerChat(boolean localServer, boolean allowsChat,
+                                 net.minecraft.entity.player.ChatVisibility visibility, boolean command) {
+        // Minecraft 1.16.5's openChatScreen ignores account chat restrictions in singleplayer.
+        return (localServer || allowsChat)
+                && visibility != net.minecraft.entity.player.ChatVisibility.HIDDEN
+                && (command || visibility == net.minecraft.entity.player.ChatVisibility.FULL);
     }
 
     private List<WheelEntry> profileEntries() {
@@ -216,7 +208,7 @@ public final class WheelAvailabilityResolver {
         List<WheelEntry> entries = new ArrayList<>(profiles.size());
         for (WheelProfile profile : profiles) {
             String displayName = OmniWheelText.resolve(profile.displayName());
-            String glyph = displayName.isBlank()
+            String glyph = displayName.trim().isEmpty()
                     ? "P"
                     : Character.toString(Character.toUpperCase(displayName.charAt(0)));
             int color = profile.id().equals(activeProfile.id()) ? 0xFF8BDAF8 : WheelEntry.DEFAULT_COLOR;

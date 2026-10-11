@@ -1,37 +1,36 @@
 package de.artemis.omniwheel.client.render;
 
-import com.mojang.blaze3d.platform.Window;
+import net.minecraft.client.MainWindow;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Vector4f;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.util.math.vector.Vector4f;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiComponent;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.world.item.ItemStack;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.renderer.ItemRenderer;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.IReorderingProcessor;
+import net.minecraft.item.ItemStack;
 
 public final class GuiGraphics {
-    private final PoseStack pose;
+    private final MatrixStack pose;
     private final Minecraft minecraft;
 
-    public GuiGraphics(PoseStack pose) {
+    public GuiGraphics(MatrixStack pose) {
         this.pose = pose;
         this.minecraft = Minecraft.getInstance();
     }
 
-    public PoseStack pose() {
+    public MatrixStack pose() {
         return pose;
     }
 
     public void fill(int minX, int minY, int maxX, int maxY, int color) {
-        GuiComponent.fill(pose, minX, minY, maxX, maxY, color);
+        AbstractGui.fill(pose, minX, minY, maxX, maxY, color);
     }
 
-    public void drawString(Font font, String text, int x, int y, int color, boolean shadow) {
+    public void drawString(FontRenderer font, String text, int x, int y, int color, boolean shadow) {
         if (shadow) {
             font.drawShadow(pose, text, x, y, color);
         } else {
@@ -39,7 +38,7 @@ public final class GuiGraphics {
         }
     }
 
-    public void drawString(Font font, Component text, int x, int y, int color, boolean shadow) {
+    public void drawString(FontRenderer font, ITextComponent text, int x, int y, int color, boolean shadow) {
         if (shadow) {
             font.drawShadow(pose, text, x, y, color);
         } else {
@@ -47,7 +46,7 @@ public final class GuiGraphics {
         }
     }
 
-    public void drawString(Font font, FormattedCharSequence text, int x, int y, int color, boolean shadow) {
+    public void drawString(FontRenderer font, IReorderingProcessor text, int x, int y, int color, boolean shadow) {
         if (shadow) {
             font.drawShadow(pose, text, x, y, color);
         } else {
@@ -55,22 +54,22 @@ public final class GuiGraphics {
         }
     }
 
-    public void drawCenteredString(Font font, String text, int x, int y, int color) {
+    public void drawCenteredString(FontRenderer font, String text, int x, int y, int color) {
         font.drawShadow(pose, text, x - font.width(text) / 2.0F, y, color);
     }
 
-    public void drawCenteredString(Font font, FormattedCharSequence text, int x, int y, int color) {
+    public void drawCenteredString(FontRenderer font, IReorderingProcessor text, int x, int y, int color) {
         font.drawShadow(pose, text, x - font.width(text) / 2.0F, y, color);
     }
 
     public void blit(ResourceLocation texture, int x, int y, float u, float v, int width, int height, int textureWidth, int textureHeight) {
-        RenderSystem.setShaderTexture(0, texture);
-        GuiComponent.blit(pose, x, y, u, v, width, height, textureWidth, textureHeight);
+        minecraft.getTextureManager().bind(texture);
+        AbstractGui.blit(pose, x, y, u, v, width, height, textureWidth, textureHeight);
     }
 
     public void blit(ResourceLocation texture, int x, int y, int z, float u, float v, int width, int height, int textureWidth, int textureHeight) {
-        RenderSystem.setShaderTexture(0, texture);
-        GuiComponent.blit(pose, x, y, z, u, v, width, height, textureWidth, textureHeight);
+        minecraft.getTextureManager().bind(texture);
+        AbstractGui.blit(pose, x, y, z, u, v, width, height, textureWidth, textureHeight);
     }
 
     public void renderItem(ItemStack stack, int x, int y) {
@@ -86,18 +85,15 @@ public final class GuiGraphics {
             return;
         }
 
-        com.mojang.blaze3d.vertex.PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
-        modelViewStack.translate(transform.x(), transform.y(), 0.0D);
-        modelViewStack.scale(transform.scale(), transform.scale(), 1.0F);
-        RenderSystem.applyModelViewMatrix();
+        RenderSystem.pushMatrix();
+        RenderSystem.translated(transform.x(), transform.y(), 0.0D);
+        RenderSystem.scaled(transform.scale(), transform.scale(), 1.0D);
         itemRenderer.renderAndDecorateItem(stack, 0, 0);
-        modelViewStack.popPose();
-        RenderSystem.applyModelViewMatrix();
+        RenderSystem.popMatrix();
     }
 
     public void enableScissor(int x1, int y1, int x2, int y2) {
-        Window window = minecraft.getWindow();
+        MainWindow window = minecraft.getWindow();
         double scale = window.getGuiScale();
         int minX = Math.min(x1, x2);
         int minY = Math.min(y1, y2);
@@ -126,6 +122,46 @@ public final class GuiGraphics {
         return new ItemRenderTransform(Math.round(topLeft.x()), Math.round(topLeft.y()), transformedScale);
     }
 
-    private record ItemRenderTransform(int x, int y, float scale) {
+    private static final class ItemRenderTransform {
+        private final int x;
+        private final int y;
+        private final float scale;
+
+        private ItemRenderTransform(int x, int y, float scale) {
+
+            this.x = x;
+            this.y = y;
+            this.scale = scale;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public float scale() {
+            return scale;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof ItemRenderTransform)) return false;
+            ItemRenderTransform that = (ItemRenderTransform) other;
+            return java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(scale, that.scale);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(x, y, scale);
+        }
+
+        @Override
+        public String toString() {
+            return "ItemRenderTransform[" + "x=" + x + ", " + "y=" + y + ", " + "scale=" + scale + "]";
+        }
     }
 }

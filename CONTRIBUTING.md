@@ -89,7 +89,7 @@ You can view the available branches [here][branches].
 
 When contributing, always work against the branch matching the Minecraft version and loader your change targets.
 
-For example, a change developed for Minecraft 1.18.2 with Forge should target the corresponding 1.18.2 Forge branch.
+For example, a change developed for Minecraft 1.16.5 with Forge should target the corresponding 1.16.5 Forge branch.
 
 Do **not** target the `assets` branch for code changes. The `assets` branch is used for project images and other repository assets.
 
@@ -117,7 +117,9 @@ Check the following line in the branch's `build.gradle` file if you are unsure:
 java.toolchain.languageVersion = JavaLanguageVersion.of(...)
 ```
 
-For example, the Minecraft 1.18.2 Forge branch uses Java 17.
+This Minecraft 1.16.5 Forge branch uses **JDK 17 to run Gradle** and a **JDK 8 toolchain to compile, test, and run Minecraft**. Install both JDKs and set `JAVA_HOME` (or the IDE's Gradle JVM) to JDK 17. Gradle discovers JDK 8 locally or downloads it through the configured toolchain resolver.
+
+All mod sources must remain compatible with Java 8. Avoid records, pattern matching, switch expressions, and Java APIs introduced after Java 8. The build tests on Java 8, reobfuscates the mod for Forge, and verifies every packaged class has Java 8 bytecode and Minecraft 1.16.5 metadata.
 
 Java builds such as Eclipse Temurin can be downloaded from [Adoptium][adoptium].
 
@@ -149,7 +151,7 @@ Before beginning work, switch to the branch matching the Minecraft version you w
 For example:
 
 ```bash
-git switch 1.18.2-forge
+git switch 1.16.5-forge
 ```
 
 It is recommended to create your own development branch from there.
@@ -182,7 +184,7 @@ The first Gradle import may take some time because Minecraft, the mod loader, ma
 
 Subsequent imports and builds should generally be much faster.
 
-If the project does not automatically use the correct Java version, make sure the Gradle JVM and project SDK match the Java version required by the branch's `build.gradle`.
+Set the Gradle JVM to JDK 17 and the project's Java language level to Java 8. The toolchain in `build.gradle` selects JDK 8 for compilation and Minecraft launch configurations.
 
 ## Building and Running the Mod
 

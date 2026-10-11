@@ -130,7 +130,7 @@ public final class ProfileJsonCodec {
             ));
         }
 
-        String activeId = dto.activeProfileId != null && !dto.activeProfileId.isBlank()
+        String activeId = dto.activeProfileId != null && !dto.activeProfileId.trim().isEmpty()
                 ? dto.activeProfileId
                 : profiles.get(0).id();
         return new ProfileCollection(activeId, profiles);
@@ -138,36 +138,36 @@ public final class ProfileJsonCodec {
 
     private StoredAction toDto(WheelAction action) {
         StoredAction stored = new StoredAction();
-        if (action instanceof CommandAction commandAction) {
+        if (action instanceof CommandAction) {
             stored.type = "command";
-            if (commandAction.commands().size() == 1) {
-                stored.value = commandAction.commands().get(0);
+            if (((CommandAction) action).commands().size() == 1) {
+                stored.value = ((CommandAction) action).commands().get(0);
             } else {
-                stored.values = new ArrayList<>(commandAction.commands());
+                stored.values = new ArrayList<>(((CommandAction) action).commands());
             }
-            stored.requireConfirmation = commandAction.requireConfirmation();
-        } else if (action instanceof ChatAction chatAction) {
+            stored.requireConfirmation = ((CommandAction) action).requireConfirmation();
+        } else if (action instanceof ChatAction) {
             stored.type = "chat";
-            stored.value = chatAction.message();
-            stored.requireConfirmation = chatAction.requireConfirmation();
-        } else if (action instanceof FunctionAction functionAction) {
+            stored.value = ((ChatAction) action).message();
+            stored.requireConfirmation = ((ChatAction) action).requireConfirmation();
+        } else if (action instanceof FunctionAction) {
             stored.type = "function";
-            stored.value = functionAction.function().id();
-        } else if (action instanceof LocalMessageAction localMessageAction) {
+            stored.value = ((FunctionAction) action).function().id();
+        } else if (action instanceof LocalMessageAction) {
             stored.type = "local_message";
-            stored.value = localMessageAction.message();
-        } else if (action instanceof OpenChatAction openChatAction) {
+            stored.value = ((LocalMessageAction) action).message();
+        } else if (action instanceof OpenChatAction) {
             stored.type = "open_chat";
-            stored.value = openChatAction.initialText();
-        } else if (action instanceof CopyTextAction copyTextAction) {
+            stored.value = ((OpenChatAction) action).initialText();
+        } else if (action instanceof CopyTextAction) {
             stored.type = "copy_text";
-            stored.value = copyTextAction.text();
-        } else if (action instanceof OpenWheelAction openWheelAction) {
+            stored.value = ((CopyTextAction) action).text();
+        } else if (action instanceof OpenWheelAction) {
             stored.type = "open_wheel";
-            stored.value = openWheelAction.wheelId();
-        } else if (action instanceof OpenScreenAction openScreenAction) {
+            stored.value = ((OpenWheelAction) action).wheelId();
+        } else if (action instanceof OpenScreenAction) {
             stored.type = "open_screen";
-            stored.value = openScreenAction.target().name().toLowerCase(Locale.ROOT);
+            stored.value = ((OpenScreenAction) action).target().name().toLowerCase(Locale.ROOT);
         } else {
             throw new IllegalArgumentException("Unsupported action type: " + action.getClass().getName());
         }
@@ -179,20 +179,38 @@ public final class ProfileJsonCodec {
             throw new IllegalStateException("entry action was missing");
         }
 
-        return switch (stored.type) {
-            case "command" -> new CommandAction(
-                    stored.values != null && !stored.values.isEmpty() ? stored.values : List.of(stored.value),
-                    stored.requireConfirmation
-            );
-            case "chat" -> new ChatAction(stored.value, stored.requireConfirmation);
-            case "function" -> new FunctionAction(GameplayFunction.byId(stored.value));
-            case "local_message" -> new LocalMessageAction(stored.value);
-            case "open_chat" -> new OpenChatAction(defaultString(stored.value));
-            case "copy_text" -> new CopyTextAction(stored.value);
-            case "open_wheel" -> new OpenWheelAction(stored.value);
-            case "open_screen" -> new OpenScreenAction(ScreenTarget.valueOf(stored.value.toUpperCase(Locale.ROOT)));
-            default -> throw new IllegalStateException("Unknown action type: " + stored.type);
-        };
+        switch (stored.type) {
+            case "command": {
+                return new CommandAction(
+                        stored.values != null && !stored.values.isEmpty() ? stored.values : com.google.common.collect.ImmutableList.of(stored.value),
+                        stored.requireConfirmation
+                );
+            }
+            case "chat": {
+                return new ChatAction(stored.value, stored.requireConfirmation);
+            }
+            case "function": {
+                return new FunctionAction(GameplayFunction.byId(stored.value));
+            }
+            case "local_message": {
+                return new LocalMessageAction(stored.value);
+            }
+            case "open_chat": {
+                return new OpenChatAction(defaultString(stored.value));
+            }
+            case "copy_text": {
+                return new CopyTextAction(stored.value);
+            }
+            case "open_wheel": {
+                return new OpenWheelAction(stored.value);
+            }
+            case "open_screen": {
+                return new OpenScreenAction(ScreenTarget.valueOf(stored.value.toUpperCase(Locale.ROOT)));
+            }
+            default: {
+                throw new IllegalStateException("Unknown action type: " + stored.type);
+            }
+        }
     }
 
     private static String defaultString(String value) {

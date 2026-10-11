@@ -1,6 +1,6 @@
 package de.artemis.omniwheel.client.overlay;
 
-import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.util.InputMappings;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.render.GuiGraphics;
@@ -19,15 +19,14 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.gui.Font;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.IReorderingProcessor;
+import net.minecraft.entity.player.PlayerInventory;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -282,7 +281,7 @@ public final class OmniWheelOverlay {
                         outerOutline.innerEndAngle(),
                         outerOutline.outerStartAngle(),
                         outerOutline.outerEndAngle(),
-                    outlineColor
+                        outlineColor
                 );
             }
 
@@ -337,7 +336,7 @@ public final class OmniWheelOverlay {
         boolean wasOpen = open;
         runtime.profileManager().ensureLoaded();
         WheelProfile profile = runtime.activeProfile();
-        List<String> path = wheelIds == null || wheelIds.isEmpty() ? List.of(resolveOpeningWheelId(profile)) : wheelIds;
+        List<String> path = wheelIds == null || wheelIds.isEmpty() ? com.google.common.collect.ImmutableList.of(resolveOpeningWheelId(profile)) : wheelIds;
         wheelPath.clear();
         wheelPath.addAll(path);
         open = true;
@@ -349,7 +348,7 @@ public final class OmniWheelOverlay {
         pressedHotkeys.clear();
         lastFreeRawMouseX = minecraft.mouseHandler.xpos();
         lastFreeRawMouseY = minecraft.mouseHandler.ypos();
-        lockedHotbarSlot = selectedHotbarSlot(minecraft.player.getInventory());
+        lockedHotbarSlot = selectedHotbarSlot(minecraft.player.inventory);
         accumulatedScrollX = 0.0D;
         accumulatedScrollY = 0.0D;
         if (!wasOpen && !runtime.tutorialProgressStore().isCompleted(TutorialType.RADIAL)) {
@@ -363,7 +362,7 @@ public final class OmniWheelOverlay {
     private void openRoot(Minecraft minecraft) {
         runtime.profileManager().ensureLoaded();
         WheelProfile profile = runtime.activeProfile();
-        openWheelPath(List.of(resolveOpeningWheelId(profile)));
+        openWheelPath(com.google.common.collect.ImmutableList.of(resolveOpeningWheelId(profile)));
     }
 
     public boolean handleMouseScroll(double scrollDeltaX, double scrollDeltaY) {
@@ -524,7 +523,7 @@ public final class OmniWheelOverlay {
     private boolean isHotkeyDown(Minecraft minecraft, String hotkey) {
         long windowHandle = resolveWindowHandle(minecraft.getWindow());
         for (int keyCode : hotkeyCodes(hotkey)) {
-            if (InputConstants.isKeyDown(windowHandle, keyCode)) {
+            if (InputMappings.isKeyDown(windowHandle, keyCode)) {
                 return true;
             }
         }
@@ -533,8 +532,8 @@ public final class OmniWheelOverlay {
 
     private boolean isShiftDown(Minecraft minecraft) {
         long windowHandle = resolveWindowHandle(minecraft.getWindow());
-        return InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT)
+                || InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
     private void activateEntry(int index, List<WheelEntry> visibleEntries) {
@@ -552,21 +551,11 @@ public final class OmniWheelOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputConstants.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
+        InputMappings.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
     }
 
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    private long resolveWindowHandle(net.minecraft.client.MainWindow window) {
+        return window.getWindow();
     }
 
     private void drawEntry(
@@ -587,7 +576,7 @@ public final class OmniWheelOverlay {
         int glyphColor = entry.action() instanceof OpenWheelAction && entry.color() == WheelEntry.DEFAULT_COLOR ? SUBWHEEL_HINT : textColor;
         boolean showIcon = entry.showIcon();
         boolean showLabel = entry.showLabel();
-        boolean showShortcut = entry.showShortcut() && !entry.shortcut().isBlank();
+        boolean showShortcut = entry.showShortcut() && !entry.shortcut().trim().isEmpty();
         int maxTextWidth = Math.max(34, Math.round((outerRadius - innerRadius) * 0.9F));
 
         float iconScale;
@@ -710,8 +699,8 @@ public final class OmniWheelOverlay {
         if (minecraft.player == null) {
             return;
         }
-        for (KeyMapping keyMapping : gameplayKeyMappings(minecraft)) {
-            keyMapping.setDown(false);
+        for (KeyBinding KeyBinding : gameplayKeyMappings(minecraft)) {
+            KeyBinding.setDown(false);
         }
         minecraft.player.xxa = 0.0F;
         minecraft.player.yya = 0.0F;
@@ -720,8 +709,8 @@ public final class OmniWheelOverlay {
         minecraft.player.setSprinting(false);
     }
 
-    private static List<KeyMapping> gameplayKeyMappings(Minecraft minecraft) {
-        return List.of(
+    private static List<KeyBinding> gameplayKeyMappings(Minecraft minecraft) {
+        return com.google.common.collect.ImmutableList.of(
                 minecraft.options.keyUp,
                 minecraft.options.keyDown,
                 minecraft.options.keyLeft,
@@ -737,7 +726,7 @@ public final class OmniWheelOverlay {
 
     private void drawAdaptiveCenteredText(GuiGraphics graphics, Minecraft minecraft, TextLayout layout, int centerX, int topY, int color) {
         int lineY = topY;
-        for (FormattedCharSequence line : layout.lines()) {
+        for (IReorderingProcessor line : layout.lines()) {
             graphics.pose().pushPose();
             graphics.pose().scale(layout.scale(), layout.scale(), 1.0F);
             graphics.drawCenteredString(
@@ -756,7 +745,7 @@ public final class OmniWheelOverlay {
         float minScale = 0.55F;
         for (float scale = 1.0F; scale >= minScale; scale -= 0.05F) {
             int scaledWidth = Math.max(1, Math.round(maxWidth / scale));
-            List<FormattedCharSequence> lines = minecraft.font.split(new TextComponent(text), scaledWidth);
+            List<IReorderingProcessor> lines = minecraft.font.split(new StringTextComponent(text), scaledWidth);
             if (lines.size() > maxLines) {
                 continue;
             }
@@ -770,13 +759,13 @@ public final class OmniWheelOverlay {
 
         float fallbackScale = minScale;
         int fallbackWidth = Math.max(1, Math.round(maxWidth / fallbackScale));
-        List<FormattedCharSequence> fallbackLines = new ArrayList<>(minecraft.font.split(new TextComponent(text), fallbackWidth));
+        List<IReorderingProcessor> fallbackLines = new ArrayList<>(minecraft.font.split(new StringTextComponent(text), fallbackWidth));
         if (fallbackLines.size() > maxLines) {
             fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
             if (!fallbackLines.isEmpty()) {
                 int maxChars = Math.max(3, Math.round(fallbackWidth / 6.0F));
                 String shortened = shortenPlainText(text, maxChars);
-                fallbackLines = new ArrayList<>(minecraft.font.split(new TextComponent(shortened), fallbackWidth));
+                fallbackLines = new ArrayList<>(minecraft.font.split(new StringTextComponent(shortened), fallbackWidth));
                 if (fallbackLines.size() > maxLines) {
                     fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
                 }
@@ -819,7 +808,7 @@ public final class OmniWheelOverlay {
 
         int boxWidth = tutorialStep.width();
         TextLayout title = layoutText(minecraft, tutorialStep.title(), boxWidth - 20, 16, 1);
-        List<FormattedCharSequence> bodyLines = minecraft.font.split(new TextComponent(tutorialStep.body()), boxWidth - 20);
+        List<IReorderingProcessor> bodyLines = minecraft.font.split(new StringTextComponent(tutorialStep.body()), boxWidth - 20);
         int bodyHeight = Math.max(8, bodyLines.size() * 9);
         int buttonHeight = 20;
         int buttonGap = 6;
@@ -868,9 +857,9 @@ public final class OmniWheelOverlay {
         }
     }
 
-    private void drawWrappedTutorialBody(GuiGraphics graphics, Minecraft minecraft, List<FormattedCharSequence> bodyLines, int x, int y, int color) {
+    private void drawWrappedTutorialBody(GuiGraphics graphics, Minecraft minecraft, List<IReorderingProcessor> bodyLines, int x, int y, int color) {
         int lineY = y;
-        for (FormattedCharSequence line : bodyLines) {
+        for (IReorderingProcessor line : bodyLines) {
             graphics.drawString(minecraft.font, line, x, lineY, color, false);
             lineY += 9;
         }
@@ -902,42 +891,52 @@ public final class OmniWheelOverlay {
             return null;
         }
 
-        Font font = Minecraft.getInstance().font;
+        FontRenderer font = Minecraft.getInstance().font;
         String title;
         String body;
         int cardWidth;
-        return switch (Math.min(radialTutorialStepIndex, 4)) {
-            case 0 -> {
+        switch (Math.min(radialTutorialStepIndex, 4)) {
+            case 0: {
+
                 title = OmniWheelText.translate("omniwheel.tutorial.radial.menu.title");
                 body = OmniWheelText.translate("omniwheel.tutorial.radial.menu.body");
                 cardWidth = tutorialCardWidth(font, title, body, 176, 248);
-                yield new TutorialStep(title, body, 16, 18, cardWidth);
+                return new TutorialStep(title, body, 16, 18, cardWidth);
+
             }
-            case 1 -> {
+            case 1: {
+
                 title = OmniWheelText.translate("omniwheel.tutorial.radial.direction.title");
                 body = OmniWheelText.translate("omniwheel.tutorial.radial.direction.body");
                 cardWidth = tutorialCardWidth(font, title, body, 184, 264);
-                yield new TutorialStep(title, body, width - cardWidth - 16, 18, cardWidth);
+                return new TutorialStep(title, body, width - cardWidth - 16, 18, cardWidth);
+
             }
-            case 2 -> {
+            case 2: {
+
                 title = OmniWheelText.translate("omniwheel.tutorial.radial.submenus.title");
                 body = OmniWheelText.translate("omniwheel.tutorial.radial.submenus.body");
                 cardWidth = tutorialCardWidth(font, title, body, 184, 256);
-                yield new TutorialStep(title, body, width - cardWidth - 16, height - 116, cardWidth);
+                return new TutorialStep(title, body, width - cardWidth - 16, height - 116, cardWidth);
+
             }
-            case 3 -> {
+            case 3: {
+
                 title = OmniWheelText.translate("omniwheel.tutorial.radial.center.title");
                 body = OmniWheelText.translate("omniwheel.tutorial.radial.center.body");
                 cardWidth = tutorialCardWidth(font, title, body, 184, 256);
-                yield new TutorialStep(title, body, 16, 18, cardWidth);
+                return new TutorialStep(title, body, 16, 18, cardWidth);
+
             }
-            default -> {
+            default: {
+
                 title = OmniWheelText.translate("omniwheel.tutorial.radial.numpad.title");
                 body = OmniWheelText.translate("omniwheel.tutorial.radial.numpad.body");
                 cardWidth = tutorialCardWidth(font, title, body, 184, 252);
-                yield new TutorialStep(title, body, 16, height - 116, cardWidth);
+                return new TutorialStep(title, body, 16, height - 116, cardWidth);
+
             }
-        };
+        }
     }
 
     private boolean handleTutorialClick(float mouseX, float mouseY, Minecraft minecraft) {
@@ -985,7 +984,7 @@ public final class OmniWheelOverlay {
 
     private void completeRadialTutorial() {
         Minecraft minecraft = Minecraft.getInstance();
-        List<String> currentPath = List.copyOf(wheelPath);
+        List<String> currentPath = com.google.common.collect.ImmutableList.copyOf(wheelPath);
         runtime.tutorialProgressStore().markCompleted(TutorialType.RADIAL);
         radialTutorialStepIndex = -1;
         if (minecraft.player != null && minecraft.level != null) {
@@ -1029,27 +1028,27 @@ public final class OmniWheelOverlay {
         }
 
         WheelEntry entry = visibleEntries.get(hoveredIndex);
-        if (entry.action() instanceof OpenWheelAction openWheelAction) {
-            if (isWheelAvailable(openWheelAction.wheelId())) {
-                navigateToWheel(openWheelAction.wheelId());
+        if (entry.action() instanceof OpenWheelAction) {
+            if (isWheelAvailable(((OpenWheelAction) entry.action()).wheelId())) {
+                navigateToWheel(((OpenWheelAction) entry.action()).wheelId());
                 hoveredIndex = -1;
                 return;
             }
 
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player != null) {
-                minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.missing_wheel", openWheelAction.wheelId()), true);
+                minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.missing_wheel", ((OpenWheelAction) entry.action()).wheelId()), true);
             }
             close();
             return;
         }
 
-        if (entry.action() instanceof OpenScreenAction openScreenAction) {
-            runtime.openTargetScreen(openScreenAction.target(), null);
+        if (entry.action() instanceof OpenScreenAction) {
+            runtime.openTargetScreen(((OpenScreenAction) entry.action()).target(), null);
             return;
         }
 
-        if (entry.action() instanceof FunctionAction functionAction && handleOmniWheelFunction(functionAction.function())) {
+        if (entry.action() instanceof FunctionAction && handleOmniWheelFunction(((FunctionAction) entry.action()).function())) {
             return;
         }
 
@@ -1060,33 +1059,45 @@ public final class OmniWheelOverlay {
     private boolean handleOmniWheelFunction(GameplayFunction function) {
         Minecraft minecraft = Minecraft.getInstance();
         switch (function) {
-            case OMNI_BACK -> {
+            case OMNI_BACK: {
+
                 if (!popWheel()) {
                     close();
                 }
                 return true;
+
             }
-            case OMNI_OPEN_PROFILES -> {
+            case OMNI_OPEN_PROFILES: {
+
                 navigateToWheel(WheelAvailabilityResolver.PROFILES_WHEEL_ID);
                 hoveredIndex = -1;
                 return true;
+
             }
-            case OMNI_OPEN_MANAGER -> {
+            case OMNI_OPEN_MANAGER: {
+
                 runtime.openTargetScreen(ScreenTarget.PROFILE_MANAGER, null);
                 return true;
+
             }
-            case OMNI_NEXT_PROFILE -> {
+            case OMNI_NEXT_PROFILE: {
+
                 cycleActiveProfile(1, minecraft);
                 hoveredIndex = -1;
                 return true;
+
             }
-            case OMNI_PREVIOUS_PROFILE -> {
+            case OMNI_PREVIOUS_PROFILE: {
+
                 cycleActiveProfile(-1, minecraft);
                 hoveredIndex = -1;
                 return true;
+
             }
-            default -> {
+            default: {
+
                 return false;
+
             }
         }
     }
@@ -1180,7 +1191,7 @@ public final class OmniWheelOverlay {
 
     private String resolveOpeningWheelId(WheelProfile profile) {
         String rootWheelId = profile.rootWheelId();
-        if (!runtime.availabilityResolver().visibleEntries(profile, rootWheelId, new ArrayDeque<>(List.of(rootWheelId))).isEmpty()) {
+        if (!runtime.availabilityResolver().visibleEntries(profile, rootWheelId, new ArrayDeque<>(com.google.common.collect.ImmutableList.of(rootWheelId))).isEmpty()) {
             return rootWheelId;
         }
 
@@ -1188,7 +1199,7 @@ public final class OmniWheelOverlay {
             if (!wheel.active() || wheel.id().equals(rootWheelId)) {
                 continue;
             }
-            if (!runtime.availabilityResolver().visibleEntries(profile, wheel.id(), new ArrayDeque<>(List.of(wheel.id()))).isEmpty()) {
+            if (!runtime.availabilityResolver().visibleEntries(profile, wheel.id(), new ArrayDeque<>(com.google.common.collect.ImmutableList.of(wheel.id()))).isEmpty()) {
                 return wheel.id();
             }
         }
@@ -1229,7 +1240,7 @@ public final class OmniWheelOverlay {
         currentPageIndex = Math.max(0, Math.min(currentPageIndex, pageCount - 1));
         int startIndex = currentPageIndex * MAX_RENDERED_SEGMENTS;
         int endIndex = Math.min(visibleEntries.size(), startIndex + MAX_RENDERED_SEGMENTS);
-        return List.copyOf(visibleEntries.subList(startIndex, endIndex));
+        return com.google.common.collect.ImmutableList.copyOf(visibleEntries.subList(startIndex, endIndex));
     }
 
     private static int renderedSegmentCount(List<WheelEntry> visibleEntries) {
@@ -1244,41 +1255,12 @@ public final class OmniWheelOverlay {
         return Math.max(1, (visibleEntries.size() + MAX_RENDERED_SEGMENTS - 1) / MAX_RENDERED_SEGMENTS);
     }
 
-    private int selectedHotbarSlot(Inventory inventory) {
-        for (String methodName : List.of("getSelectedSlot", "getSelected")) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName);
-                Object value = method.invoke(inventory);
-                if (value instanceof Number number) {
-                    return number.intValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            return field.getInt(inventory);
-        } catch (ReflectiveOperationException ignored) {
-        }
-        return 0;
+    private int selectedHotbarSlot(PlayerInventory inventory) {
+        return inventory.selected;
     }
 
-    private void setSelectedHotbarSlot(Inventory inventory, int selectedSlot) {
-        for (String methodName : List.of("setSelectedSlot", "setSelected")) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName, int.class);
-                method.invoke(inventory, selectedSlot);
-                return;
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            field.setInt(inventory, selectedSlot);
-        } catch (ReflectiveOperationException ignored) {
-        }
+    private void setSelectedHotbarSlot(PlayerInventory inventory, int selectedSlot) {
+        inventory.selected = Math.max(0, Math.min(8, selectedSlot));
     }
 
     private boolean consumePageScroll(Minecraft minecraft) {
@@ -1286,7 +1268,7 @@ public final class OmniWheelOverlay {
             return false;
         }
 
-        Inventory inventory = minecraft.player.getInventory();
+        PlayerInventory inventory = minecraft.player.inventory;
         int selectedSlot = selectedHotbarSlot(inventory);
         if (selectedSlot == lockedHotbarSlot) {
             return false;
@@ -1425,7 +1407,7 @@ public final class OmniWheelOverlay {
         return text.substring(0, Math.max(0, maxLength - 3)) + "...";
     }
 
-    private static String fitPlainText(Font font, String text, int maxWidth) {
+    private static String fitPlainText(FontRenderer font, String text, int maxWidth) {
         if (font.width(text) <= maxWidth) {
             return text;
         }
@@ -1439,7 +1421,7 @@ public final class OmniWheelOverlay {
 
     private static void drawScaledCenteredString(
             GuiGraphics graphics,
-            Font font,
+            FontRenderer font,
             String text,
             int centerX,
             int topY,
@@ -1459,62 +1441,80 @@ public final class OmniWheelOverlay {
     }
 
     private static SegmentPalette paletteForGuiColor(int guiColor) {
-        return switch (guiColor) {
-            case WheelEntry.DEFAULT_GUI_COLOR -> new SegmentPalette(
-                    SEGMENT_COLOR,
-                    SEGMENT_ALT_COLOR,
-                    SELECTED_COLOR,
-                    SELECTED_OUTLINE
-            );
-            case 0xFFFFD36A -> new SegmentPalette(
-                    0xD8343022,
-                    0xD83E3827,
-                    0xF06D5A2F,
-                    0xFFFFE08A
-            );
-            case 0xFF7FE3FF -> new SegmentPalette(
-                    0xD81C2D35,
-                    0xD8243740,
-                    0xF0365E6E,
-                    0xFF9EEBFF
-            );
-            case 0xFF8EE89A -> new SegmentPalette(
-                    0xD81D2E24,
-                    0xD825382C,
-                    0xF0376446,
-                    0xFFA7F2B1
-            );
-            case 0xFFFF9AB5 -> new SegmentPalette(
-                    0xD8322430,
-                    0xD83C2C3A,
-                    0xF0634261,
-                    0xFFFFB5CB
-            );
-            case 0xFFD1A0FF -> new SegmentPalette(
-                    0xD82A2435,
-                    0xD8332D40,
-                    0xF0524573,
-                    0xFFE0BCFF
-            );
-            case 0xFFFFB36A -> new SegmentPalette(
-                    0xD834281F,
-                    0xD83F3125,
-                    0xF06B4C30,
-                    0xFFFFC68A
-            );
-            case 0xFFA7B6C6 -> new SegmentPalette(
-                    0xD8262C33,
-                    0xD82F363E,
-                    0xF0465565,
-                    0xFFC3D1DF
-            );
-            default -> new SegmentPalette(
-                    SEGMENT_COLOR,
-                    SEGMENT_ALT_COLOR,
-                    SELECTED_COLOR,
-                    SELECTED_OUTLINE
-            );
-        };
+        switch (guiColor) {
+            case WheelEntry.DEFAULT_GUI_COLOR: {
+                return new SegmentPalette(
+                        SEGMENT_COLOR,
+                        SEGMENT_ALT_COLOR,
+                        SELECTED_COLOR,
+                        SELECTED_OUTLINE
+                );
+            }
+            case 0xFFFFD36A: {
+                return new SegmentPalette(
+                        0xD8343022,
+                        0xD83E3827,
+                        0xF06D5A2F,
+                        0xFFFFE08A
+                );
+            }
+            case 0xFF7FE3FF: {
+                return new SegmentPalette(
+                        0xD81C2D35,
+                        0xD8243740,
+                        0xF0365E6E,
+                        0xFF9EEBFF
+                );
+            }
+            case 0xFF8EE89A: {
+                return new SegmentPalette(
+                        0xD81D2E24,
+                        0xD825382C,
+                        0xF0376446,
+                        0xFFA7F2B1
+                );
+            }
+            case 0xFFFF9AB5: {
+                return new SegmentPalette(
+                        0xD8322430,
+                        0xD83C2C3A,
+                        0xF0634261,
+                        0xFFFFB5CB
+                );
+            }
+            case 0xFFD1A0FF: {
+                return new SegmentPalette(
+                        0xD82A2435,
+                        0xD8332D40,
+                        0xF0524573,
+                        0xFFE0BCFF
+                );
+            }
+            case 0xFFFFB36A: {
+                return new SegmentPalette(
+                        0xD834281F,
+                        0xD83F3125,
+                        0xF06B4C30,
+                        0xFFFFC68A
+                );
+            }
+            case 0xFFA7B6C6: {
+                return new SegmentPalette(
+                        0xD8262C33,
+                        0xD82F363E,
+                        0xF0465565,
+                        0xFFC3D1DF
+                );
+            }
+            default: {
+                return new SegmentPalette(
+                        SEGMENT_COLOR,
+                        SEGMENT_ALT_COLOR,
+                        SELECTED_COLOR,
+                        SELECTED_OUTLINE
+                );
+            }
+        }
     }
 
     private static String normalizeHotkeyGlyph(String glyph) {
@@ -1547,7 +1547,7 @@ public final class OmniWheelOverlay {
         return new int[0];
     }
 
-    private static int tutorialCardWidth(Font font, String title, String body, int minWidth, int maxWidth) {
+    private static int tutorialCardWidth(FontRenderer font, String title, String body, int minWidth, int maxWidth) {
         int buttonFloorWidth = 166;
         int titleWidth = font.width(title) + 20;
         int bodyWidth = font.width(body) + 20;
@@ -1569,26 +1569,21 @@ public final class OmniWheelOverlay {
             return false;
         }
 
-        InputConstants.Key key = OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).getKey();
+        InputMappings.Input key = OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).getKey();
         long windowHandle = resolveWindowHandleStatic(minecraft.getWindow());
-        return switch (key.getType()) {
-            case KEYSYM, SCANCODE -> InputConstants.isKeyDown(windowHandle, key.getValue());
-            default -> OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).isDown();
-        };
-    }
-
-    private static long resolveWindowHandleStatic(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
+        switch (key.getType()) {
+            case KEYSYM:
+            case SCANCODE: {
+                return InputMappings.isKeyDown(windowHandle, key.getValue());
+            }
+            default: {
+                return OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).isDown();
             }
         }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
+    }
+
+    private static long resolveWindowHandleStatic(net.minecraft.client.MainWindow window) {
+        return window.getWindow();
     }
 
     private static int radialPositionTargetIndex(int positionIndex, int segmentCount) {
@@ -1596,17 +1591,45 @@ public final class OmniWheelOverlay {
             return -1;
         }
 
-        DirectionVector desiredDirection = switch (positionIndex) {
-            case 0 -> new DirectionVector(-1.0D, -1.0D);
-            case 1 -> new DirectionVector(0.0D, -1.0D);
-            case 2 -> new DirectionVector(1.0D, -1.0D);
-            case 3 -> new DirectionVector(-1.0D, 0.0D);
-            case 5 -> new DirectionVector(1.0D, 0.0D);
-            case 6 -> new DirectionVector(-1.0D, 1.0D);
-            case 7 -> new DirectionVector(0.0D, 1.0D);
-            case 8 -> new DirectionVector(1.0D, 1.0D);
-            default -> null;
-        };
+        DirectionVector desiredDirection;
+        switch (positionIndex) {
+            case 0: {
+                desiredDirection = new DirectionVector(-1.0D, -1.0D);
+                break;
+            }
+            case 1: {
+                desiredDirection = new DirectionVector(0.0D, -1.0D);
+                break;
+            }
+            case 2: {
+                desiredDirection = new DirectionVector(1.0D, -1.0D);
+                break;
+            }
+            case 3: {
+                desiredDirection = new DirectionVector(-1.0D, 0.0D);
+                break;
+            }
+            case 5: {
+                desiredDirection = new DirectionVector(1.0D, 0.0D);
+                break;
+            }
+            case 6: {
+                desiredDirection = new DirectionVector(-1.0D, 1.0D);
+                break;
+            }
+            case 7: {
+                desiredDirection = new DirectionVector(0.0D, 1.0D);
+                break;
+            }
+            case 8: {
+                desiredDirection = new DirectionVector(1.0D, 1.0D);
+                break;
+            }
+            default: {
+                desiredDirection = null;
+                break;
+            }
+        }
         if (desiredDirection == null) {
             return -1;
         }
@@ -1624,16 +1647,195 @@ public final class OmniWheelOverlay {
         return bestIndex;
     }
 
-    private record TextLayout(List<FormattedCharSequence> lines, float scale, int lineHeight, int height) {
+    private static final class TextLayout {
+        private final List<IReorderingProcessor> lines;
+        private final float scale;
+        private final int lineHeight;
+        private final int height;
+
+        private TextLayout(List<IReorderingProcessor> lines, float scale, int lineHeight, int height) {
+
+            this.lines = lines;
+            this.scale = scale;
+            this.lineHeight = lineHeight;
+            this.height = height;
+        }
+
+        public List<IReorderingProcessor> lines() {
+            return lines;
+        }
+
+        public float scale() {
+            return scale;
+        }
+
+        public int lineHeight() {
+            return lineHeight;
+        }
+
+        public int height() {
+            return height;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TextLayout)) return false;
+            TextLayout that = (TextLayout) other;
+            return java.util.Objects.equals(lines, that.lines) && java.util.Objects.equals(scale, that.scale) && java.util.Objects.equals(lineHeight, that.lineHeight) && java.util.Objects.equals(height, that.height);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(lines, scale, lineHeight, height);
+        }
+
+        @Override
+        public String toString() {
+            return "TextLayout[" + "lines=" + lines + ", " + "scale=" + scale + ", " + "lineHeight=" + lineHeight + ", " + "height=" + height + "]";
+        }
     }
 
-    private record SegmentShape(double innerStartAngle, double innerEndAngle, double outerStartAngle, double outerEndAngle, double midAngle) {
+    private static final class SegmentShape {
+        private final double innerStartAngle;
+        private final double innerEndAngle;
+        private final double outerStartAngle;
+        private final double outerEndAngle;
+        private final double midAngle;
+
+        private SegmentShape(double innerStartAngle, double innerEndAngle, double outerStartAngle, double outerEndAngle, double midAngle) {
+
+            this.innerStartAngle = innerStartAngle;
+            this.innerEndAngle = innerEndAngle;
+            this.outerStartAngle = outerStartAngle;
+            this.outerEndAngle = outerEndAngle;
+            this.midAngle = midAngle;
+        }
+
+        public double innerStartAngle() {
+            return innerStartAngle;
+        }
+
+        public double innerEndAngle() {
+            return innerEndAngle;
+        }
+
+        public double outerStartAngle() {
+            return outerStartAngle;
+        }
+
+        public double outerEndAngle() {
+            return outerEndAngle;
+        }
+
+        public double midAngle() {
+            return midAngle;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof SegmentShape)) return false;
+            SegmentShape that = (SegmentShape) other;
+            return java.util.Objects.equals(innerStartAngle, that.innerStartAngle) && java.util.Objects.equals(innerEndAngle, that.innerEndAngle) && java.util.Objects.equals(outerStartAngle, that.outerStartAngle) && java.util.Objects.equals(outerEndAngle, that.outerEndAngle) && java.util.Objects.equals(midAngle, that.midAngle);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(innerStartAngle, innerEndAngle, outerStartAngle, outerEndAngle, midAngle);
+        }
+
+        @Override
+        public String toString() {
+            return "SegmentShape[" + "innerStartAngle=" + innerStartAngle + ", " + "innerEndAngle=" + innerEndAngle + ", " + "outerStartAngle=" + outerStartAngle + ", " + "outerEndAngle=" + outerEndAngle + ", " + "midAngle=" + midAngle + "]";
+        }
     }
 
-    private record SegmentPalette(int baseFill, int altFill, int selectedFill, int selectedOutline) {
+    private static final class SegmentPalette {
+        private final int baseFill;
+        private final int altFill;
+        private final int selectedFill;
+        private final int selectedOutline;
+
+        private SegmentPalette(int baseFill, int altFill, int selectedFill, int selectedOutline) {
+
+            this.baseFill = baseFill;
+            this.altFill = altFill;
+            this.selectedFill = selectedFill;
+            this.selectedOutline = selectedOutline;
+        }
+
+        public int baseFill() {
+            return baseFill;
+        }
+
+        public int altFill() {
+            return altFill;
+        }
+
+        public int selectedFill() {
+            return selectedFill;
+        }
+
+        public int selectedOutline() {
+            return selectedOutline;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof SegmentPalette)) return false;
+            SegmentPalette that = (SegmentPalette) other;
+            return java.util.Objects.equals(baseFill, that.baseFill) && java.util.Objects.equals(altFill, that.altFill) && java.util.Objects.equals(selectedFill, that.selectedFill) && java.util.Objects.equals(selectedOutline, that.selectedOutline);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(baseFill, altFill, selectedFill, selectedOutline);
+        }
+
+        @Override
+        public String toString() {
+            return "SegmentPalette[" + "baseFill=" + baseFill + ", " + "altFill=" + altFill + ", " + "selectedFill=" + selectedFill + ", " + "selectedOutline=" + selectedOutline + "]";
+        }
     }
 
-    private record DirectionVector(double x, double y) {
+    private static final class DirectionVector {
+        private final double x;
+        private final double y;
+
+        private DirectionVector(double x, double y) {
+
+            this.x = x;
+            this.y = y;
+        }
+
+        public double x() {
+            return x;
+        }
+
+        public double y() {
+            return y;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof DirectionVector)) return false;
+            DirectionVector that = (DirectionVector) other;
+            return java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(x, y);
+        }
+
+        @Override
+        public String toString() {
+            return "DirectionVector[" + "x=" + x + ", " + "y=" + y + "]";
+        }
+
         private double dot(double otherX, double otherY) {
             double length = Math.hypot(x, y);
             if (length <= 0.0D) {
@@ -1643,6 +1845,58 @@ public final class OmniWheelOverlay {
         }
     }
 
-    private record TutorialStep(String title, String body, int x, int y, int width) {
+    private static final class TutorialStep {
+        private final String title;
+        private final String body;
+        private final int x;
+        private final int y;
+        private final int width;
+
+        private TutorialStep(String title, String body, int x, int y, int width) {
+
+            this.title = title;
+            this.body = body;
+            this.x = x;
+            this.y = y;
+            this.width = width;
+        }
+
+        public String title() {
+            return title;
+        }
+
+        public String body() {
+            return body;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TutorialStep)) return false;
+            TutorialStep that = (TutorialStep) other;
+            return java.util.Objects.equals(title, that.title) && java.util.Objects.equals(body, that.body) && java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(width, that.width);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(title, body, x, y, width);
+        }
+
+        @Override
+        public String toString() {
+            return "TutorialStep[" + "title=" + title + ", " + "body=" + body + ", " + "x=" + x + ", " + "y=" + y + ", " + "width=" + width + "]";
+        }
     }
 }

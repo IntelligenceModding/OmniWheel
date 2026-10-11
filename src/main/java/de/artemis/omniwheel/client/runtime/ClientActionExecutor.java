@@ -10,8 +10,8 @@ import de.artemis.omniwheel.common.action.SwitchProfileAction;
 import de.artemis.omniwheel.common.action.WheelAction;
 import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.util.text.StringTextComponent;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -88,7 +88,7 @@ public final class ClientActionExecutor {
 
         if (ContextValueFormatter.extractCopyValues(action.message(), minecraft).isEmpty()) {
             minecraft.player.displayClientMessage(
-                    new TextComponent(PlaceholderResolver.resolve(action.message(), minecraft)),
+                    new StringTextComponent(PlaceholderResolver.resolve(action.message(), minecraft)),
                     true
             );
             return;

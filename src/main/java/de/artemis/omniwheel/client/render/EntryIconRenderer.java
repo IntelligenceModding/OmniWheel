@@ -1,15 +1,15 @@
 package de.artemis.omniwheel.client.render;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.IResource;
+import net.minecraft.util.JSONUtils;
+import net.minecraft.potion.Effect;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.block.Block;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -31,9 +31,8 @@ public final class EntryIconRenderer {
     private static final String TEXTURE_PREFIX = "texture:";
     private static final ResourceLocation GUI_ICONS = minecraftTexture("gui/icons.png");
     private static final ResourceLocation ACCESSIBILITY = minecraftTexture("gui/accessibility.png");
-    private static final ResourceLocation REPORT_BUTTON = minecraftTexture("gui/report_button.png");
-    private static final ResourceLocation RESOURCE_PACKS = minecraftTexture("gui/resource_packs.png");
-    private static final ResourceLocation SERVER_SELECTION = minecraftTexture("gui/server_selection.png");
+    private static final ResourceLocation WIDGETS = minecraftTexture("gui/widgets.png");
+    private static final ResourceLocation CHECKBOX = minecraftTexture("gui/checkbox.png");
     private static final Map<ResourceLocation, List<ResourceLocation>> PARTICLE_FRAMES = new LinkedHashMap<>();
     private static final Map<String, String> SYMBOLS = new LinkedHashMap<>();
     private static final Map<String, TextureIcon> TEXTURE_ICONS = new LinkedHashMap<>();
@@ -62,15 +61,11 @@ public final class EntryIconRenderer {
         registerTextureIcon("gui:hud/heart/withered_half", GUI_ICONS, 256, 256, 133, 0, 9, 9);
         registerTextureIcon("gui:hud/heart/absorbing_full", GUI_ICONS, 256, 256, 160, 0, 9, 9);
         registerTextureIcon("gui:hud/heart/absorbing_half", GUI_ICONS, 256, 256, 169, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/frozen_full", GUI_ICONS, 256, 256, 52, 36, 9, 9);
-        registerTextureIcon("gui:hud/heart/frozen_half", GUI_ICONS, 256, 256, 61, 36, 9, 9);
         registerTextureIcon("gui:hud/heart/vehicle_full", GUI_ICONS, 256, 256, 52, 9, 9, 9);
         registerTextureIcon("gui:hud/heart/vehicle_half", GUI_ICONS, 256, 256, 61, 9, 9, 9);
-        registerTextureIcon("gui:icon/checkmark", RESOURCE_PACKS, 256, 256, 32, 0, 16, 16);
-        registerTextureIcon("gui:icon/search", SERVER_SELECTION, 256, 256, 0, 0, 10, 10);
-        registerTextureIcon("gui:icon/language", ACCESSIBILITY, 256, 256, 0, 0, 20, 20);
-        registerTextureIcon("gui:icon/accessibility", ACCESSIBILITY, 256, 256, 0, 0, 20, 20);
-        registerTextureIcon("gui:icon/draft_report", REPORT_BUTTON, 64, 64, 0, 0, 20, 20);
+        registerTextureIcon("gui:icon/checkmark", CHECKBOX, 64, 64, 2, 24, 16, 12);
+        registerTextureIcon("gui:icon/language", WIDGETS, 256, 256, 0, 106, 20, 20);
+        registerTextureIcon("gui:icon/accessibility", ACCESSIBILITY, 32, 64, 0, 0, 20, 20);
         registerTextureIcon("gui:icon/ping_unknown", GUI_ICONS, 256, 256, 0, 176, 10, 8);
         registerTextureIcon("gui:icon/ping_1", GUI_ICONS, 256, 256, 0, 168, 10, 8);
         registerTextureIcon("gui:icon/ping_2", GUI_ICONS, 256, 256, 0, 160, 10, 8);
@@ -174,7 +169,7 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        MobEffect effect = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
+        Effect effect = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
         if (effect == null) {
             return false;
         }
@@ -242,7 +237,7 @@ public final class EntryIconRenderer {
         return true;
     }
 
-    private static MobEffect resolveEffect(String icon) {
+    private static Effect resolveEffect(String icon) {
         ResourceLocation effectId = resolveEffectId(icon);
         if (effectId == null) {
             return null;
@@ -316,34 +311,28 @@ public final class EntryIconRenderer {
     private static List<ResourceLocation> loadParticleFrames(Minecraft minecraft, ResourceLocation particleId) {
         ResourceLocation definitionId = ResourceLocation.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
         if (definitionId == null) {
-            return List.of();
+            return com.google.common.collect.ImmutableList.of();
         }
 
-        Resource resource;
-        try {
-            resource = minecraft.getResourceManager().getResource(definitionId);
-        } catch (IOException ignored) {
-            return List.of();
-        }
-
-        try (Reader reader = new InputStreamReader(resource.getInputStream())) {
-            JsonObject data = GsonHelper.parse(reader);
-            JsonArray textures = GsonHelper.getAsJsonArray(data, "textures", null);
-            if (textures == null || textures.isEmpty()) {
-                return List.of();
+        try (IResource resource = minecraft.getResourceManager().getResource(definitionId);
+             Reader reader = new InputStreamReader(resource.getInputStream(), java.nio.charset.StandardCharsets.UTF_8)) {
+            JsonObject data = JSONUtils.parse(reader);
+            JsonArray textures = JSONUtils.getAsJsonArray(data, "textures", null);
+            if (textures == null || textures.size() == 0) {
+                return com.google.common.collect.ImmutableList.of();
             }
 
             List<ResourceLocation> frames = new ArrayList<>();
             for (int index = 0; index < textures.size(); index++) {
-                String textureId = GsonHelper.convertToString(textures.get(index), "texture");
+                String textureId = JSONUtils.convertToString(textures.get(index), "texture");
                 ResourceLocation frameId = ResourceLocation.tryParse(textureId);
                 if (frameId != null) {
                     frames.add(frameId);
                 }
             }
-            return frames.isEmpty() ? List.of() : List.copyOf(frames);
+            return frames.isEmpty() ? com.google.common.collect.ImmutableList.of() : com.google.common.collect.ImmutableList.copyOf(frames);
         } catch (IOException ignored) {
-            return List.of();
+            return com.google.common.collect.ImmutableList.of();
         }
     }
 
@@ -388,8 +377,7 @@ public final class EntryIconRenderer {
     }
 
     private static boolean textureResourceExists(Minecraft minecraft, ResourceLocation texture) {
-        try {
-            minecraft.getResourceManager().getResource(texture);
+        try (IResource resource = minecraft.getResourceManager().getResource(texture)) {
             return true;
         } catch (IOException ignored) {
             return false;
@@ -404,6 +392,70 @@ public final class EntryIconRenderer {
         return texture;
     }
 
-    private record TextureIcon(ResourceLocation texture, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
+    private static final class TextureIcon {
+        private final ResourceLocation texture;
+        private final int textureWidth;
+        private final int textureHeight;
+        private final int u;
+        private final int v;
+        private final int srcWidth;
+        private final int srcHeight;
+
+        private TextureIcon(ResourceLocation texture, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
+
+            this.texture = texture;
+            this.textureWidth = textureWidth;
+            this.textureHeight = textureHeight;
+            this.u = u;
+            this.v = v;
+            this.srcWidth = srcWidth;
+            this.srcHeight = srcHeight;
+        }
+
+        public ResourceLocation texture() {
+            return texture;
+        }
+
+        public int textureWidth() {
+            return textureWidth;
+        }
+
+        public int textureHeight() {
+            return textureHeight;
+        }
+
+        public int u() {
+            return u;
+        }
+
+        public int v() {
+            return v;
+        }
+
+        public int srcWidth() {
+            return srcWidth;
+        }
+
+        public int srcHeight() {
+            return srcHeight;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TextureIcon)) return false;
+            TextureIcon that = (TextureIcon) other;
+            return java.util.Objects.equals(texture, that.texture) && java.util.Objects.equals(textureWidth, that.textureWidth) && java.util.Objects.equals(textureHeight, that.textureHeight) && java.util.Objects.equals(u, that.u) && java.util.Objects.equals(v, that.v) && java.util.Objects.equals(srcWidth, that.srcWidth) && java.util.Objects.equals(srcHeight, that.srcHeight);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(texture, textureWidth, textureHeight, u, v, srcWidth, srcHeight);
+        }
+
+        @Override
+        public String toString() {
+            return "TextureIcon[" + "texture=" + texture + ", " + "textureWidth=" + textureWidth + ", " + "textureHeight=" + textureHeight + ", " + "u=" + u + ", " + "v=" + v + ", " + "srcWidth=" + srcWidth + ", " + "srcHeight=" + srcHeight + "]";
+        }
     }
 }

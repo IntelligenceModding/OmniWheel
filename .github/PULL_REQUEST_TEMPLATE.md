@@ -16,9 +16,9 @@ Explain the purpose of the change rather than only listing modified files.
 <!--
 Example:
 
-- Minecraft version: 1.18.2
+- Minecraft version: 1.16.5
 - Mod loader: Forge
-- Target branch: 1.18.2-forge
+- Target branch: 1.16.5-forge
 -->
 
 ## Changes
@@ -42,7 +42,7 @@ Please mention:
 Example:
 
 - `gradlew.bat build` completed successfully.
-- Tested the changes in the 1.18.2 Forge development client.
+- Tested the changes in the 1.16.5 Forge development client.
 - Tested radial wheel opening, selection, and closing.
 - Tested affected profiles, shortcuts, submenus, commands, or actions where applicable.
 -->
@@ -92,6 +92,7 @@ Before submitting this pull request, please confirm:
 
 - [ ] I targeted the branch matching the Minecraft version and mod loader I tested.
 - [ ] The project builds successfully with the included Gradle wrapper.
+- [ ] I used JDK 17 for Gradle and the Java 8 toolchain for this Forge 1.16.5 branch.
 - [ ] I tested the changes in-game where applicable.
 - [ ] I tested affected wheel actions, profiles, submenus, shortcuts, placeholders, configuration, or interface behavior where applicable.
 - [ ] I tested multiplayer-related behavior where the change affects commands, chat actions, server-specific behavior, or other multiplayer functionality.

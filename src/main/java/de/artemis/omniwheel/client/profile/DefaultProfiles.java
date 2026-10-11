@@ -32,7 +32,7 @@ public final class DefaultProfiles {
                 key("wheel.main"),
                 key("wheel.main.description"),
                 8,
-                List.of(
+                com.google.common.collect.ImmutableList.of(
                         new WheelEntry("spawn", key("entry.spawn"), key("entry.spawn.description"), "S", new CommandAction("/spawn", false)),
                         new WheelEntry("home", key("entry.home"), key("entry.home.description"), "H", new CommandAction("/home", false)),
                         new WheelEntry("chat", key("entry.chat"), key("entry.chat.description"), "C", new OpenWheelAction("communication")),
@@ -45,7 +45,7 @@ public final class DefaultProfiles {
                 key("wheel.communication"),
                 key("wheel.communication.description"),
                 8,
-                List.of(
+                com.google.common.collect.ImmutableList.of(
                         new WheelEntry("chat_omw", key("entry.chat_omw"), key("entry.chat_omw.description"), "1", new ChatAction(key("chat.on_my_way"), false)),
                         new WheelEntry("chat_help", key("entry.chat_help"), key("entry.chat_help.description"), "2", new ChatAction(key("chat.need_help"), false)),
                         new WheelEntry("chat_thanks", key("entry.chat_thanks"), key("entry.chat_thanks.description"), "3", new ChatAction(key("chat.thanks"), false)),
@@ -60,7 +60,7 @@ public final class DefaultProfiles {
                 key("wheel.quick"),
                 key("wheel.quick.description"),
                 8,
-                List.of(
+                com.google.common.collect.ImmutableList.of(
                         new WheelEntry("quick_inventory", key("entry.quick_inventory"), key("entry.quick_inventory.description"), "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)),
                         new WheelEntry("quick_command", key("entry.quick_command"), key("entry.quick_command.description"), "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)),
                         new WheelEntry("quick_view", key("entry.quick_view"), key("entry.quick_view.description"), "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)),
@@ -72,7 +72,7 @@ public final class DefaultProfiles {
                 key("wheel.utility"),
                 key("wheel.utility.description"),
                 8,
-                List.of(
+                com.google.common.collect.ImmutableList.of(
                         new WheelEntry("util_profile", key("entry.util_profile"), key("entry.util_profile.description"), "P", new FunctionAction(GameplayFunction.OMNI_OPEN_PROFILES)),
                         new WheelEntry("util_manage", key("entry.util_manage"), key("entry.util_manage.description"), "G", new FunctionAction(GameplayFunction.OMNI_OPEN_MANAGER)),
                         new WheelEntry("util_copy", key("entry.util_copy"), key("entry.util_copy.description"), "C", new CopyTextAction("{x} {y} {z}")),

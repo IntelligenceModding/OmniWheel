@@ -19,22 +19,22 @@ import java.util.List;
 import java.util.Map;
 
 final class ProfileUpgrader {
-    private static final Map<String, String> LEGACY_COMMUNICATION_GLYPHS = Map.of(
+    private static final Map<String, String> LEGACY_COMMUNICATION_GLYPHS = com.google.common.collect.ImmutableMap.of(
             "chat_omw", "O",
             "chat_help", "!",
             "chat_target", "@",
             "chat_reply", "R"
     );
 
-    private static final Map<String, String> CURRENT_COMMUNICATION_GLYPHS = Map.of(
-            "chat_omw", "1",
-            "chat_help", "2",
-            "chat_thanks", "3",
-            "chat_share", "4",
-            "chat_message", "5",
-            "chat_reply", "6",
-            "chat_copy", "7"
-    );
+    private static final Map<String, String> CURRENT_COMMUNICATION_GLYPHS = com.google.common.collect.ImmutableMap.<String, String>builder()
+            .put("chat_omw", "1")
+            .put("chat_help", "2")
+            .put("chat_thanks", "3")
+            .put("chat_share", "4")
+            .put("chat_message", "5")
+            .put("chat_reply", "6")
+            .put("chat_copy", "7")
+            .build();
 
     private ProfileUpgrader() {
     }
@@ -159,7 +159,7 @@ final class ProfileUpgrader {
             WheelDefinition wheel = wheelEntry.getValue();
             List<WheelEntry> filteredEntries = new ArrayList<>(wheel.entries().size());
             for (WheelEntry entry : wheel.entries()) {
-                if (entry.action() instanceof FunctionAction functionAction && functionAction.function() == GameplayFunction.OMNI_BACK) {
+                if (entry.action() instanceof FunctionAction && ((FunctionAction) entry.action()).function() == GameplayFunction.OMNI_BACK) {
                     changed = true;
                     continue;
                 }
@@ -228,12 +228,22 @@ final class ProfileUpgrader {
         List<WheelEntry> extras = new ArrayList<>();
         for (WheelEntry entry : utility.entries()) {
             switch (entry.id()) {
-                case "util_safe" -> {
+                case "util_safe": {
+
                     continue;
                 }
-                case "util_profile", "util_manage", "util_copy", "util_server" -> entriesById.put(entry.id(), entry);
-                default -> {
+                case "util_profile":
+                case "util_manage":
+                case "util_copy":
+                case "util_server": {
+                    entriesById.put(entry.id(), entry);
+                    break;
+                }
+                default: {
+
                     extras.add(entry);
+
+                    break;
                 }
             }
         }
@@ -260,25 +270,42 @@ final class ProfileUpgrader {
         List<WheelEntry> extras = new ArrayList<>();
         for (WheelEntry entry : communication.entries()) {
             switch (entry.id()) {
-                case "chat_target" -> entriesById.put("chat_message", new WheelEntry(
-                        "chat_message",
-                        key("entry.chat_message"),
-                        key("entry.chat_message.description"),
-                        "6",
-                        entry.color(),
-                        entry.guiColor(),
-                        new OpenChatAction("/msg "),
-                        entry.active(),
-                        entry.showIcon(),
-                        entry.showLabel(),
-                        entry.showShortcut(),
-                        entry.shortcut()
-                ));
-                case "chat_copy" -> {
+                case "chat_target": {
+                    entriesById.put("chat_message", new WheelEntry(
+                            "chat_message",
+                            key("entry.chat_message"),
+                            key("entry.chat_message.description"),
+                            "6",
+                            entry.color(),
+                            entry.guiColor(),
+                            new OpenChatAction("/msg "),
+                            entry.active(),
+                            entry.showIcon(),
+                            entry.showLabel(),
+                            entry.showShortcut(),
+                            entry.shortcut()
+                    ));
+                    break;
                 }
-                case "chat_omw", "chat_help", "chat_thanks", "chat_share", "chat_open", "chat_message", "chat_reply" ->
-                        entriesById.put(entry.id(), entry);
-                default -> extras.add(entry);
+                case "chat_copy": {
+
+
+                    break;
+                }
+                case "chat_omw":
+                case "chat_help":
+                case "chat_thanks":
+                case "chat_share":
+                case "chat_open":
+                case "chat_message":
+                case "chat_reply": {
+                    entriesById.put(entry.id(), entry);
+                    break;
+                }
+                default: {
+                    extras.add(entry);
+                    break;
+                }
             }
         }
 
@@ -336,7 +363,7 @@ final class ProfileUpgrader {
                 key("wheel.quick"),
                 key("wheel.quick.description"),
                 8,
-                List.of(
+                com.google.common.collect.ImmutableList.of(
                         new WheelEntry("quick_inventory", key("entry.quick_inventory"), key("entry.quick_inventory.description"), "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)),
                         new WheelEntry("quick_command", key("entry.quick_command"), key("entry.quick_command.description"), "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)),
                         new WheelEntry("quick_view", key("entry.quick_view"), key("entry.quick_view.description"), "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)),

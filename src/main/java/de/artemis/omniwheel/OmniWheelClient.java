@@ -1,19 +1,19 @@
 package de.artemis.omniwheel;
 
-import de.artemis.omniwheel.client.ClientModEvents;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.IEventBus;
+import de.artemis.omniwheel.client.ClientBootstrap;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.network.FMLNetworkConstants;
+import org.apache.commons.lang3.tuple.Pair;
 
 @Mod(OmniWheel.MOD_ID)
 public final class OmniWheelClient {
     public OmniWheelClient() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        modEventBus.addListener(ClientModEvents::onClientSetup);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onChatOverlay);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onClientTick);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onMouseButton);
+        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST,
+                () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (remoteVersion, isServer) -> true));
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> ClientBootstrap::initialize);
     }
 }

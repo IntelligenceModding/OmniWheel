@@ -89,7 +89,7 @@ public enum GameplayFunction {
     }
 
     public static GameplayFunction byId(String id) {
-        if (id == null || id.isBlank()) {
+        if (id == null || id.trim().isEmpty()) {
             return OPEN_INVENTORY;
         }
         return Arrays.stream(values())

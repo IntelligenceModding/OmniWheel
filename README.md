@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Minecraft-1.18.2-3C8527?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.18.2">
+  <img src="https://img.shields.io/badge/Minecraft-1.16.5-3C8527?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.16.5">
   &nbsp;&nbsp;&nbsp;
-  <img src="https://img.shields.io/badge/Loader-Forge%2040.x-F16436?style=for-the-badge" alt="Forge 40.x">
+  <img src="https://img.shields.io/badge/Loader-Forge%2036.x-F16436?style=for-the-badge" alt="Forge 36.x">
 </p>
 
 <p align="center">
@@ -29,6 +29,12 @@
 <p align="center">
   Servers do not need to install Omni Wheel. Profiles, wheel layouts, shortcuts, and tutorial progress are stored locally on the client, allowing the mod to be used in both singleplayer and multiplayer without server-side setup.
 </p>
+
+This branch targets **Minecraft 1.16.5 with Forge 36.2.42** and runs on **Java 8**. Install the jar from `build/libs/` in the client's `mods` folder. Other Minecraft versions and loaders require their corresponding builds.
+
+To build from source, run the included Gradle wrapper with **JDK 17**; Gradle uses a **JDK 8 toolchain** for the mod and development client. Run `./gradlew build` (`gradlew.bat build` on Windows) to run the tests and produce the reobfuscated jar, or `./gradlew runClient` to launch the development client. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and testing instructions.
+
+Default controls are **hold R** for the radial wheel, **M** for the profile manager, and the **numpad** for directional selection. Change these in Minecraft's Controls menu. Profiles are stored in `config/omniwheel/profiles.json`, and tutorial progress in `config/omniwheel/tutorials.json`. Back up these files before sharing them between Minecraft versions; item, effect, and texture icons depend on the installed game's resources.
 
 <br>
 

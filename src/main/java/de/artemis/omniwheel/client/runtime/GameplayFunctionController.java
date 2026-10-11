@@ -1,22 +1,22 @@
 package de.artemis.omniwheel.client.runtime;
 
-import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.util.InputMappings;
 import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.action.GameplayFunction;
-import net.minecraft.client.CameraType;
-import net.minecraft.client.KeyMapping;
+import net.minecraft.client.settings.PointOfView;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.gui.screens.social.SocialInteractionsScreen;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.util.ScreenShotHelper;
+import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.gui.advancements.AdvancementsScreen;
+import net.minecraft.client.gui.screen.inventory.InventoryScreen;
+import net.minecraft.client.gui.social.SocialInteractionsScreen;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.Direction;
+import net.minecraft.network.play.client.CPlayerDiggingPacket;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.Hand;
+import net.minecraft.entity.player.PlayerInventory;
 import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Method;
@@ -48,40 +48,142 @@ public final class GameplayFunctionController {
         }
 
         switch (function) {
-            case OMNI_BACK, OMNI_OPEN_PROFILES -> {
+            case OMNI_BACK:
+            case OMNI_OPEN_PROFILES: {
+
+
+                break;
             }
-            case OMNI_OPEN_MANAGER -> OmniWheelClientRuntime.getInstance().openTargetScreen(de.artemis.omniwheel.common.action.ScreenTarget.PROFILE_MANAGER, null);
-            case OMNI_NEXT_PROFILE -> cycleProfile(1);
-            case OMNI_PREVIOUS_PROFILE -> cycleProfile(-1);
-            case OPEN_INVENTORY -> openInventory(minecraft);
-            case OPEN_CHAT -> minecraft.setScreen(new ChatScreen(""));
-            case OPEN_COMMAND_CHAT -> minecraft.setScreen(new ChatScreen("/"));
-            case OPEN_ADVANCEMENTS -> openAdvancements(minecraft);
-            case OPEN_SOCIAL_INTERACTIONS -> openSocialInteractions(minecraft);
-            case ATTACK -> invokeMinecraftPrivate(minecraft, "startAttack");
-            case USE_ITEM -> invokeMinecraftPrivate(minecraft, "startUseItem");
-            case PICK_BLOCK -> invokeMinecraftPrivate(minecraft, "pickBlock");
-            case DROP_ITEM -> dropHeldItem(minecraft);
-            case SWAP_OFFHAND -> swapOffhand(minecraft);
-            case JUMP -> jump(minecraft);
-            case HOTBAR_SLOT_1 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 0);
-            case HOTBAR_SLOT_2 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 1);
-            case HOTBAR_SLOT_3 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 2);
-            case HOTBAR_SLOT_4 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 3);
-            case HOTBAR_SLOT_5 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 4);
-            case HOTBAR_SLOT_6 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 5);
-            case HOTBAR_SLOT_7 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 6);
-            case HOTBAR_SLOT_8 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 7);
-            case HOTBAR_SLOT_9 -> setSelectedHotbarSlot(minecraft.player.getInventory(), 8);
-            case HOTBAR_NEXT -> cycleHotbarSlot(minecraft.player.getInventory(), 1);
-            case HOTBAR_PREVIOUS -> cycleHotbarSlot(minecraft.player.getInventory(), -1);
-            case TOGGLE_PERSPECTIVE -> togglePerspective(minecraft);
-            case TAKE_SCREENSHOT -> takeScreenshot(minecraft);
-            case TOGGLE_FULLSCREEN -> toggleFullscreen(minecraft);
-            case TOGGLE_SMOOTH_CAMERA -> toggleSmoothCamera(minecraft);
-            case TOGGLE_SNEAK_LOCK -> toggleSneakLock(minecraft);
-            case TOGGLE_SPRINT_LOCK -> toggleSprintLock(minecraft);
-            case TOGGLE_AUTO_WALK -> toggleAutoWalk(minecraft);
+            case OMNI_OPEN_MANAGER: {
+                OmniWheelClientRuntime.getInstance().openTargetScreen(de.artemis.omniwheel.common.action.ScreenTarget.PROFILE_MANAGER, null);
+                break;
+            }
+            case OMNI_NEXT_PROFILE: {
+                cycleProfile(1);
+                break;
+            }
+            case OMNI_PREVIOUS_PROFILE: {
+                cycleProfile(-1);
+                break;
+            }
+            case OPEN_INVENTORY: {
+                openInventory(minecraft);
+                break;
+            }
+            case OPEN_CHAT: {
+                minecraft.setScreen(new ChatScreen(""));
+                break;
+            }
+            case OPEN_COMMAND_CHAT: {
+                minecraft.setScreen(new ChatScreen("/"));
+                break;
+            }
+            case OPEN_ADVANCEMENTS: {
+                openAdvancements(minecraft);
+                break;
+            }
+            case OPEN_SOCIAL_INTERACTIONS: {
+                openSocialInteractions(minecraft);
+                break;
+            }
+            case ATTACK: {
+                invokeMinecraftPrivate(minecraft, "func_147116_af");
+                break;
+            }
+            case USE_ITEM: {
+                invokeMinecraftPrivate(minecraft, "func_147121_ag");
+                break;
+            }
+            case PICK_BLOCK: {
+                invokeMinecraftPrivate(minecraft, "func_147112_ai");
+                break;
+            }
+            case DROP_ITEM: {
+                dropHeldItem(minecraft);
+                break;
+            }
+            case SWAP_OFFHAND: {
+                swapOffhand(minecraft);
+                break;
+            }
+            case JUMP: {
+                jump(minecraft);
+                break;
+            }
+            case HOTBAR_SLOT_1: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 0);
+                break;
+            }
+            case HOTBAR_SLOT_2: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 1);
+                break;
+            }
+            case HOTBAR_SLOT_3: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 2);
+                break;
+            }
+            case HOTBAR_SLOT_4: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 3);
+                break;
+            }
+            case HOTBAR_SLOT_5: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 4);
+                break;
+            }
+            case HOTBAR_SLOT_6: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 5);
+                break;
+            }
+            case HOTBAR_SLOT_7: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 6);
+                break;
+            }
+            case HOTBAR_SLOT_8: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 7);
+                break;
+            }
+            case HOTBAR_SLOT_9: {
+                setSelectedHotbarSlot(minecraft.player.inventory, 8);
+                break;
+            }
+            case HOTBAR_NEXT: {
+                cycleHotbarSlot(minecraft.player.inventory, 1);
+                break;
+            }
+            case HOTBAR_PREVIOUS: {
+                cycleHotbarSlot(minecraft.player.inventory, -1);
+                break;
+            }
+            case TOGGLE_PERSPECTIVE: {
+                togglePerspective(minecraft);
+                break;
+            }
+            case TAKE_SCREENSHOT: {
+                takeScreenshot(minecraft);
+                break;
+            }
+            case TOGGLE_FULLSCREEN: {
+                toggleFullscreen(minecraft);
+                break;
+            }
+            case TOGGLE_SMOOTH_CAMERA: {
+                toggleSmoothCamera(minecraft);
+                break;
+            }
+            case TOGGLE_SNEAK_LOCK: {
+                toggleSneakLock(minecraft);
+                break;
+            }
+            case TOGGLE_SPRINT_LOCK: {
+                toggleSprintLock(minecraft);
+                break;
+            }
+            case TOGGLE_AUTO_WALK: {
+                toggleAutoWalk(minecraft);
+                break;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (function));
         }
     }
 
@@ -91,14 +193,30 @@ public final class GameplayFunctionController {
             return false;
         }
 
-        return switch (function) {
-            case OMNI_BACK, OMNI_OPEN_PROFILES, OMNI_OPEN_MANAGER -> true;
-            case OMNI_NEXT_PROFILE, OMNI_PREVIOUS_PROFILE -> OmniWheelClientRuntime.getInstance().profileManager().getProfiles().size() > 1;
-            case OPEN_ADVANCEMENTS -> minecraft.player.connection != null;
-            case OPEN_SOCIAL_INTERACTIONS -> isSocialInteractionsAvailable(minecraft);
-            case DROP_ITEM, SWAP_OFFHAND -> !minecraft.player.isSpectator();
-            default -> true;
-        };
+        switch (function) {
+            case OMNI_BACK:
+            case OMNI_OPEN_PROFILES:
+            case OMNI_OPEN_MANAGER: {
+                return true;
+            }
+            case OMNI_NEXT_PROFILE:
+            case OMNI_PREVIOUS_PROFILE: {
+                return OmniWheelClientRuntime.getInstance().profileManager().getProfiles().size() > 1;
+            }
+            case OPEN_ADVANCEMENTS: {
+                return minecraft.player.connection != null;
+            }
+            case OPEN_SOCIAL_INTERACTIONS: {
+                return isSocialInteractionsAvailable(minecraft);
+            }
+            case DROP_ITEM:
+            case SWAP_OFFHAND: {
+                return !minecraft.player.isSpectator();
+            }
+            default: {
+                return true;
+            }
+        }
     }
 
     private void toggleSneakLock(Minecraft minecraft) {
@@ -147,20 +265,20 @@ public final class GameplayFunctionController {
         releaseForcedKey(minecraft, minecraft.options.keyUp, ForcedKey.WALK);
     }
 
-    private void applyForcedKey(Minecraft minecraft, KeyMapping keyMapping, boolean enabled, ForcedKey forcedKey) {
+    private void applyForcedKey(Minecraft minecraft, KeyBinding KeyBinding, boolean enabled, ForcedKey forcedKey) {
         if (enabled) {
-            keyMapping.setDown(true);
+            KeyBinding.setDown(true);
             markForced(forcedKey, true);
         } else {
-            releaseForcedKey(minecraft, keyMapping, forcedKey);
+            releaseForcedKey(minecraft, KeyBinding, forcedKey);
         }
     }
 
-    private void releaseForcedKey(Minecraft minecraft, KeyMapping keyMapping, ForcedKey forcedKey) {
+    private void releaseForcedKey(Minecraft minecraft, KeyBinding KeyBinding, ForcedKey forcedKey) {
         if (!isForced(forcedKey)) {
             return;
         }
-        keyMapping.setDown(isPhysicalBindingDown(minecraft, keyMapping));
+        KeyBinding.setDown(isPhysicalBindingDown(minecraft, KeyBinding));
         markForced(forcedKey, false);
     }
 
@@ -185,7 +303,7 @@ public final class GameplayFunctionController {
 
     private static void openSocialInteractions(Minecraft minecraft) {
         if (!isSocialInteractionsAvailable(minecraft)) {
-            minecraft.player.displayClientMessage(new TranslatableComponent("multiplayer.socialInteractions.not_available"), true);
+            minecraft.player.displayClientMessage(new TranslationTextComponent("multiplayer.socialInteractions.not_available"), true);
             return;
         }
         minecraft.setScreen(new SocialInteractionsScreen());
@@ -200,7 +318,7 @@ public final class GameplayFunctionController {
 
     private static void dropHeldItem(Minecraft minecraft) {
         if (!minecraft.player.isSpectator() && minecraft.player.drop(false)) {
-            minecraft.player.swing(InteractionHand.MAIN_HAND);
+            minecraft.player.swing(Hand.MAIN_HAND);
         }
     }
 
@@ -209,7 +327,7 @@ public final class GameplayFunctionController {
             return;
         }
         minecraft.getConnection()
-                .send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ZERO, Direction.DOWN));
+                .send(new CPlayerDiggingPacket(CPlayerDiggingPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ZERO, Direction.DOWN));
     }
 
     private static void jump(Minecraft minecraft) {
@@ -220,8 +338,8 @@ public final class GameplayFunctionController {
     }
 
     private static void togglePerspective(Minecraft minecraft) {
-        CameraType previous = minecraft.options.getCameraType();
-        CameraType next = previous.cycle();
+        PointOfView previous = minecraft.options.getCameraType();
+        PointOfView next = previous.cycle();
         minecraft.options.setCameraType(next);
         if (previous.isFirstPerson() != next.isFirstPerson()) {
             minecraft.gameRenderer.checkEntityPostEffect(next.isFirstPerson() ? minecraft.getCameraEntity() : null);
@@ -230,8 +348,10 @@ public final class GameplayFunctionController {
     }
 
     private static void takeScreenshot(Minecraft minecraft) {
-        Screenshot.grab(
+        ScreenShotHelper.grab(
                 minecraft.gameDirectory,
+                minecraft.getWindow().getWidth(),
+                minecraft.getWindow().getHeight(),
                 minecraft.getMainRenderTarget(),
                 message -> minecraft.execute(() -> minecraft.gui.getChat().addMessage(message))
         );
@@ -269,80 +389,77 @@ public final class GameplayFunctionController {
 
     private static void invokeMinecraftPrivate(Minecraft minecraft, String methodName) {
         try {
-            Method method = Minecraft.class.getDeclaredMethod(methodName);
+            Method method = net.minecraftforge.fml.common.ObfuscationReflectionHelper.findMethod(Minecraft.class, methodName);
             method.setAccessible(true);
             method.invoke(minecraft);
         } catch (ReflectiveOperationException ignored) {
         }
     }
 
-    private static void setSelectedHotbarSlot(Inventory inventory, int slot) {
-        int clamped = Math.max(0, Math.min(8, slot));
-        for (String methodName : new String[]{"setSelectedSlot", "setSelected"}) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName, int.class);
-                method.invoke(inventory, clamped);
-                return;
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            field.setInt(inventory, clamped);
-        } catch (ReflectiveOperationException ignored) {
-        }
+    private static void setSelectedHotbarSlot(PlayerInventory inventory, int slot) {
+        inventory.selected = Math.max(0, Math.min(8, slot));
     }
 
-    private static void cycleHotbarSlot(Inventory inventory, int delta) {
+    private static void cycleHotbarSlot(PlayerInventory inventory, int delta) {
         int current = selectedHotbarSlot(inventory);
         setSelectedHotbarSlot(inventory, Math.floorMod(current + delta, 9));
     }
 
-    private static int selectedHotbarSlot(Inventory inventory) {
-        for (String methodName : new String[]{"getSelectedSlot", "getSelected"}) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName);
-                Object value = method.invoke(inventory);
-                if (value instanceof Number number) {
-                    return number.intValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            return field.getInt(inventory);
-        } catch (ReflectiveOperationException ignored) {
-        }
-        return 0;
+    private static int selectedHotbarSlot(PlayerInventory inventory) {
+        return inventory.selected;
     }
 
-    private static boolean isPhysicalBindingDown(Minecraft minecraft, KeyMapping keyMapping) {
+    private static boolean isPhysicalBindingDown(Minecraft minecraft, KeyBinding keyBinding) {
         long windowHandle = minecraft.getWindow().getWindow();
-        InputConstants.Key key = keyMapping.getKey();
-        return switch (key.getType()) {
-            case KEYSYM -> InputConstants.isKeyDown(windowHandle, key.getValue());
-            case SCANCODE -> GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
-            case MOUSE -> GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
-            default -> false;
-        };
+        InputMappings.Input key = keyBinding.getKey();
+        switch (key.getType()) {
+            case KEYSYM: {
+                return InputMappings.isKeyDown(windowHandle, key.getValue());
+            }
+            case SCANCODE: {
+                return GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+            }
+            case MOUSE: {
+                return GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+            }
+            default: {
+                return false;
+            }
+        }
     }
 
     private boolean isForced(ForcedKey forcedKey) {
-        return switch (forcedKey) {
-            case SNEAK -> forcedSneakApplied;
-            case SPRINT -> forcedSprintApplied;
-            case WALK -> forcedWalkApplied;
-        };
+        switch (forcedKey) {
+            case SNEAK: {
+                return forcedSneakApplied;
+            }
+            case SPRINT: {
+                return forcedSprintApplied;
+            }
+            case WALK: {
+                return forcedWalkApplied;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (forcedKey));
+        }
     }
 
     private void markForced(ForcedKey forcedKey, boolean forced) {
         switch (forcedKey) {
-            case SNEAK -> forcedSneakApplied = forced;
-            case SPRINT -> forcedSprintApplied = forced;
-            case WALK -> forcedWalkApplied = forced;
+            case SNEAK: {
+                forcedSneakApplied = forced;
+                break;
+            }
+            case SPRINT: {
+                forcedSprintApplied = forced;
+                break;
+            }
+            case WALK: {
+                forcedWalkApplied = forced;
+                break;
+            }
+            default:
+                throw new IllegalStateException("Unexpected switch value: " + (forcedKey));
         }
     }
 

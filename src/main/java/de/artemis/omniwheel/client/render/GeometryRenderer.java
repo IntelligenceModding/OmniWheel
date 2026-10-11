@@ -1,12 +1,11 @@
 package de.artemis.omniwheel.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.renderer.GameRenderer;
-import com.mojang.math.Matrix4f;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.util.math.vector.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 public final class GeometryRenderer {
     private GeometryRenderer() {
@@ -15,12 +14,12 @@ public final class GeometryRenderer {
     public static void fillCircle(GuiGraphics graphics, float centerX, float centerY, float radius, int color) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.disableTexture();
 
         Matrix4f pose = graphics.pose().last().pose();
-        Tesselator tesselator = Tesselator.getInstance();
+        Tessellator tesselator = Tessellator.getInstance();
         BufferBuilder buffer = tesselator.getBuilder();
-        buffer.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
+        buffer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION_COLOR);
         addVertex(buffer, pose, centerX, centerY, color);
 
         int steps = Math.max(24, (int) (radius * 0.65F));
@@ -32,6 +31,7 @@ public final class GeometryRenderer {
         }
 
         tesselator.end();
+        RenderSystem.enableTexture();
         RenderSystem.disableBlend();
     }
 
@@ -86,12 +86,12 @@ public final class GeometryRenderer {
     ) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.disableTexture();
 
         Matrix4f pose = graphics.pose().last().pose();
-        Tesselator tesselator = Tesselator.getInstance();
+        Tessellator tesselator = Tessellator.getInstance();
         BufferBuilder buffer = tesselator.getBuilder();
-        buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        buffer.begin(GL11.GL_TRIANGLE_STRIP, DefaultVertexFormats.POSITION_COLOR);
 
         double span = Math.max(Math.abs(innerEndAngle - innerStartAngle), Math.abs(outerEndAngle - outerStartAngle));
         int steps = Math.max(8, (int) Math.ceil(span * 18.0D));
@@ -109,6 +109,7 @@ public final class GeometryRenderer {
         }
 
         tesselator.end();
+        RenderSystem.enableTexture();
         RenderSystem.disableBlend();
     }
 

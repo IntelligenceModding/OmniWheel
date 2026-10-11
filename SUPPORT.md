@@ -10,6 +10,8 @@
 
 ## Bug Reports
 
+This branch targets Minecraft **1.16.5**, Forge **36.2.42**, and a **Java 8** game runtime. Source builds run Gradle on JDK 17 and use a JDK 8 toolchain. Include your game Java version when reporting a crash or launch problem.
+
 If you have found a reproducible problem with Omni Wheel, please use the **Bug Report** issue form.
 
 Examples include:
