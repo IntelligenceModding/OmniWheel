@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
 import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.KeybindAction;
 import de.artemis.omniwheel.common.action.CommandAction;
 import de.artemis.omniwheel.common.action.CopyTextAction;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -22,6 +23,7 @@ public final class ClientActionExecutor {
     public ClientActionExecutor() {
         register(CommandAction.class, this::executeCommand);
         register(ChatAction.class, this::executeChat);
+        register(KeybindAction.class, action -> runtime().keybindController().enqueue(action.keybindId()));
         register(FunctionAction.class, this::executeFunction);
         register(OpenChatAction.class, this::executeOpenChat);
         register(CopyTextAction.class, this::executeCopyText);
@@ -37,6 +39,23 @@ public final class ClientActionExecutor {
         ClientActionHandler<WheelAction> handler = findHandler(action);
         if (handler == null) {
             return false;
+        }
+        var minecraft = Minecraft.getInstance();
+        var snapshot = LiveDataSnapshot.capture(minecraft);
+        java.util.List<String> templates = switch (action) {
+            case CommandAction command -> command.commands();
+            case ChatAction chat -> java.util.List.of(chat.message());
+            case LocalMessageAction message -> java.util.List.of(message.message());
+            case OpenChatAction chat -> java.util.List.of(chat.initialText());
+            case CopyTextAction copy -> java.util.List.of(copy.text());
+            default -> java.util.List.of();
+        };
+        for (String template : templates) {
+            String missing = snapshot.missingMessage(OmniWheelText.resolve(template));
+            if (missing != null) {
+                if (minecraft.player != null) minecraft.player.sendOverlayMessage(Component.literal(missing));
+                return false;
+            }
         }
         handler.execute(action);
         return true;
@@ -58,8 +77,15 @@ public final class ClientActionExecutor {
             return;
         }
 
+        if (action.preset()) {
+            String resolved = PlaceholderResolver.resolve(action.commands().getFirst(), minecraft);
+            minecraft.gui.setScreen(new ChatScreen(resolved.startsWith("/") ? resolved : "/" + resolved, false));
+            return;
+        }
+
         for (String command : action.commands()) {
             String resolved = PlaceholderResolver.resolve(command, minecraft);
+            if (resolved.isBlank()) continue;
             if (resolved.startsWith("/")) {
                 resolved = resolved.substring(1);
             }
@@ -73,7 +99,13 @@ public final class ClientActionExecutor {
             return;
         }
 
-        minecraft.player.connection.sendChat(ContextValueFormatter.resolveForDisplay(action.message(), minecraft));
+        String resolved = ContextValueFormatter.resolveForDisplay(action.message(), minecraft);
+        if (resolved.isBlank() && !action.preset()) return;
+        if (action.preset()) {
+            minecraft.gui.setScreen(new ChatScreen(resolved, false));
+            return;
+        }
+        minecraft.player.connection.sendChat(resolved);
     }
 
     private void executeFunction(FunctionAction action) {
