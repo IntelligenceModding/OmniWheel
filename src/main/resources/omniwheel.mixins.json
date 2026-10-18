@@ -5,8 +5,11 @@
   "client": [
     "GuiMixin",
     "KeyMappingAccessor",
-    "MouseHandlerMixin",
-    "ParticleEngineAccessor"
+    "ParticleEngineAccessor",
+    "KeyMappingMixin",
+    "KeyboardHandlerAccessor",
+    "KeyboardHandlerMixin",
+    "MouseHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
