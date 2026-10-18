@@ -54,7 +54,7 @@ public class ProfileUpdateTest {
         var repository = new OmniWheelProfileRepository(path);
         var updated = repository.loadOrCreate();
         assertEquals("custom", updated.activeProfileId());
-        assertEquals(oldCustom, updated.profiles().getFirst());
+        assertEquals(oldCustom, updated.profiles().get(0));
         assertEquals(2, updated.profiles().size());
         assertEquals(DefaultProfiles.createDefaultProfile(), updated.profiles().get(1));
         assertEquals(original, Files.readString(path.resolveSibling("profiles.before-upgrade.json")));
@@ -121,7 +121,7 @@ public class ProfileUpdateTest {
         var migrated = repository.loadOrCreate();
         assertEquals(2, migrated.profiles().size());
         assertEquals("custom", migrated.activeProfileId());
-        assertEquals(DefaultProfiles.createDefaultProfile(), migrated.profiles().getFirst());
+        assertEquals(DefaultProfiles.createDefaultProfile(), migrated.profiles().get(0));
         assertEquals(custom, migrated.activeProfile());
         assertEquals(18, migrated.activeProfile().wheel("root").entries().size());
         assertEquals(new de.artemis.omniwheel.common.action.FunctionAction(
@@ -195,7 +195,7 @@ public class ProfileUpdateTest {
         var saved = new ProfileCollection(profile.id(), List.of(profile));
         repository.save(saved);
         assertEquals(saved, repository.loadOrCreate());
-        assertEquals(migrated.wheel("main").entries().getFirst(), repository.loadOrCreate().activeProfile().wheel("main").entries().getFirst());
+        assertEquals(migrated.wheel("main").entries().get(0), repository.loadOrCreate().activeProfile().wheel("main").entries().get(0));
     }
 
     @Test public void failedUpgradeBackupLeavesOriginalUntouched() throws Exception {

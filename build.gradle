@@ -17,15 +17,11 @@ base {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
 
 repositories {
     mavenCentral()
-    maven {
-        name = 'ParchmentMC'
-        url = 'https://maven.parchmentmc.org'
-    }
     maven {
         name = 'Terraformers'
         url = 'https://maven.terraformersmc.com/'
@@ -48,10 +44,7 @@ loom {
 dependencies {
     testImplementation "junit:junit:4.13.2"
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    mappings loom.layered {
-        officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${parchment_minecraft_version}:${parchment_mappings_version}@zip")
-    }
+    mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     modImplementation "com.terraformersmc:modmenu:${modmenu_version}"
@@ -89,6 +82,7 @@ publishing {
 }
 
 tasks.withType(JavaCompile).configureEach {
+    options.release = 17
     options.encoding = 'UTF-8'
 }
 

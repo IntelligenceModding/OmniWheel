@@ -34,7 +34,8 @@ public final class CustomItemIcons {
         var connection = Minecraft.getInstance().getConnection();
         if (connection == null) throw new IllegalStateException("Join a world to capture an item icon");
         // Keep count too: some modded item models depend on it.
-        var json = ItemStack.CODEC.encodeStart(connection.registryAccess().createSerializationContext(JsonOps.INSTANCE), original.copy()).getOrThrow();
+        var json = ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, original.copy()).result()
+                .orElseThrow(() -> new IllegalArgumentException("Could not encode item icon"));
         return PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(json.toString().getBytes(StandardCharsets.UTF_8));
     }
 
@@ -48,7 +49,7 @@ public final class CustomItemIcons {
         if (cached != null) return cached;
         try {
             String json = new String(Base64.getUrlDecoder().decode(icon.substring(PREFIX.length())), StandardCharsets.UTF_8);
-            ItemStack stack = ItemStack.CODEC.parse(connection.registryAccess().createSerializationContext(JsonOps.INSTANCE), JsonParser.parseString(json)).result().orElse(ItemStack.EMPTY);
+            ItemStack stack = ItemStack.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(json)).result().orElse(ItemStack.EMPTY);
             if (DECODED.size() >= 256) DECODED.remove(DECODED.keySet().iterator().next());
             DECODED.put(icon, stack);
             return stack;

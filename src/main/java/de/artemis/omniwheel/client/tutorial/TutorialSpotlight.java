@@ -22,8 +22,8 @@ public final class TutorialSpotlight {
         graphics.flush();
     }
     public static Bounds clipped(int width, int height, Bounds focus) {
-        int left = Math.clamp(focus.x(), 0, width), top = Math.clamp(focus.y(), 0, height);
-        int right = Math.clamp(focus.right(), left, width), bottom = Math.clamp(focus.bottom(), top, height);
+        int left = de.artemis.omniwheel.common.Numbers.clamp(focus.x(), 0, width), top = de.artemis.omniwheel.common.Numbers.clamp(focus.y(), 0, height);
+        int right = de.artemis.omniwheel.common.Numbers.clamp(focus.right(), left, width), bottom = de.artemis.omniwheel.common.Numbers.clamp(focus.bottom(), top, height);
         return new Bounds(left, top, right - left, bottom - top);
     }
     public static List<Bounds> dimmedRegions(int width, int height, Bounds focus) {

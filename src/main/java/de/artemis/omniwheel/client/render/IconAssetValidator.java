@@ -33,7 +33,7 @@ public final class IconAssetValidator {
     }
 
     public static boolean guiSprite(Minecraft minecraft, ResourceLocation id) {
-        return sprite(minecraft.getGuiSprites().getSprite(id));
+        return LegacyGuiIcons.isUsable(minecraft, id);
     }
 
     public static boolean sprite(TextureAtlasSprite sprite) {
@@ -143,10 +143,10 @@ public final class IconAssetValidator {
             return 0;
         }
         SpriteContents contents = sprite.contents();
-        int x0 = Math.clamp((int) Math.floor((minU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.width()), 0, contents.width() - 1);
-        int y0 = Math.clamp((int) Math.floor((minV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.height()), 0, contents.height() - 1);
-        int x1 = Math.clamp((int) Math.ceil((maxU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.width()), x0 + 1, contents.width());
-        int y1 = Math.clamp((int) Math.ceil((maxV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.height()), y0 + 1, contents.height());
+        int x0 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.floor((minU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.width()), 0, contents.width() - 1);
+        int y0 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.floor((minV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.height()), 0, contents.height() - 1);
+        int x1 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.ceil((maxU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.width()), x0 + 1, contents.width());
+        int y1 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.ceil((maxV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.height()), y0 + 1, contents.height());
         return visiblePixels(contents, x0, y0, x1, y1) ? 1 : 0;
     }
 

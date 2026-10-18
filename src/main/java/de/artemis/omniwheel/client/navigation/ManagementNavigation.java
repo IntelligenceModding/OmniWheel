@@ -99,7 +99,7 @@ public final class ManagementNavigation {
         List<Node> ordered = readingOrder(nodes);
         if (ordered.isEmpty()) return null;
         int index = current == null ? -1 : ordered.indexOf(current);
-        if (index < 0) return reverse ? ordered.getLast() : ordered.getFirst();
+        if (index < 0) return reverse ? ordered.get(ordered.size() - 1) : ordered.get(0);
         return ordered.get(Math.floorMod(index + (reverse ? -1 : 1), ordered.size()));
     }
 }

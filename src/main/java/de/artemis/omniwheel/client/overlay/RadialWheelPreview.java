@@ -109,7 +109,7 @@ public final class RadialWheelPreview {
             if (selected >= 0) page = selected / PAGE_SIZE;
             lastSelection = selection;
         }
-        page = Math.clamp(page, 0, pageCount() - 1);
+        page = de.artemis.omniwheel.common.Numbers.clamp(page, 0, pageCount() - 1);
     }
 
     private WheelDefinition wheel() {
@@ -206,7 +206,7 @@ public final class RadialWheelPreview {
                     RadialAnimation.blendColor(0xFF526575, 0xFF8EE1FF, centerHover));
             centerLabel = "< " + text("omniwheel.common.back");
             if (dragging && hovered && Objects.equals(parent, hoverKey)) {
-                double progress = Math.clamp((clock.getAsLong() - hoverSince) / (double) NAVIGATION_HOVER_NANOS, 0, 1);
+                double progress = de.artemis.omniwheel.common.Numbers.clamp((clock.getAsLong() - hoverSince) / (double) NAVIGATION_HOVER_NANOS, 0, 1);
                 GeometryRenderer.fillRingSegment(graphics, 0, 0, 42, 44, -Math.PI / 2,
                         -Math.PI / 2 + Math.PI * 2 * progress, 0xFF8EE1FF);
             }
@@ -246,7 +246,7 @@ public final class RadialWheelPreview {
         if (!dragging || moved == null || !canMoveTo(wheelId)) return entries;
         List<WheelEntry> result = new ArrayList<>(entries);
         if (wheelId.equals(draggedWheel)) result.remove(indexOf(result, draggedId));
-        result.add(Math.clamp(gapIndex, 0, result.size()), moved);
+        result.add(de.artemis.omniwheel.common.Numbers.clamp(gapIndex, 0, result.size()), moved);
         return result;
     }
 
@@ -351,7 +351,7 @@ public final class RadialWheelPreview {
         int cy = pagingY + PAGE_BUTTON_HEIGHT / 2;
         GeometryRenderer.drawChevron(graphics, cx, cy, direction, arrow);
         if (dwelling && enabled) {
-            double progress = Math.clamp((clock.getAsLong() - hoverSince) / (double) PAGE_HOVER_NANOS, 0, 1);
+            double progress = de.artemis.omniwheel.common.Numbers.clamp((clock.getAsLong() - hoverSince) / (double) PAGE_HOVER_NANOS, 0, 1);
             graphics.fill(x + 1, pagingY + PAGE_BUTTON_HEIGHT - 3,
                     x + 1 + (int) Math.round((PAGE_BUTTON_WIDTH - 2) * progress), pagingY + PAGE_BUTTON_HEIGHT - 1, 0xFF8EE1FF);
         }
@@ -490,7 +490,7 @@ public final class RadialWheelPreview {
         dragging = validDrop = appendDrop = false;
         backDropHovered = false;
         highlightedSlot = -1;
-        page = Math.clamp(page, 0, pageCount() - 1);
+        page = de.artemis.omniwheel.common.Numbers.clamp(page, 0, pageCount() - 1);
     }
 
     public boolean hasDrag() { return draggedId != null; }
@@ -505,7 +505,7 @@ public final class RadialWheelPreview {
 
     private void changePage(int delta) {
         hoveredSubmenuId = null;
-        if (wheel() != null) page = Math.clamp(page + delta, 0, pageCount() - 1);
+        if (wheel() != null) page = de.artemis.omniwheel.common.Numbers.clamp(page + delta, 0, pageCount() - 1);
         hoverKey = null;
     }
 
@@ -521,7 +521,7 @@ public final class RadialWheelPreview {
         gapIndex = wheel().radialEntries().size() - (wheelId.equals(draggedWheel) ? 1 : 0);
         gapIndex = Math.max(0, gapIndex);
         List<WheelEntry> entries = wheel().radialEntries();
-        lastSelection = entries.isEmpty() ? null : entries.getFirst().id();
+        lastSelection = entries.isEmpty() ? null : entries.get(0).id();
         host.select(target, lastSelection);
         hoverKey = null;
     }
@@ -571,7 +571,7 @@ public final class RadialWheelPreview {
             Deque<View> remaining = new ArrayDeque<>(history);
             navigate(parent, false);
             history.addAll(remaining);
-            page = Math.clamp(previous.page(), 0, pageCount() - 1);
+            page = de.artemis.omniwheel.common.Numbers.clamp(previous.page(), 0, pageCount() - 1);
         } else navigate(parent, false);
     }
 
@@ -586,13 +586,13 @@ public final class RadialWheelPreview {
         double start = RadialLayout.segmentStartAngle(slot, count) + offset + .04;
         double end = RadialLayout.segmentEndAngle(slot, count) + offset - .04;
         if (validDrop && Objects.equals(targetWheel, hoverKey)) {
-            double progress = Math.clamp((clock.getAsLong() - hoverSince) / (double) NAVIGATION_HOVER_NANOS, 0, 1);
+            double progress = de.artemis.omniwheel.common.Numbers.clamp((clock.getAsLong() - hoverSince) / (double) NAVIGATION_HOVER_NANOS, 0, 1);
             GeometryRenderer.fillRingSegment(graphics, 0, 0, 49, 51, start, start + (end - start) * progress, 0xFF8EE1FF);
         }
     }
 
     private void drawHoverProgress(GuiGraphics graphics, int x, int y, int width, long delay) {
-        double progress = Math.clamp((clock.getAsLong() - hoverSince) / (double) delay, 0, 1);
+        double progress = de.artemis.omniwheel.common.Numbers.clamp((clock.getAsLong() - hoverSince) / (double) delay, 0, 1);
         graphics.fill(x, y + 22, x + (int) Math.round(width * progress), y + 24, 0xFF8EE1FF);
     }
 
@@ -612,8 +612,8 @@ public final class RadialWheelPreview {
         WheelEntry entry = draggedEntry();
         if (entry == null) return;
         int width = Math.min(208, areaWidth - 16);
-        int x = Math.clamp(Math.round(mouseX) - width / 2 + 3, areaX + 4, areaX + Math.max(4, areaWidth - width - 12));
-        int y = Math.clamp(Math.round(mouseY) - 18, areaY + 4, areaY + Math.max(4, areaHeight - 58));
+        int x = de.artemis.omniwheel.common.Numbers.clamp(Math.round(mouseX) - width / 2 + 3, areaX + 4, areaX + Math.max(4, areaWidth - width - 12));
+        int y = de.artemis.omniwheel.common.Numbers.clamp(Math.round(mouseY) - 18, areaY + 4, areaY + Math.max(4, areaHeight - 58));
         host.draggedEntry(graphics, minecraft, entry, draggedWheel, x, y, width);
         String hint;
         if (!validDrop) hint = targetWheel != null ? text("omniwheel.manager.drag.invalid_submenu") : text("omniwheel.manager.drag.cancel");

@@ -54,7 +54,7 @@ public final class WheelEntryMover {
         }
         WheelEntry moved = sourceEntries.remove(sourceIndex);
         var destinationEntries = sourceId.equals(destinationId) ? sourceEntries : new ArrayList<>(destination.entries());
-        int index = Math.clamp(insertionIndex, 0, destination.entries().size());
+        int index = de.artemis.omniwheel.common.Numbers.clamp(insertionIndex, 0, destination.entries().size());
         if (sourceId.equals(destinationId) && sourceIndex < index) {
             index--;
         }
@@ -68,7 +68,7 @@ public final class WheelEntryMover {
             moved = new WheelEntry(movedId, moved.label(), moved.description(), moved.glyph(), moved.color(), moved.guiColor(),
                     moved.action(), moved.active(), moved.showIcon(), moved.showLabel(), moved.showShortcut(), moved.shortcut());
         }
-        destinationEntries.add(Math.clamp(index, 0, destinationEntries.size()), moved);
+        destinationEntries.add(de.artemis.omniwheel.common.Numbers.clamp(index, 0, destinationEntries.size()), moved);
         var wheels = new LinkedHashMap<>(profile.wheels());
         wheels.put(sourceId, withEntries(source, sourceEntries));
         wheels.put(destinationId, withEntries(destination, destinationEntries));
@@ -76,7 +76,7 @@ public final class WheelEntryMover {
     }
 
     private static WheelDefinition withEntries(WheelDefinition wheel, java.util.List<WheelEntry> entries) {
-        return new WheelDefinition(wheel.id(), wheel.title(), wheel.description(), Math.clamp(entries.size(), 1, 8), entries, wheel.active(), wheel.radialOrder());
+        return new WheelDefinition(wheel.id(), wheel.title(), wheel.description(), de.artemis.omniwheel.common.Numbers.clamp(entries.size(), 1, 8), entries, wheel.active(), wheel.radialOrder());
     }
 
     /** Preview changes radial positions without reorganizing editor rows. */
@@ -85,7 +85,7 @@ public final class WheelEntryMover {
         WheelDefinition destination = profile.wheel(destinationId);
         var order = new ArrayList<>(destination.radialOrder());
         Result result;
-        int index = Math.clamp(insertionIndex, 0, order.size());
+        int index = de.artemis.omniwheel.common.Numbers.clamp(insertionIndex, 0, order.size());
         if (sourceId.equals(destinationId)) {
             int previous = order.indexOf(entryId);
             order.remove(previous);
@@ -94,7 +94,7 @@ public final class WheelEntryMover {
         } else {
             result = move(profile, sourceId, entryId, destinationId, destination.entries().size());
         }
-        order.add(Math.clamp(index, 0, order.size()), result.entryId());
+        order.add(de.artemis.omniwheel.common.Numbers.clamp(index, 0, order.size()), result.entryId());
         destination = result.profile().wheel(destinationId);
         var wheels = new LinkedHashMap<>(result.profile().wheels());
         wheels.put(destinationId, new WheelDefinition(destination.id(), destination.title(), destination.description(),

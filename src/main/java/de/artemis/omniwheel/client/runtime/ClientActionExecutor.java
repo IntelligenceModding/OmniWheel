@@ -42,14 +42,12 @@ public final class ClientActionExecutor {
         }
         var minecraft = Minecraft.getInstance();
         var snapshot = LiveDataSnapshot.capture(minecraft);
-        java.util.List<String> templates = switch (action) {
-            case CommandAction command -> command.commands();
-            case ChatAction chat -> java.util.List.of(chat.message());
-            case LocalMessageAction message -> java.util.List.of(message.message());
-            case OpenChatAction chat -> java.util.List.of(chat.initialText());
-            case CopyTextAction copy -> java.util.List.of(copy.text());
-            default -> java.util.List.of();
-        };
+        java.util.List<String> templates = (java.util.Objects.requireNonNull(action) instanceof CommandAction command ? (command.commands()) :
+                action instanceof ChatAction chat ? (java.util.List.of(chat.message())) :
+                action instanceof LocalMessageAction message ? (java.util.List.of(message.message())) :
+                action instanceof OpenChatAction chat ? (java.util.List.of(chat.initialText())) :
+                action instanceof CopyTextAction copy ? (java.util.List.of(copy.text())) :
+                (java.util.List.of()));
         for (String template : templates) {
             String missing = snapshot.missingMessage(OmniWheelText.resolve(template));
             if (missing != null) {
@@ -78,7 +76,7 @@ public final class ClientActionExecutor {
         }
 
         if (action.preset()) {
-            String resolved = PlaceholderResolver.resolve(action.commands().getFirst(), minecraft);
+            String resolved = PlaceholderResolver.resolve(action.commands().get(0), minecraft);
             minecraft.setScreen(new ChatScreen(resolved.startsWith("/") ? resolved : "/" + resolved));
             return;
         }

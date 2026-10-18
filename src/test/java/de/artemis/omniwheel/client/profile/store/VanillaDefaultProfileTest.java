@@ -40,17 +40,7 @@ public class VanillaDefaultProfileTest {
                 GameplayFunction.PICK_BLOCK, GameplayFunction.HOTBAR_PREVIOUS, GameplayFunction.HOTBAR_NEXT);
         var allowedBindings = Set.of("key.togglePerspective", "key.toggleGui", "key.smoothCamera", "key.fullscreen",
                 "key.debug.overlay", "key.debug.showHitboxes", "key.debug.showChunkBorders", "key.debug.showAdvancedTooltips");
-        for (var wheel : profile.wheels().values()) for (var entry : wheel.entries()) switch (entry.action()) {
-            case FunctionAction function -> assertTrue(allowedFunctions.contains(function.function()));
-            case KeybindAction keybind -> assertTrue(allowedBindings.contains(keybind.keybindId()));
-            case CommandAction command -> { assertEquals(List.of("/help"), command.commands()); assertTrue(command.preset()); }
-            case OpenChatAction chat -> assertEquals("/tell ", chat.initialText());
-            case ChatAction chat -> assertTrue("Chat examples must be editable before sending", chat.preset());
-            case CopyTextAction ignored -> {}
-            case LocalMessageAction ignored -> {}
-            case OpenWheelAction ignored -> {}
-            default -> fail("Unexpected default action: " + entry.action());
-        }
+        for (var wheel : profile.wheels().values()) for (var entry : wheel.entries()) if (java.util.Objects.requireNonNull(entry.action()) instanceof FunctionAction function) { assertTrue(allowedFunctions.contains(function.function())); } else if (entry.action() instanceof KeybindAction keybind) { assertTrue(allowedBindings.contains(keybind.keybindId())); } else if (entry.action() instanceof CommandAction command) { assertEquals(List.of("/help"), command.commands()); assertTrue(command.preset()); } else if (entry.action() instanceof OpenChatAction chat) { assertEquals("/tell ", chat.initialText()); } else if (entry.action() instanceof ChatAction chat) { assertTrue("Chat examples must be editable before sending", chat.preset()); } else if (entry.action() instanceof CopyTextAction ignored) {} else if (entry.action() instanceof LocalMessageAction ignored) {} else if (entry.action() instanceof OpenWheelAction ignored) {} else { fail("Unexpected default action: " + entry.action()); }
     }
 
     @Test public void allDefaultNamesAndTemplatesExistAndUseSupportedLiveData() throws Exception {
@@ -62,10 +52,10 @@ public class VanillaDefaultProfileTest {
             assertTrue(language.has(wheel.title())); assertTrue(language.has(wheel.description()));
             for (var entry : wheel.entries()) {
                 assertTrue(language.has(entry.label())); assertTrue(language.has(entry.description()));
-                String template = switch (entry.action()) {
-                    case ChatAction chat -> chat.message(); case LocalMessageAction message -> message.message();
-                    case CopyTextAction copy -> copy.text(); default -> "";
-                };
+                String template = (java.util.Objects.requireNonNull(entry.action()) instanceof ChatAction chat ? (chat.message()) :
+                        entry.action() instanceof LocalMessageAction message ? (message.message()) :
+                        entry.action() instanceof CopyTextAction copy ? (copy.text()) :
+                        (""));
                 if (template.startsWith("omniwheel.")) { assertTrue(language.has(template)); template = language.get(template).getAsString(); }
                 var matcher = java.util.regex.Pattern.compile("\\{[^}]+}").matcher(template);
                 while (matcher.find()) assertTrue("Known token " + matcher.group(), tokens.contains(matcher.group()));
@@ -80,7 +70,7 @@ public class VanillaDefaultProfileTest {
         var oldDefault = new WheelProfile("default", "Default", "main", Map.of("main", oldRoot));
         var custom = new WheelProfile("custom", "My Profile", "main", Map.of("main", oldRoot));
         var result = ProfileUpgrader.upgrade(new ProfileCollection("custom", List.of(custom, oldDefault)));
-        assertEquals("custom", result.activeProfileId()); assertSame(custom, result.profiles().getFirst());
+        assertEquals("custom", result.activeProfileId()); assertSame(custom, result.profiles().get(0));
         assertEquals(DefaultProfiles.createDefaultProfile(), result.profiles().get(1));
         assertFalse(result.profiles().get(1).wheels().containsKey("main"));
         assertSame(result, ProfileUpgrader.upgrade(result));

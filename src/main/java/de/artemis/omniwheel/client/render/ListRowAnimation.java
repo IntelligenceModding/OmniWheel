@@ -12,7 +12,7 @@ public final class ListRowAnimation<T> {
         String id; T value; long changed; float from = 1; boolean removing;
         Node(String id, T value, long changed, float from) { this.id=id; this.value=value; this.changed=changed; this.from=from; }
         float size(long now) {
-            float progress = (float) Math.clamp((now-changed)/(double)DURATION, 0, 1);
+            float progress = (float) de.artemis.omniwheel.common.Numbers.clamp((now-changed)/(double)DURATION, 0, 1);
             float ease = progress*progress*(3-2*progress);
             return from + ((removing ? 0 : 1)-from)*ease;
         }

@@ -724,15 +724,11 @@ public final class OmniWheelProfilesOverlay {
             graphics.flush();
             graphics.pose().pushPose();
             graphics.pose().translate(0.0F, commandSuggestionsYOffset, 0.0F);
-            if (!renderWrappedUsage) {
-                commandSuggestions.render(
-                        graphics,
-                        (int) currentMouseX(minecraft),
-                        (int) currentMouseY(minecraft) - commandSuggestionsYOffset
-                );
-            }
+            boolean suggestionsVisible = commandSuggestions.renderSuggestions(graphics,
+                    (int) currentMouseX(minecraft), (int) currentMouseY(minecraft) - commandSuggestionsYOffset);
+            if (!suggestionsVisible && !renderWrappedUsage) commandSuggestions.renderUsage(graphics);
             graphics.pose().popPose();
-            if (renderWrappedUsage) {
+            if (!suggestionsVisible && renderWrappedUsage) {
                 renderWrappedCommandUsage(graphics, minecraft);
             }
         }
@@ -1225,8 +1221,8 @@ public final class OmniWheelProfilesOverlay {
             String group = current.node().group();
             List<Node> scope = ManagementNavigation.readingOrder(nodes).stream()
                     .filter(node -> node.panel() == current.node().panel() && (group.isEmpty() || group.equals(node.group()))).toList();
-            if (keyCode == GLFW.GLFW_KEY_HOME) next = scope.getFirst();
-            else if (keyCode == GLFW.GLFW_KEY_END) next = scope.getLast();
+            if (keyCode == GLFW.GLFW_KEY_HOME) next = scope.get(0);
+            else if (keyCode == GLFW.GLFW_KEY_END) next = scope.get(scope.size() - 1);
             else {
                 boolean down = keyCode == GLFW.GLFW_KEY_PAGE_DOWN;
                 Bounds viewport = navigationViewport(group);
@@ -1481,7 +1477,7 @@ public final class OmniWheelProfilesOverlay {
         if (activeList == NavigationList.EDITOR) {
             List<FocusTarget> targets = visibleFocusTargets();
             if (!targets.isEmpty()) {
-                focusTarget(targets.getFirst());
+                focusTarget(targets.get(0));
                 return true;
             }
             return false;
@@ -1491,7 +1487,7 @@ public final class OmniWheelProfilesOverlay {
         if (entry == null) {
             List<FocusTarget> targets = visibleFocusTargets();
             if (!targets.isEmpty()) {
-                focusTarget(targets.getFirst());
+                focusTarget(targets.get(0));
                 return true;
             }
             return false;
@@ -1505,7 +1501,7 @@ public final class OmniWheelProfilesOverlay {
         activeList = NavigationList.EDITOR;
         List<FocusTarget> targets = visibleFocusTargets();
         if (!targets.isEmpty()) {
-            focusTarget(targets.getFirst());
+            focusTarget(targets.get(0));
             return true;
         }
         return false;
@@ -2123,10 +2119,10 @@ public final class OmniWheelProfilesOverlay {
             drawEditorPanelContents(graphics, minecraft, x, y, width, height);
             return;
         }
-        double progress = editorRevealStarted == 0 || isManagerTutorialActive() ? 1 : Math.clamp((now - editorRevealStarted) / 180_000_000.0, 0, 1);
+        double progress = editorRevealStarted == 0 || isManagerTutorialActive() ? 1 : de.artemis.omniwheel.common.Numbers.clamp((now - editorRevealStarted) / 180_000_000.0, 0, 1);
         double ease = progress * progress * (3 - 2 * progress);
         if (iconPickerClosingAt != 0) {
-            double closing = Math.clamp((now - iconPickerClosingAt) / 180_000_000.0, 0, 1);
+            double closing = de.artemis.omniwheel.common.Numbers.clamp((now - iconPickerClosingAt) / 180_000_000.0, 0, 1);
             ease = iconPickerClosingFrom * (1 - closing * closing * (3 - 2 * closing));
         }
         editorRevealBottom = y + (int) Math.ceil(height * ease);
@@ -2803,7 +2799,7 @@ public final class OmniWheelProfilesOverlay {
             return "";
         }
         if (unique.size() == 1) {
-            return unique.getFirst();
+            return unique.get(0);
         }
         if (unique.size() == 2) {
             return text("omniwheel.manager.list.two", unique.get(0), unique.get(1));
@@ -3059,7 +3055,6 @@ public final class OmniWheelProfilesOverlay {
             commandInput.setX(x + 8);
             commandInput.setY(y + 19);
             commandInput.setWidth(Math.max(8, width - 16));
-            commandInput.setHeight(12);
             commandInput.setVisible(true);
             commandInput.setFocused(true);
             commandSuggestionsYOffset = (y + 39) - 72;
@@ -3089,7 +3084,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private boolean shouldRenderWrappedCommandUsage() {
-        if (commandSuggestions == null || commandInput == null || commandSuggestions.isVisible()) {
+        if (commandSuggestions == null || commandInput == null) {
             return false;
         }
         List<FormattedCharSequence> usage = commandUsageLines();
@@ -3337,7 +3332,7 @@ public final class OmniWheelProfilesOverlay {
 
     private static int keybindContentHeight(List<KeybindGroupLayout> groups) {
         if (groups.isEmpty()) return SELECTOR_PADDING * 2;
-        var last = groups.getLast();
+        var last = groups.get(groups.size() - 1);
         return SELECTOR_PADDING * 2 + last.top() + KEYBIND_CATEGORY_HEIGHT + SELECTOR_PADDING + last.bodyHeight();
     }
 
@@ -3826,7 +3821,7 @@ public final class OmniWheelProfilesOverlay {
         Bounds bounds = new Bounds(x, y, width, height);
         ButtonHover previous = buttonHovers.get(bounds);
         float amount = previous == null || now - previous.frame() > 250_000_000L ? 0 : previous.amount();
-        double seconds = previous == null ? 0 : Math.clamp((now - previous.frame()) / 1_000_000_000.0, 0, .1);
+        double seconds = previous == null ? 0 : de.artemis.omniwheel.common.Numbers.clamp((now - previous.frame()) / 1_000_000_000.0, 0, .1);
         amount += ((enabled && highlighted ? 1 : 0) - amount) * (float) -Math.expm1(-24 * seconds);
         if (!enabled || isReordering() || isManagerTutorialActive() && !tutorialControl) amount = 0;
         if (buttonHovers.size() > 512) buttonHovers.clear();
@@ -3886,7 +3881,7 @@ public final class OmniWheelProfilesOverlay {
             forceReloadDrafts = true;
         }
         if (selectedEntryId == null && !wheel.entries().isEmpty()) {
-            selectedEntryId = wheel.entries().getFirst().id();
+            selectedEntryId = wheel.entries().get(0).id();
             forceReloadDrafts = true;
         }
 
@@ -3946,26 +3941,22 @@ public final class OmniWheelProfilesOverlay {
         entryShowIconDraft = entry.showIcon();
         entryShowLabelDraft = entry.showLabel();
         entryShowShortcutDraft = entry.showShortcut();
-        entryPresetDraft = switch (entry.action()) {
-            case ChatAction chat -> chat.preset();
-            case CommandAction command -> command.preset();
-            default -> false;
-        };
+        entryPresetDraft = (java.util.Objects.requireNonNull(entry.action()) instanceof ChatAction chat ? (chat.preset()) :
+                entry.action() instanceof CommandAction command ? (command.preset()) :
+                (false));
         entryKeybindDraft = entry.action() instanceof KeybindAction keybind ? keybind.keybindId() : "key.inventory";
         entryActionTypeDraft = DraftActionType.fromAction(entry.action());
         entryFunctionDraft = entry.action() instanceof FunctionAction functionAction ? functionAction.function() : GameplayFunction.OPEN_INVENTORY;
         entrySubmenuWheelId = entry.action() instanceof OpenWheelAction openWheelAction ? openWheelAction.wheelId() : null;
         entryScreenTargetDraft = entry.action() instanceof OpenScreenAction openScreenAction ? openScreenAction.target() : ScreenTarget.PROFILE_MANAGER;
-        entryValueDraft = switch (entry.action()) {
-            case CommandAction commandAction -> formatCommandValues(commandAction.commands());
-            case ChatAction chatAction -> displayText(chatAction.message());
-            case FunctionAction functionAction -> functionAction.function().displayName();
-            case CopyTextAction copyTextAction -> copyTextAction.text();
-            case LocalMessageAction localMessageAction -> displayText(localMessageAction.message());
-            case OpenChatAction openChatAction -> openChatAction.initialText();
-            case OpenScreenAction ignored -> entryScreenTargetDraft.name();
-            default -> "";
-        };
+        entryValueDraft = (java.util.Objects.requireNonNull(entry.action()) instanceof CommandAction commandAction ? (formatCommandValues(commandAction.commands())) :
+                entry.action() instanceof ChatAction chatAction ? (displayText(chatAction.message())) :
+                entry.action() instanceof FunctionAction functionAction ? (functionAction.function().displayName()) :
+                entry.action() instanceof CopyTextAction copyTextAction ? (copyTextAction.text()) :
+                entry.action() instanceof LocalMessageAction localMessageAction ? (displayText(localMessageAction.message())) :
+                entry.action() instanceof OpenChatAction openChatAction ? (openChatAction.initialText()) :
+                entry.action() instanceof OpenScreenAction ignored ? (entryScreenTargetDraft.name()) :
+                (""));
         commandValueDrafts.clear();
         if (entry.action() instanceof CommandAction commandAction) {
             commandValueDrafts.addAll(commandAction.commands());
@@ -4162,7 +4153,7 @@ public final class OmniWheelProfilesOverlay {
                 wheel.radialOrder()
         );
         persistProfile(withWheel(profile, updatedWheel));
-        selectedEntryId = updatedEntries.isEmpty() ? null : updatedEntries.getFirst().id();
+        selectedEntryId = updatedEntries.isEmpty() ? null : updatedEntries.get(0).id();
         syncSelection(true);
     }
 
@@ -4963,7 +4954,7 @@ public final class OmniWheelProfilesOverlay {
         if (iconPickerOpen && open && !dataPickerOpen && !isManagerTutorialActive()) {
             if (iconPickerClosingAt == 0) {
                 long now = System.nanoTime();
-                double progress = editorRevealStarted == 0 ? 1 : Math.clamp((now - editorRevealStarted) / 180_000_000.0, 0, 1);
+                double progress = editorRevealStarted == 0 ? 1 : de.artemis.omniwheel.common.Numbers.clamp((now - editorRevealStarted) / 180_000_000.0, 0, 1);
                 iconPickerClosingFrom = progress * progress * (3 - 2 * progress);
                 iconPickerClosingAt = now;
                 clearFocus();
@@ -5390,7 +5381,7 @@ public final class OmniWheelProfilesOverlay {
     private int iconCategoryContentHeight(int columns) {
         List<IconCategory> layout = layoutIconCategories(columns);
         if (layout.isEmpty()) return 0;
-        IconCategory last = layout.getLast();
+        IconCategory last = layout.get(layout.size() - 1);
         return last.top() + (pickingCustomItem ? 0 : ICON_CATEGORY_HEIGHT + ICON_PICKER_CELL_GAP) + categoryBodyHeights.getOrDefault(last.id(), 0);
     }
 
@@ -5467,33 +5458,29 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static String actionSummary(WheelAction action) {
-        return switch (action) {
-            case KeybindAction keybind -> Component.translatable(keybind.keybindId()).getString();
-            case CommandAction commandAction -> text(commandAction.commands().size() > 1 ? "omniwheel.action.commands" : "omniwheel.action.command");
-            case ChatAction ignored -> text("omniwheel.action.chat");
-            case FunctionAction functionAction -> functionAction.function().displayName();
-            case OpenWheelAction ignored -> text("omniwheel.action.submenu");
-            case LocalMessageAction ignored -> text("omniwheel.action.local");
-            case CopyTextAction ignored -> text("omniwheel.action.clipboard");
-            case OpenChatAction ignored -> text("omniwheel.action.prefill");
-            case OpenScreenAction ignored -> text("omniwheel.action.screen");
-            default -> action.getClass().getSimpleName();
-        };
+        return (java.util.Objects.requireNonNull(action) instanceof KeybindAction keybind ? (Component.translatable(keybind.keybindId()).getString()) :
+                action instanceof CommandAction commandAction ? (text(commandAction.commands().size() > 1 ? "omniwheel.action.commands" : "omniwheel.action.command")) :
+                action instanceof ChatAction ignored ? (text("omniwheel.action.chat")) :
+                action instanceof FunctionAction functionAction ? (functionAction.function().displayName()) :
+                action instanceof OpenWheelAction ignored ? (text("omniwheel.action.submenu")) :
+                action instanceof LocalMessageAction ignored ? (text("omniwheel.action.local")) :
+                action instanceof CopyTextAction ignored ? (text("omniwheel.action.clipboard")) :
+                action instanceof OpenChatAction ignored ? (text("omniwheel.action.prefill")) :
+                action instanceof OpenScreenAction ignored ? (text("omniwheel.action.screen")) :
+                (action.getClass().getSimpleName()));
     }
 
     private static String entryTypeLabel(WheelEntry entry) {
-        return switch (entry.action()) {
-            case CommandAction ignored -> text("omniwheel.action.type.command");
-            case ChatAction ignored -> text("omniwheel.action.type.chat");
-            case KeybindAction ignored -> text("omniwheel.action.type.keybind");
-            case FunctionAction ignored -> text("omniwheel.action.type.function");
-            case OpenWheelAction ignored -> text("omniwheel.action.type.submenu");
-            case LocalMessageAction ignored -> text("omniwheel.action.type.local");
-            case CopyTextAction ignored -> text("omniwheel.action.type.copy");
-            case OpenChatAction ignored -> text("omniwheel.action.type.open");
-            case OpenScreenAction ignored -> text("omniwheel.action.type.screen");
-            default -> "...";
-        };
+        return (java.util.Objects.requireNonNull(entry.action()) instanceof CommandAction ignored ? (text("omniwheel.action.type.command")) :
+                entry.action() instanceof ChatAction ignored ? (text("omniwheel.action.type.chat")) :
+                entry.action() instanceof KeybindAction ignored ? (text("omniwheel.action.type.keybind")) :
+                entry.action() instanceof FunctionAction ignored ? (text("omniwheel.action.type.function")) :
+                entry.action() instanceof OpenWheelAction ignored ? (text("omniwheel.action.type.submenu")) :
+                entry.action() instanceof LocalMessageAction ignored ? (text("omniwheel.action.type.local")) :
+                entry.action() instanceof CopyTextAction ignored ? (text("omniwheel.action.type.copy")) :
+                entry.action() instanceof OpenChatAction ignored ? (text("omniwheel.action.type.open")) :
+                entry.action() instanceof OpenScreenAction ignored ? (text("omniwheel.action.type.screen")) :
+                ("..."));
     }
 
     private static String screenTargetLabel(ScreenTarget target) {
@@ -5534,12 +5521,10 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static String preservedActionValue(WheelAction currentAction, Class<? extends WheelAction> actionType, String draft, String fallback) {
-        String stored = switch (currentAction) {
-            case ChatAction chatAction when actionType == ChatAction.class -> chatAction.message();
-            case LocalMessageAction localMessageAction when actionType == LocalMessageAction.class -> localMessageAction.message();
-            case CopyTextAction copyTextAction when actionType == CopyTextAction.class -> copyTextAction.text();
-            default -> fallback;
-        };
+        String stored = fallback;
+        if (currentAction instanceof ChatAction chat && actionType == ChatAction.class) stored = chat.message();
+        else if (currentAction instanceof LocalMessageAction local && actionType == LocalMessageAction.class) stored = local.message();
+        else if (currentAction instanceof CopyTextAction copy && actionType == CopyTextAction.class) stored = copy.text();
         return preservedDraftText(draft, stored);
     }
 
@@ -5572,7 +5557,7 @@ public final class OmniWheelProfilesOverlay {
             commandValueFields.add(new TextFieldState(256));
         }
         while (commandValueFields.size() > commandValueDrafts.size()) {
-            commandValueFields.removeLast();
+            commandValueFields.remove(commandValueFields.size() - 1);
         }
         for (int index = 0; index < commandValueDrafts.size(); index++) {
             commandValueFields.get(index).setValue(commandValueDrafts.get(index));
@@ -6930,7 +6915,7 @@ public final class OmniWheelProfilesOverlay {
         if (targets.isEmpty()) {
             return false;
         }
-        focusTarget(targets.getFirst());
+        focusTarget(targets.get(0));
         return true;
     }
 
@@ -7061,7 +7046,7 @@ public final class OmniWheelProfilesOverlay {
 
     private Screen hostScreen() {
         Minecraft minecraft = Minecraft.getInstance();
-        return screenHosted && minecraft.screen instanceof Screen screen ? screen : null;
+        return screenHosted ? minecraft.screen : null;
     }
 
     private void clearCommandInput() {
@@ -7241,18 +7226,16 @@ public final class OmniWheelProfilesOverlay {
         }
 
         private static DraftActionType fromAction(WheelAction action) {
-            return switch (action) {
-                case CommandAction ignored -> COMMAND;
-                case ChatAction ignored -> CHAT;
-                case KeybindAction ignored -> KEYBIND;
-                case FunctionAction ignored -> FUNCTION;
-                case LocalMessageAction ignored -> LOCAL_MESSAGE;
-                case OpenChatAction ignored -> OPEN_CHAT;
-                case CopyTextAction ignored -> COPY_TEXT;
-                case OpenScreenAction ignored -> OPEN_SCREEN;
-                case OpenWheelAction ignored -> SUBMENU;
-                default -> COMMAND;
-            };
+            return (java.util.Objects.requireNonNull(action) instanceof CommandAction ignored ? (COMMAND) :
+                    action instanceof ChatAction ignored ? (CHAT) :
+                    action instanceof KeybindAction ignored ? (KEYBIND) :
+                    action instanceof FunctionAction ignored ? (FUNCTION) :
+                    action instanceof LocalMessageAction ignored ? (LOCAL_MESSAGE) :
+                    action instanceof OpenChatAction ignored ? (OPEN_CHAT) :
+                    action instanceof CopyTextAction ignored ? (COPY_TEXT) :
+                    action instanceof OpenScreenAction ignored ? (OPEN_SCREEN) :
+                    action instanceof OpenWheelAction ignored ? (SUBMENU) :
+                    (COMMAND));
         }
     }
 

@@ -23,7 +23,7 @@ public final class ClientModEvents {
     public static void register() {
         OmniWheelKeyMappings.register();
         LegacyKeyMappings.register();
-        ResourceLocation iconValidation = ResourceLocation.fromNamespaceAndPath(MOD_ID, "icon_validation");
+        ResourceLocation iconValidation = new ResourceLocation(MOD_ID, "icon_validation");
         ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public ResourceLocation getFabricId() {

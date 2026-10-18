@@ -142,59 +142,48 @@ public final class ProfileJsonCodec {
 
         String activeId = dto.activeProfileId != null && profiles.stream().anyMatch(profile -> profile.id().equals(dto.activeProfileId))
                 ? dto.activeProfileId
-                : profiles.getFirst().id();
+                : profiles.get(0).id();
         return new ProfileCollection(activeId, profiles);
     }
 
     private StoredAction toDto(WheelAction action) {
         StoredAction stored = new StoredAction();
-        switch (action) {
-            case CommandAction commandAction -> {
+        if (java.util.Objects.requireNonNull(action) instanceof CommandAction commandAction) {
                 stored.type = "command";
                 if (commandAction.commands().size() == 1) {
-                    stored.value = commandAction.commands().getFirst();
+                    stored.value = commandAction.commands().get(0);
                 } else {
                     stored.values = new ArrayList<>(commandAction.commands());
                 }
                 stored.requireConfirmation = commandAction.requireConfirmation();
                 stored.preset = commandAction.preset();
-            }
-            case KeybindAction keybindAction -> {
+            } else if (action instanceof KeybindAction keybindAction) {
                 stored.type = "keybind";
                 stored.value = keybindAction.keybindId();
-            }
-            case ChatAction chatAction -> {
+            } else if (action instanceof ChatAction chatAction) {
                 stored.type = "chat";
                 stored.value = chatAction.message();
                 stored.requireConfirmation = chatAction.requireConfirmation();
                 stored.preset = chatAction.preset();
-            }
-            case FunctionAction functionAction -> {
+            } else if (action instanceof FunctionAction functionAction) {
                 stored.type = "function";
                 stored.value = functionAction.function().id();
-            }
-            case LocalMessageAction localMessageAction -> {
+            } else if (action instanceof LocalMessageAction localMessageAction) {
                 stored.type = "local_message";
                 stored.value = localMessageAction.message();
-            }
-            case OpenChatAction openChatAction -> {
+            } else if (action instanceof OpenChatAction openChatAction) {
                 stored.type = "open_chat";
                 stored.value = openChatAction.initialText();
-            }
-            case CopyTextAction copyTextAction -> {
+            } else if (action instanceof CopyTextAction copyTextAction) {
                 stored.type = "copy_text";
                 stored.value = copyTextAction.text();
-            }
-            case OpenWheelAction openWheelAction -> {
+            } else if (action instanceof OpenWheelAction openWheelAction) {
                 stored.type = "open_wheel";
                 stored.value = openWheelAction.wheelId();
-            }
-            case OpenScreenAction openScreenAction -> {
+            } else if (action instanceof OpenScreenAction openScreenAction) {
                 stored.type = "open_screen";
                 stored.value = openScreenAction.target().name().toLowerCase(Locale.ROOT);
-            }
-            default -> throw new IllegalArgumentException("Unsupported action type: " + action.getClass().getName());
-        }
+            } else { throw new IllegalArgumentException("Unsupported action type: " + action.getClass().getName()); }
         return stored;
     }
 

@@ -117,7 +117,7 @@ public final class EntryIconRenderer {
                 }
                 ResourceLocation effectId = resolveEffectId(key);
                 if (effectId != null) {
-                    var holder = BuiltInRegistries.MOB_EFFECT.getHolder(effectId).orElse(null);
+                    var holder = BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
                     return holder != null && IconAssetValidator.sprite(minecraft.getMobEffectTextures().get(holder));
                 }
                 ResourceLocation guiSprite = resolveGuiSprite(key);
@@ -214,6 +214,9 @@ public final class EntryIconRenderer {
     }
 
     private static ItemStack resolveItemStack(String icon) {
+        // Embedded PNGs can contain megabytes of data. They are not registry IDs;
+        // the legacy parser otherwise builds an equally large exception message.
+        if (CustomImageData.isImage(icon)) return ItemStack.EMPTY;
         if (CustomItemIcons.isCustom(icon)) return CustomItemIcons.decode(icon);
         String trimmed = icon == null ? "" : icon.trim();
         if (trimmed.isEmpty()) {
@@ -224,6 +227,7 @@ public final class EntryIconRenderer {
             trimmed = "minecraft:" + trimmed;
         }
 
+        if (!ResourceLocation.isValidResourceLocation(trimmed)) return ItemStack.EMPTY;
         ResourceLocation id = ResourceLocation.tryParse(trimmed);
         if (id == null) {
             return ItemStack.EMPTY;
@@ -249,7 +253,7 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        Holder<MobEffect> effectHolder = BuiltInRegistries.MOB_EFFECT.getHolder(effectId).orElse(null);
+        MobEffect effectHolder = BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
         if (effectHolder == null) {
             return false;
         }
@@ -275,7 +279,7 @@ public final class EntryIconRenderer {
         int y = Math.round(centerY - (size * 0.5F));
         com.mojang.blaze3d.systems.RenderSystem.enableBlend();
         com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
-        graphics.blitSprite(spriteId, x, y, size, size);
+        LegacyGuiIcons.draw(graphics, spriteId, x, y, size, size);
         com.mojang.blaze3d.systems.RenderSystem.disableBlend();
         return true;
     }

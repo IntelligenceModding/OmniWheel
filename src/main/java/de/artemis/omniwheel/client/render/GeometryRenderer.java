@@ -212,15 +212,16 @@ public final class GeometryRenderer {
         RenderSystem.depthMask(false);
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         try {
-            var consumer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            var consumer = Tesselator.getInstance().getBuilder();
+            consumer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
             float[] vertices = mesh.vertices();
             for (int index = 0; index < vertices.length; index += 8) {
-                consumer.addVertex(pose, originX + vertices[index], originY + vertices[index + 1], 0).setColor(color);
-                consumer.addVertex(pose, originX + vertices[index + 2], originY + vertices[index + 3], 0).setColor(color);
-                consumer.addVertex(pose, originX + vertices[index + 4], originY + vertices[index + 5], 0).setColor(color);
-                consumer.addVertex(pose, originX + vertices[index + 6], originY + vertices[index + 7], 0).setColor(color);
+                for (int vertex = 0; vertex < 8; vertex += 2) {
+                    consumer.vertex(pose, originX + vertices[index + vertex], originY + vertices[index + vertex + 1], 0)
+                            .color((color >> 16) & 255, (color >> 8) & 255, color & 255, (color >>> 24)).endVertex();
+                }
             }
-            BufferUploader.drawWithShader(consumer.buildOrThrow());
+            BufferUploader.drawWithShader(consumer.end());
         } finally {
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();

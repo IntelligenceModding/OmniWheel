@@ -117,7 +117,7 @@ public final class RadialWheelPreviewTest {
         h.preview.update(674, -14, true);
         h.preview.release(674, -14);
         assertEquals("root", h.owner);
-        assertEquals("grandA", h.ids("root").getLast());
+        assertEquals("grandA", h.ids("root").get(h.ids("root").size() - 1));
         assertTrue(h.ids("grand").isEmpty());
         h.preview.back();
         assertTrue(h.closed);
@@ -130,7 +130,7 @@ public final class RadialWheelPreviewTest {
         h.preview.update(350, 232, true);
         h.preview.release(350, 232);
         assertEquals("root", h.owner);
-        assertEquals("childA", h.ids("root").getLast());
+        assertEquals("childA", h.ids("root").get(h.ids("root").size() - 1));
         h.owner = "grand"; h.selected = "grandA"; h.preview.sync(h.owner, h.selected);
         h.press(0, 1);
         h.preview.update(674, -14, true);
@@ -141,7 +141,7 @@ public final class RadialWheelPreviewTest {
         assertTrue(h.preview.hasDrag());
         h.over(0, 2, 114);
         h.drop(0, 2, 114);
-        assertEquals("grandA", h.ids("child").getFirst());
+        assertEquals("grandA", h.ids("child").get(0));
         h.preview.sync(h.owner, h.selected);
         h.press(0, 2);
         h.preview.update(350, 232, true);
@@ -150,7 +150,7 @@ public final class RadialWheelPreviewTest {
         assertEquals("root", h.owner);
         assertTrue(h.preview.isDragging());
         h.preview.release(350, 232);
-        assertEquals("grandA", h.ids("root").getLast());
+        assertEquals("grandA", h.ids("root").get(h.ids("root").size() - 1));
     }
 
     @Test public void scrollAndHoverArrowsSupportMovesAcrossPages() {
@@ -158,14 +158,14 @@ public final class RadialWheelPreviewTest {
         h.press(0, 8); h.over(2, 8, 114);
         h.preview.scroll(350, 232, -1);
         h.over(1, 2, 114); h.drop(1, 2, 114);
-        assertEquals("a", h.ids("root").getLast());
+        assertEquals("a", h.ids("root").get(h.ids("root").size() - 1));
         h.preview.sync(h.owner, h.selected);
         h.press(1, 2);
         h.preview.update(154, 232, true);
         h.now += 600_000_000L;
         h.preview.update(154, 232, true);
         h.over(0, 8, 114); h.drop(0, 8, 114);
-        assertEquals("a", h.ids("root").getFirst());
+        assertEquals("a", h.ids("root").get(0));
     }
 
     @Test public void navigatingIntoFullSubmenuCanAppendOnItsNewLastPage() {
@@ -179,7 +179,7 @@ public final class RadialWheelPreviewTest {
         h.preview.scroll(350, 232, -1);
         h.over(0, 1, 85); h.drop(0, 1, 85);
         assertEquals(9, h.ids("child").size());
-        assertEquals("a", h.ids("child").getLast());
+        assertEquals("a", h.ids("child").get(h.ids("child").size() - 1));
     }
 
     @Test public void invalidCyclesAndCancellationLeaveProfileUntouched() {
@@ -221,7 +221,7 @@ public final class RadialWheelPreviewTest {
         h.press(0, 8);
         h.over(3, 8, 114);
         var projected = new ArrayList<>(original);
-        WheelEntry moved = projected.removeFirst();
+        WheelEntry moved = projected.remove(0);
         projected.add(3, moved);
         h.preview.animatedAngles(projected, 3);
         // Folder is now logically slot 0, but its visible animation is still at slot 1.
@@ -230,7 +230,7 @@ public final class RadialWheelPreviewTest {
         double[] angles = h.preview.animatedAngles(projected, 3);
         assertTrue("folder continues settling instead of freezing", Math.abs(angles[0]) < Math.PI / 8);
         h.drop(1, 8, 111);
-        assertEquals("a", h.ids("child").getLast());
+        assertEquals("a", h.ids("child").get(h.ids("child").size() - 1));
         assertFalse(h.ids("root").contains("a"));
     }
 
@@ -238,7 +238,7 @@ public final class RadialWheelPreviewTest {
         Harness h = new Harness();
         h.preview.animatedAngles(h.profile.wheel("root").entries().subList(0, 8), -1);
         var entries = new ArrayList<>(h.profile.wheel("root").entries());
-        entries.add(3, entries.removeFirst());
+        entries.add(3, entries.remove(0));
         var wheels = new LinkedHashMap<>(h.profile.wheels());
         wheels.put("root", new WheelDefinition("root", "Root", "", 8, entries, true,
                 entries.stream().map(WheelEntry::id).toList()));
@@ -256,7 +256,7 @@ public final class RadialWheelPreviewTest {
         h.press(0, 8);
         h.over(3, 8, 114);
         var shifted = new ArrayList<>(original);
-        shifted.add(3, shifted.removeFirst());
+        shifted.add(3, shifted.remove(0));
         h.now += 60_000_000L;
         h.preview.animatedAngles(shifted, 3);
         h.over(0, 8, 114);
@@ -271,7 +271,7 @@ public final class RadialWheelPreviewTest {
         assertTrue("transition finishes while hovering inside the folder", Math.abs(after[1]) < Math.abs(before[1]) / 2);
         h.preview.update(x, y, true);
         h.preview.release(x, y);
-        assertEquals("a", h.ids("child").getLast());
+        assertEquals("a", h.ids("child").get(h.ids("child").size() - 1));
         assertFalse(h.ids("root").contains("a"));
     }
 }

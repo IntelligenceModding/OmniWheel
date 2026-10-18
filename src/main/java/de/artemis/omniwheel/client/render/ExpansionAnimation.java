@@ -11,7 +11,7 @@ public final class ExpansionAnimation {
         from = amount(now); changed = now; expanded = value;
     }
     public float amount(long now) {
-        double progress = Math.clamp((now - changed) / 180_000_000.0, 0, 1);
+        double progress = de.artemis.omniwheel.common.Numbers.clamp((now - changed) / 180_000_000.0, 0, 1);
         double ease = progress * progress * (3 - 2 * progress);
         return (float) (from + ((expanded ? 1 : 0) - from) * ease);
     }

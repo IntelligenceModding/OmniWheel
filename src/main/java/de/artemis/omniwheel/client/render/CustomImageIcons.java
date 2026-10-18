@@ -25,7 +25,7 @@ public final class CustomImageIcons {
             try {
                 CustomImageData image = CustomImageData.decode(key);
                 String hash = HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8)));
-                ResourceLocation id = ResourceLocation.fromNamespaceAndPath("omniwheel", "custom_images/" + hash);
+                ResourceLocation id = new ResourceLocation("omniwheel", "custom_images/" + hash);
                 // The byte[] overload copies the entire PNG onto LWJGL's small native stack.
                 NativeImage pixels = NativeImage.read(new ByteArrayInputStream(image.png()));
                 DynamicTexture texture = new DynamicTexture(pixels);

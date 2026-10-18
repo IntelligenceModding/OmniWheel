@@ -25,7 +25,7 @@ final class KeybindCategories {
             if (matches) grouped.computeIfAbsent(option.categoryId(), ignored -> new ArrayList<>()).add(option);
         }
         var result = new ArrayList<Group>();
-        grouped.forEach((id, values) -> result.add(new Group(id, values.getFirst().categoryName(), List.copyOf(values), !collapsed.contains(id))));
+        grouped.forEach((id, values) -> result.add(new Group(id, values.get(0).categoryName(), List.copyOf(values), !collapsed.contains(id))));
         return List.copyOf(result);
     }
     private KeybindCategories() {}

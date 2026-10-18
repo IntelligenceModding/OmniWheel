@@ -58,7 +58,7 @@ public final class WheelLayoutConsistencyTest {
         profile = WheelEntryMover.moveRadial(profile, "root", "e9", "root", 0).profile();
         profile = WheelEntryMover.moveRadial(profile, "root", "e8", "child", 0).profile();
         ProfileJsonCodec codec = new ProfileJsonCodec();
-        WheelProfile reloaded = codec.decode(codec.encode(new ProfileCollection("test", List.of(profile)))).profiles().getFirst();
+        WheelProfile reloaded = codec.decode(codec.encode(new ProfileCollection("test", List.of(profile)))).profiles().get(0);
         assertEquals(profile, reloaded);
         var resolver = new WheelAvailabilityResolver();
         for (String wheel : List.of("root", "child")) {

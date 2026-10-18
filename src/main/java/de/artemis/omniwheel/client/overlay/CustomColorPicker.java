@@ -118,9 +118,9 @@ final class CustomColorPicker {
     }
     boolean mouseDragged(double mouseX, double mouseY) {
         if (dragging == 0) {
-            saturation = (float) Math.clamp((mouseX - x - 12) / (BOARD_WIDTH - 1), 0, 1);
-            brightness = 1 - (float) Math.clamp((mouseY - y - 32) / (BOARD_HEIGHT - 1), 0, 1);
-        } else if (dragging == 1) hue = (float) Math.clamp((mouseY - y - 32) / (BOARD_HEIGHT - 1), 0, 1);
+            saturation = (float) de.artemis.omniwheel.common.Numbers.clamp((mouseX - x - 12) / (BOARD_WIDTH - 1), 0, 1);
+            brightness = 1 - (float) de.artemis.omniwheel.common.Numbers.clamp((mouseY - y - 32) / (BOARD_HEIGHT - 1), 0, 1);
+        } else if (dragging == 1) hue = (float) de.artemis.omniwheel.common.Numbers.clamp((mouseY - y - 32) / (BOARD_HEIGHT - 1), 0, 1);
         if (dragging >= 0) syncHex();
         return true;
     }
@@ -141,8 +141,8 @@ final class CustomColorPicker {
         } else if (focus <= 1) {
             float direction = key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_DOWN ? -1 : key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_UP ? 1 : 0;
             if (focus == 1) hue = (hue + direction / 100 + 1) % 1;
-            else if (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT) saturation = Math.clamp(saturation + direction / 100, 0, 1);
-            else brightness = Math.clamp(brightness + direction / 100, 0, 1);
+            else if (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT) saturation = de.artemis.omniwheel.common.Numbers.clamp(saturation + direction / 100, 0, 1);
+            else brightness = de.artemis.omniwheel.common.Numbers.clamp(brightness + direction / 100, 0, 1);
             if (direction != 0) syncHex();
         }
         return true;

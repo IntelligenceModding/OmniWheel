@@ -13,7 +13,7 @@ public final class WheelLayout {
     }
 
     public static <T> List<T> page(List<T> entries, int page) {
-        int current = Math.clamp(page, 0, pageCount(entries.size()) - 1);
+        int current = de.artemis.omniwheel.common.Numbers.clamp(page, 0, pageCount(entries.size()) - 1);
         int start = current * PAGE_SIZE;
         return List.copyOf(entries.subList(start, Math.min(start + PAGE_SIZE, entries.size())));
     }

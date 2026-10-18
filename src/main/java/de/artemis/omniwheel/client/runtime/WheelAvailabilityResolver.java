@@ -69,20 +69,18 @@ public final class WheelAvailabilityResolver {
         if (!entry.active()) {
             return false;
         }
-        return switch (entry.action()) {
-            case CommandAction commandAction -> isCommandAvailable(commandAction);
-            case KeybindAction action -> KeybindActionController.find(Minecraft.getInstance(), action.keybindId()) != null;
-            case ChatAction ignored -> isChatAvailable();
-            case FunctionAction functionAction -> functionAction.function() != GameplayFunction.OMNI_BACK
-                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function());
-            case OpenChatAction openChatAction -> isOpenChatAvailable(openChatAction);
-            case CopyTextAction ignored -> true;
-            case LocalMessageAction ignored -> true;
-            case OpenScreenAction ignored -> true;
-            case SwitchProfileAction ignored -> true;
-            case OpenWheelAction openWheelAction -> isWheelEntryVisible(profile, openWheelAction, wheelPath);
-            default -> false;
-        };
+        return (java.util.Objects.requireNonNull(entry.action()) instanceof CommandAction commandAction ? (isCommandAvailable(commandAction)) :
+                entry.action() instanceof KeybindAction action ? (KeybindActionController.find(Minecraft.getInstance(), action.keybindId()) != null) :
+                entry.action() instanceof ChatAction ignored ? (isChatAvailable()) :
+                entry.action() instanceof FunctionAction functionAction ? (functionAction.function() != GameplayFunction.OMNI_BACK
+                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function())) :
+                entry.action() instanceof OpenChatAction openChatAction ? (isOpenChatAvailable(openChatAction)) :
+                entry.action() instanceof CopyTextAction ignored ? (true) :
+                entry.action() instanceof LocalMessageAction ignored ? (true) :
+                entry.action() instanceof OpenScreenAction ignored ? (true) :
+                entry.action() instanceof SwitchProfileAction ignored ? (true) :
+                entry.action() instanceof OpenWheelAction openWheelAction ? (isWheelEntryVisible(profile, openWheelAction, wheelPath)) :
+                (false));
     }
 
     private boolean isWheelEntryVisible(WheelProfile profile, OpenWheelAction action, Deque<String> wheelPath) {

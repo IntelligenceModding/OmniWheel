@@ -66,7 +66,7 @@ public final class RadialAnimation {
     /** Only menu/page changes settle; the initial opening retains its own animation. */
     public float viewScale(long now) {
         if (viewChangedAt == 0) return 1;
-        double remaining = 1 - Math.clamp((now - viewChangedAt) / 160_000_000.0, 0, 1);
+        double remaining = 1 - de.artemis.omniwheel.common.Numbers.clamp((now - viewChangedAt) / 160_000_000.0, 0, 1);
         return (float) (1 - 0.045 * remaining * remaining * remaining);
     }
 

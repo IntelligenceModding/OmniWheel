@@ -18,7 +18,7 @@ public final class WheelEntryMoverTest {
     }
 
     private static WheelDefinition wheel(String id, WheelEntry... entries) {
-        return new WheelDefinition(id, id, "description", Math.clamp(entries.length, 1, 8), List.of(entries));
+        return new WheelDefinition(id, id, "description", de.artemis.omniwheel.common.Numbers.clamp(entries.length, 1, 8), List.of(entries));
     }
 
     private static WheelProfile profile(WheelDefinition root, WheelDefinition... children) {
@@ -62,16 +62,16 @@ public final class WheelEntryMoverTest {
         check(moved.entryId().equals("same_2"), "ID collision was not resolved");
         check(moved.profile().wheel("other").entries().size() == 2, "Destination entry was lost");
         check(moved.profile().wheel("root").entries().size() == 1, "Source entry was not removed");
-        check(moved.profile().wheel("other").entries().getFirst().action().equals(source.entries().get(1).action()), "Move changed the action");
+        check(moved.profile().wheel("other").entries().get(0).action().equals(source.entries().get(1).action()), "Move changed the action");
         var folderMoved = WheelEntryMover.move(original, "root", "folder", "other", 1);
         check(folderMoved.profile().wheel("nested").equals(nested), "Moving a submenu lost its contents");
-        check(folderMoved.profile().wheel("other").entries().get(1).equals(source.entries().getFirst()), "Submenu move changed its entry");
+        check(folderMoved.profile().wheel("other").entries().get(1).equals(source.entries().get(0)), "Submenu move changed its entry");
         var toRoot = WheelEntryMover.move(folderMoved.profile(), "other", "folder", "root", 0);
-        check(toRoot.profile().wheel("root").entries().getFirst().equals(source.entries().getFirst()), "Moving back to root failed");
+        check(toRoot.profile().wheel("root").entries().get(0).equals(source.entries().get(0)), "Moving back to root failed");
         var empty = profile(wheel("root", entry("last")), wheel("empty"));
         var toEmpty = WheelEntryMover.move(empty, "root", "last", "empty", 0);
         check(toEmpty.profile().wheel("root").entries().isEmpty(), "Source did not become empty");
-        check(toEmpty.profile().wheel("empty").entries().getFirst().id().equals("last"), "Move into empty submenu failed");
+        check(toEmpty.profile().wheel("empty").entries().get(0).id().equals("last"), "Move into empty submenu failed");
         check(toEmpty.profile().wheel("root").segmentCount() == 1, "Empty source has an invalid segment count");
     }
 
@@ -91,7 +91,7 @@ public final class WheelEntryMoverTest {
         var destination = result.profile().wheel("destination");
         var expected = new WheelEntry("same_3", moving.label(), moving.description(), moving.glyph(), moving.color(),
                 moving.guiColor(), action, false, false, false, false, "Ctrl+G");
-        check(destination.entries().getLast().equals(expected), "Move lost entry settings or overwrote a colliding ID");
+        check(destination.entries().get(destination.entries().size() - 1).equals(expected), "Move lost entry settings or overwrote a colliding ID");
         check(destination.entries().size() == 13 && destination.segmentCount() == 8, "Move lost paginated entries");
         check(destination.active() == source.wheel("destination").active(), "Move changed wheel activation");
     }

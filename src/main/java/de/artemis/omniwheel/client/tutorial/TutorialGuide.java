@@ -42,6 +42,6 @@ public final class TutorialGuide {
     public static List<Step> steps(TutorialType type) { return type == TutorialType.MANAGER ? MANAGER : RADIAL; }
     public static Step step(TutorialType type, int index) {
         var steps = steps(type);
-        return steps.get(Math.clamp(index, 0, steps.size() - 1));
+        return steps.get(de.artemis.omniwheel.common.Numbers.clamp(index, 0, steps.size() - 1));
     }
 }

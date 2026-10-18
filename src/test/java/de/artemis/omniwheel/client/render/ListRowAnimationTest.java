@@ -27,9 +27,9 @@ public class ListRowAnimationTest {
         var animation = new ListRowAnimation<String>();
         animation.update("first", List.of("a", "b"), value -> value, 1, false);
         var switched = animation.update("second", List.of("c"), value -> value, 2, false);
-        assertEquals(1, switched.size()); assertEquals(1, switched.getFirst().size(), 0);
+        assertEquals(1, switched.size()); assertEquals(1, switched.get(0).size(), 0);
         var dragging = animation.update("second", List.of("d", "c"), value -> value, 3, true);
-        assertEquals(1, dragging.getFirst().size(), 0);
+        assertEquals(1, dragging.get(0).size(), 0);
         assertEquals(36, dragging.get(1).offset(), 0);
     }
 }

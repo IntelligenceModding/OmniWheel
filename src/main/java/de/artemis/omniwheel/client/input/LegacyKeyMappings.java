@@ -35,7 +35,7 @@ public final class LegacyKeyMappings {
         if (action != GLFW.GLFW_PRESS || minecraft.player == null || minecraft.level == null || minecraft.screen != null) return true;
         switch (mapping.getName()) {
             case "key.toggleGui" -> minecraft.options.hideGui = !minecraft.options.hideGui;
-            case "key.debug.overlay" -> minecraft.getDebugOverlay().toggleOverlay();
+            case "key.debug.overlay" -> minecraft.options.renderDebug = !minecraft.options.renderDebug;
             default -> {
                 int key = switch (mapping.getName()) {
                     case "key.debug.showHitboxes" -> GLFW.GLFW_KEY_B;

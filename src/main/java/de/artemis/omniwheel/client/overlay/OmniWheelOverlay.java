@@ -1234,10 +1234,10 @@ public final class OmniWheelOverlay {
     }
 
     private static String normalizeHotkeyGlyph(String glyph) {
-        if (EntryIconRenderer.isItemIcon(glyph)) {
+        if (glyph == null || glyph.length() != 1) {
             return null;
         }
-        if (glyph.length() != 1) {
+        if (EntryIconRenderer.isItemIcon(glyph)) {
             return null;
         }
 
