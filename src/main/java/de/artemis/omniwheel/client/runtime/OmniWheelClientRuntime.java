@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
 import de.artemis.omniwheel.client.overlay.OmniWheelOverlay;
+import de.artemis.omniwheel.client.input.ShortcutInputState;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.profile.OmniWheelProfileManager;
 import de.artemis.omniwheel.client.screen.OmniWheelProfilesScreen;
@@ -16,8 +17,8 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -30,6 +31,7 @@ public final class OmniWheelClientRuntime {
 
     private final OmniWheelProfileManager profileManager = new OmniWheelProfileManager();
     private final GameplayFunctionController functionController = new GameplayFunctionController();
+    private final KeybindActionController keybindController = new KeybindActionController();
     private final ClientActionExecutor actionExecutor = new ClientActionExecutor();
     private final WheelAvailabilityResolver availabilityResolver = new WheelAvailabilityResolver();
     private final OmniWheelOverlay overlay = new OmniWheelOverlay(this);
@@ -56,6 +58,10 @@ public final class OmniWheelClientRuntime {
         return actionExecutor;
     }
 
+    public KeybindActionController keybindController() {
+        return keybindController;
+    }
+
     public GameplayFunctionController functionController() {
         return functionController;
     }
@@ -68,8 +74,16 @@ public final class OmniWheelClientRuntime {
         return tutorialProgressStore;
     }
 
+    public boolean handleTutorialKey(int key, int modifiers, int action) {
+        return overlay.handleTutorialKey(key, modifiers, action);
+    }
+
     public void tick() {
         Minecraft minecraft = Minecraft.getInstance();
+        if (!minecraft.isWindowActive()) {
+            ShortcutInputState.clear();
+            activeShortcutEntries.clear();
+        }
         boolean profilesReloaded = profileManager.pollExternalChanges();
         if (profilesReloaded && profilesOverlay.isOpen()) {
             profilesOverlay.onProfilesReloaded();
@@ -132,7 +146,7 @@ public final class OmniWheelClientRuntime {
     }
 
     private void processEntryShortcuts(Minecraft minecraft) {
-        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null || isOverlayUiOpen()) {
+        if (!minecraft.isWindowActive() || minecraft.player == null || minecraft.level == null || minecraft.screen != null || isOverlayUiOpen()) {
             activeShortcutEntries.clear();
             return;
         }
@@ -144,7 +158,6 @@ public final class OmniWheelClientRuntime {
             return;
         }
 
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
         List<ShortcutCandidate> candidates = collectShortcutCandidates(profile);
         Set<String> downShortcutIds = new HashSet<>();
         ShortcutCandidate nextTrigger = null;
@@ -152,7 +165,7 @@ public final class OmniWheelClientRuntime {
 
         for (ShortcutCandidate candidate : candidates) {
             EntryShortcutMatcher.ShortcutSpec shortcut = EntryShortcutMatcher.parse(candidate.entry().shortcut());
-            if (shortcut == null || !shortcut.matches(windowHandle)) {
+            if (shortcut == null || !shortcut.matches(minecraft.getWindow())) {
                 continue;
             }
 
@@ -173,6 +186,11 @@ public final class OmniWheelClientRuntime {
         if (nextTrigger != null) {
             executeShortcutCandidate(nextTrigger);
         }
+    }
+
+    /** Process edges as well as ticks, so a quick macro tap cannot disappear between ticks. */
+    public void shortcutInputChanged(int action) {
+        if (action != GLFW.GLFW_REPEAT) processEntryShortcuts(Minecraft.getInstance());
     }
 
     private List<ShortcutCandidate> collectShortcutCandidates(WheelProfile profile) {
@@ -198,7 +216,7 @@ public final class OmniWheelClientRuntime {
         }
 
         for (WheelEntry entry : wheel.entries()) {
-            if (!entry.shortcut().isBlank() && availabilityResolver.isVisible(profile, entry, new ArrayDeque<>(path))) {
+            if (!entry.shortcut().isBlank() && availabilityResolver.canActivate(profile, wheelId, entry, new ArrayDeque<>(path))) {
                 List<String> openPath = null;
                 if (entry.action() instanceof OpenWheelAction openWheelAction && profile.wheels().containsKey(openWheelAction.wheelId())) {
                     openPath = new ArrayList<>(path);
@@ -212,7 +230,7 @@ public final class OmniWheelClientRuntime {
                     && !path.contains(openWheelAction.wheelId())) {
                 path.addLast(openWheelAction.wheelId());
                 collectShortcutCandidates(profile, openWheelAction.wheelId(), path, new HashSet<>(activePath), candidates);
-                path.removeLast();
+                path.remove(path.size() - 1);
             }
         }
     }
@@ -279,20 +297,6 @@ public final class OmniWheelClientRuntime {
         }
 
         profileManager.setActiveProfile(profiles.get(Math.floorMod(currentIndex + delta, profiles.size())).id());
-    }
-
-    private long resolveWindowHandle(Object window) {
-        for (String methodName : List.of("handle", "getWindow")) {
-            try {
-                Method method = window.getClass().getMethod(methodName);
-                Object value = method.invoke(window);
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        throw new IllegalStateException("Unable to resolve GLFW window handle");
     }
 
     private record ShortcutCandidate(String id, WheelEntry entry, List<String> openPath) {

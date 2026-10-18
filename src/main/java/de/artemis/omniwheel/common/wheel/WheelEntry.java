@@ -36,7 +36,7 @@ public record WheelEntry(String id, String label, String description, String gly
         id = requireText(id, "id");
         label = requireText(label, "label");
         description = Objects.requireNonNull(description, "description").trim();
-        glyph = requireText(glyph, "glyph");
+        glyph = Objects.requireNonNull(glyph, "glyph").trim();
         if ((color >>> 24) == 0) {
             color |= 0xFF000000;
         }

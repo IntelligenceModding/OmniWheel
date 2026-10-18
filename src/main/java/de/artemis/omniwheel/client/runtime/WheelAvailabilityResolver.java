@@ -2,6 +2,7 @@ package de.artemis.omniwheel.client.runtime;
 
 import com.mojang.brigadier.ParseResults;
 import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.KeybindAction;
 import de.artemis.omniwheel.common.action.CommandAction;
 import de.artemis.omniwheel.common.action.CopyTextAction;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -19,13 +20,33 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 
-import java.lang.reflect.Method;
+
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
 public final class WheelAvailabilityResolver {
     public static final String PROFILES_WHEEL_ID = "__profiles__";
+
+    /** Configured slots never collapse as permissions or context change. */
+    public List<WheelEntry> layoutEntries(WheelProfile profile, String wheelId) {
+        return PROFILES_WHEEL_ID.equals(wheelId) ? profileEntries() : profile.wheel(wheelId).radialEntries();
+    }
+
+    public boolean canActivate(WheelProfile profile, String wheelId, WheelEntry entry, Deque<String> path) {
+        if (!entry.active() || !PROFILES_WHEEL_ID.equals(wheelId) && !profile.wheel(wheelId).active()) return false;
+        if (entry.action() instanceof OpenWheelAction submenu) {
+            return PROFILES_WHEEL_ID.equals(submenu.wheelId()) || profile.wheels().containsKey(submenu.wheelId())
+                    && profile.wheel(submenu.wheelId()).active();
+        }
+        return isVisible(profile, entry, path);
+    }
+
+    public boolean[] enabledEntries(WheelProfile profile, String wheelId, List<WheelEntry> entries, Deque<String> path) {
+        boolean[] result = new boolean[entries.size()];
+        for (int index = 0; index < result.length; index++) result[index] = canActivate(profile, wheelId, entries.get(index), path);
+        return result;
+    }
 
     public List<WheelEntry> visibleEntries(WheelProfile profile, String wheelId, Deque<String> wheelPath) {
         if (PROFILES_WHEEL_ID.equals(wheelId)) {
@@ -48,30 +69,18 @@ public final class WheelAvailabilityResolver {
         if (!entry.active()) {
             return false;
         }
-        WheelAction action = entry.action();
-        if (action instanceof CommandAction commandAction) {
-            return isCommandAvailable(commandAction);
-        }
-        if (action instanceof ChatAction) {
-            return isChatAvailable();
-        }
-        if (action instanceof FunctionAction functionAction) {
-            return functionAction.function() != GameplayFunction.OMNI_BACK
-                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function());
-        }
-        if (action instanceof OpenChatAction openChatAction) {
-            return isOpenChatAvailable(openChatAction);
-        }
-        if (action instanceof CopyTextAction
-                || action instanceof LocalMessageAction
-                || action instanceof OpenScreenAction
-                || action instanceof SwitchProfileAction) {
-            return true;
-        }
-        if (action instanceof OpenWheelAction openWheelAction) {
-            return isWheelEntryVisible(profile, openWheelAction, wheelPath);
-        }
-        return false;
+        return (java.util.Objects.requireNonNull(entry.action()) instanceof CommandAction commandAction ? (isCommandAvailable(commandAction)) :
+                entry.action() instanceof KeybindAction action ? (KeybindActionController.find(Minecraft.getInstance(), action.keybindId()) != null) :
+                entry.action() instanceof ChatAction ignored ? (isChatAvailable()) :
+                entry.action() instanceof FunctionAction functionAction ? (functionAction.function() != GameplayFunction.OMNI_BACK
+                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function())) :
+                entry.action() instanceof OpenChatAction openChatAction ? (isOpenChatAvailable(openChatAction)) :
+                entry.action() instanceof CopyTextAction ignored ? (true) :
+                entry.action() instanceof LocalMessageAction ignored ? (true) :
+                entry.action() instanceof OpenScreenAction ignored ? (true) :
+                entry.action() instanceof SwitchProfileAction ignored ? (true) :
+                entry.action() instanceof OpenWheelAction openWheelAction ? (isWheelEntryVisible(profile, openWheelAction, wheelPath)) :
+                (false));
     }
 
     private boolean isWheelEntryVisible(WheelProfile profile, OpenWheelAction action, Deque<String> wheelPath) {
@@ -127,7 +136,7 @@ public final class WheelAvailabilityResolver {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return false;
         }
-        if (!canPlayerChat(minecraft, "canSendCommands")) {
+        if (!canPlayerChat(minecraft)) {
             return false;
         }
 
@@ -148,7 +157,7 @@ public final class WheelAvailabilityResolver {
 
     private boolean isChatAvailable() {
         Minecraft minecraft = Minecraft.getInstance();
-        return minecraft.player != null && minecraft.player.connection != null && canPlayerChat(minecraft, "canSendMessages");
+        return minecraft.player != null && minecraft.player.connection != null && canPlayerChat(minecraft);
     }
 
     private boolean isOpenChatAvailable(OpenChatAction action) {
@@ -164,7 +173,7 @@ public final class WheelAvailabilityResolver {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return false;
         }
-        if (!canPlayerChat(minecraft, "canSendCommands")) {
+        if (!canPlayerChat(minecraft)) {
             return false;
         }
 
@@ -190,25 +199,7 @@ public final class WheelAvailabilityResolver {
         return new java.util.ArrayDeque<>(values);
     }
 
-    private static boolean canPlayerChat(Minecraft minecraft, String abilityMethodName) {
-        if (minecraft.player == null) {
-            return false;
-        }
-
-        try {
-            Method chatAbilitiesMethod = minecraft.player.getClass().getMethod("chatAbilities");
-            Object chatAbilities = chatAbilitiesMethod.invoke(minecraft.player);
-            if (chatAbilities == null) {
-                return false;
-            }
-
-            Method abilityMethod = chatAbilities.getClass().getMethod(abilityMethodName);
-            Object value = abilityMethod.invoke(chatAbilities);
-            return value instanceof Boolean bool && bool;
-        } catch (ReflectiveOperationException ignored) {
-            return true;
-        }
-    }
+    private static boolean canPlayerChat(Minecraft minecraft) { return minecraft.player != null && minecraft.getChatStatus().isChatAllowed(minecraft.isLocalServer()); }
 
     private List<WheelEntry> profileEntries() {
         List<WheelProfile> profiles = OmniWheelClientRuntime.getInstance().profileManager().getProfiles();
