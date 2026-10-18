@@ -5,6 +5,11 @@
   "client": [
     "GuiMixin",
     "KeyMappingAccessor",
+    "ItemStackRenderStateAccessor",
+    "ItemLayerRenderStateAccessor",
+    "KeyMappingMixin",
+    "KeyboardHandlerAccessor",
+    "KeyboardHandlerMixin",
     "MouseHandlerMixin"
   ],
   "injectors": {

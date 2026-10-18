@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
 import de.artemis.omniwheel.client.overlay.OmniWheelOverlay;
+import de.artemis.omniwheel.client.input.ShortcutInputState;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.profile.OmniWheelProfileManager;
 import de.artemis.omniwheel.client.screen.OmniWheelProfilesScreen;
@@ -16,6 +17,7 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ public final class OmniWheelClientRuntime {
 
     private final OmniWheelProfileManager profileManager = new OmniWheelProfileManager();
     private final GameplayFunctionController functionController = new GameplayFunctionController();
+    private final KeybindActionController keybindController = new KeybindActionController();
     private final ClientActionExecutor actionExecutor = new ClientActionExecutor();
     private final WheelAvailabilityResolver availabilityResolver = new WheelAvailabilityResolver();
     private final OmniWheelOverlay overlay = new OmniWheelOverlay(this);
@@ -55,6 +58,10 @@ public final class OmniWheelClientRuntime {
         return actionExecutor;
     }
 
+    public KeybindActionController keybindController() {
+        return keybindController;
+    }
+
     public GameplayFunctionController functionController() {
         return functionController;
     }
@@ -67,8 +74,16 @@ public final class OmniWheelClientRuntime {
         return tutorialProgressStore;
     }
 
+    public boolean handleTutorialKey(int key, int modifiers, int action) {
+        return overlay.handleTutorialKey(key, modifiers, action);
+    }
+
     public void tick() {
         Minecraft minecraft = Minecraft.getInstance();
+        if (!minecraft.isWindowActive()) {
+            ShortcutInputState.clear();
+            activeShortcutEntries.clear();
+        }
         boolean profilesReloaded = profileManager.pollExternalChanges();
         if (profilesReloaded && profilesOverlay.isOpen()) {
             profilesOverlay.onProfilesReloaded();
@@ -131,7 +146,7 @@ public final class OmniWheelClientRuntime {
     }
 
     private void processEntryShortcuts(Minecraft minecraft) {
-        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null || isOverlayUiOpen()) {
+        if (!minecraft.isWindowActive() || minecraft.player == null || minecraft.level == null || minecraft.screen != null || isOverlayUiOpen()) {
             activeShortcutEntries.clear();
             return;
         }
@@ -173,6 +188,11 @@ public final class OmniWheelClientRuntime {
         }
     }
 
+    /** Process edges as well as ticks, so a quick macro tap cannot disappear between ticks. */
+    public void shortcutInputChanged(int action) {
+        if (action != GLFW.GLFW_REPEAT) processEntryShortcuts(Minecraft.getInstance());
+    }
+
     private List<ShortcutCandidate> collectShortcutCandidates(WheelProfile profile) {
         List<ShortcutCandidate> candidates = new ArrayList<>();
         String rootWheelId = profile.rootWheelId();
@@ -196,7 +216,7 @@ public final class OmniWheelClientRuntime {
         }
 
         for (WheelEntry entry : wheel.entries()) {
-            if (!entry.shortcut().isBlank() && availabilityResolver.isVisible(profile, entry, new ArrayDeque<>(path))) {
+            if (!entry.shortcut().isBlank() && availabilityResolver.canActivate(profile, wheelId, entry, new ArrayDeque<>(path))) {
                 List<String> openPath = null;
                 if (entry.action() instanceof OpenWheelAction openWheelAction && profile.wheels().containsKey(openWheelAction.wheelId())) {
                     openPath = new ArrayList<>(path);

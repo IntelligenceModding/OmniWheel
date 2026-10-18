@@ -81,6 +81,7 @@ public final class TutorialProgressStore {
         }
         if (!Files.exists(storagePath)) {
             state = new StoreState();
+            state.guideRevision = TutorialGuide.REVISION;
             return state;
         }
         try {
@@ -102,6 +103,12 @@ public final class TutorialProgressStore {
                 loaded.contexts.put("legacy", legacy);
             }
             migrateSingleplayerContexts(loaded);
+            if (loaded.guideRevision != TutorialGuide.REVISION) {
+                loaded.contexts.clear();
+                loaded.radialCompleted = false; loaded.managerCompleted = false;
+                loaded.radialStep = 0; loaded.managerStep = 0;
+                loaded.guideRevision = TutorialGuide.REVISION;
+            }
             state = loaded;
             return state;
         } catch (IOException exception) {
@@ -202,6 +209,7 @@ public final class TutorialProgressStore {
     }
 
     private static final class StoreState {
+        int guideRevision;
         Map<String, TutorialState> contexts = new LinkedHashMap<>();
 
         // Legacy root-level fields kept for backward compatibility while reading older files.
