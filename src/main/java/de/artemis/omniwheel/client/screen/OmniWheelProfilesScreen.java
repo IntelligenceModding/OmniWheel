@@ -16,6 +16,7 @@ public final class OmniWheelProfilesScreen extends Screen {
     public OmniWheelProfilesScreen(OmniWheelClientRuntime runtime, Screen parent) {
         super(OmniWheelText.component("omniwheel.screen.profile_manager"));
         this.editor = new OmniWheelProfilesOverlay(runtime);
+        this.editor.captureIconSources(parent);
         this.parent = parent;
     }
 
@@ -72,7 +73,7 @@ public final class OmniWheelProfilesScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        return editor.mouseClicked(event.x(), event.y(), event.button()) || super.mouseClicked(event, doubleClick);
+        return editor.mouseClicked(event.x(), event.y(), event.button(), doubleClick) || super.mouseClicked(event, doubleClick);
     }
 
     @Override
