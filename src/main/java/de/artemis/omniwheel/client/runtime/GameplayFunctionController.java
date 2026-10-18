@@ -186,7 +186,7 @@ public final class GameplayFunctionController {
 
     private static void openSocialInteractions(Minecraft minecraft) {
         if (!isSocialInteractionsAvailable(minecraft)) {
-            minecraft.player.displayClientMessage(Component.translatable("multiplayer.socialInteractions.not_available"), true);
+            minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("multiplayer.socialInteractions.not_available"), true);
             return;
         }
         minecraft.setScreen(new SocialInteractionsScreen());
@@ -240,7 +240,7 @@ public final class GameplayFunctionController {
 
     private static void toggleFullscreen(Minecraft minecraft) {
         minecraft.getWindow().toggleFullScreen();
-        minecraft.options.fullscreen().set(minecraft.getWindow().isFullscreen());
+        minecraft.options.fullscreen = minecraft.getWindow().isFullscreen();
     }
 
     private static void toggleSmoothCamera(Minecraft minecraft) {

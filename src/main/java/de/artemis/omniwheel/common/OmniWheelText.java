@@ -13,7 +13,7 @@ public final class OmniWheelText {
     }
 
     public static Component component(String key, Object... args) {
-        return Component.translatable(key, args);
+        return new net.minecraft.network.chat.TranslatableComponent(key, args);
     }
 
     public static String resolve(String value) {

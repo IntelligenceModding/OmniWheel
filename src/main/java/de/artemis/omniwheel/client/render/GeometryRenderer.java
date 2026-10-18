@@ -221,7 +221,8 @@ public final class GeometryRenderer {
                             .color((color >> 16) & 255, (color >> 8) & 255, color & 255, (color >>> 24)).endVertex();
                 }
             }
-            BufferUploader.drawWithShader(consumer.end());
+            consumer.end();
+            BufferUploader.end(consumer);
         } finally {
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();

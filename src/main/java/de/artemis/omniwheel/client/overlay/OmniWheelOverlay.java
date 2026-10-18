@@ -646,7 +646,7 @@ public final class OmniWheelOverlay {
         float minScale = 0.55F;
         for (float scale = 1.0F; scale >= minScale; scale -= 0.05F) {
             int scaledWidth = Math.max(1, Math.round(maxWidth / scale));
-            List<FormattedCharSequence> lines = minecraft.font.split(Component.literal(text), scaledWidth);
+            List<FormattedCharSequence> lines = minecraft.font.split(new net.minecraft.network.chat.TextComponent(text), scaledWidth);
             if (lines.size() > maxLines) {
                 continue;
             }
@@ -660,13 +660,13 @@ public final class OmniWheelOverlay {
 
         float fallbackScale = minScale;
         int fallbackWidth = Math.max(1, Math.round(maxWidth / fallbackScale));
-        List<FormattedCharSequence> fallbackLines = new ArrayList<>(minecraft.font.split(Component.literal(text), fallbackWidth));
+        List<FormattedCharSequence> fallbackLines = new ArrayList<>(minecraft.font.split(new net.minecraft.network.chat.TextComponent(text), fallbackWidth));
         if (fallbackLines.size() > maxLines) {
             fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
             if (!fallbackLines.isEmpty()) {
                 int maxChars = Math.max(3, Math.round(fallbackWidth / 6.0F));
                 String shortened = shortenPlainText(text, maxChars);
-                fallbackLines = new ArrayList<>(minecraft.font.split(Component.literal(shortened), fallbackWidth));
+                fallbackLines = new ArrayList<>(minecraft.font.split(new net.minecraft.network.chat.TextComponent(shortened), fallbackWidth));
                 if (fallbackLines.size() > maxLines) {
                     fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
                 }
@@ -728,8 +728,8 @@ public final class OmniWheelOverlay {
                 : step.id().equals("management")
                 ? OmniWheelText.translate(step.bodyKey(TutorialType.RADIAL), OmniWheelKeyMappings.OPEN_MANAGER.getTranslatedKeyMessage().getString())
                 : OmniWheelText.translate(step.bodyKey(TutorialType.RADIAL));
-        var titleLines = minecraft.font.split(Component.literal(title), boxWidth - 20);
-        var bodyLines = minecraft.font.split(Component.literal(body), boxWidth - 20);
+        var titleLines = minecraft.font.split(new net.minecraft.network.chat.TextComponent(title), boxWidth - 20);
+        var bodyLines = minecraft.font.split(new net.minecraft.network.chat.TextComponent(body), boxWidth - 20);
         int boxHeight = 24 + titleLines.size() * 10 + 8 + bodyLines.size() * 10 + 36;
         int boxX = focus.centerX() >= centerX ? 16 : width - boxWidth - 16;
         int boxY = Math.max(8, Math.min(20, height - boxHeight - 8));

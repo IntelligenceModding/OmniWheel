@@ -9,6 +9,9 @@ import java.util.List;
 
 @Mixin(CommandSuggestions.class)
 public interface CommandSuggestionsAccessor {
+    @Accessor("suggestions")
+    CommandSuggestions.SuggestionsList omniwheel$getSuggestions();
+
     @Accessor("commandUsagePosition")
     void omniwheel$setCommandUsagePosition(int position);
 

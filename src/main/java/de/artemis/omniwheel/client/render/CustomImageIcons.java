@@ -64,7 +64,7 @@ public final class CustomImageIcons {
     }
 
     public static void clearCache() {
-        // TextureManager.release only deletes the GL name in 1.19.2. Close also resets
+        // TextureManager.release only deletes the GL name in 1.18.2. Close also resets
         // the old object's handle, so replacing its registration cannot delete a reused name.
         for (var image : TEXTURES.values()) image.ifPresent(texture -> texture.texture().close());
         TEXTURES.clear();

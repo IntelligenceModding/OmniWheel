@@ -89,7 +89,7 @@ You can view the available branches [here][branches].
 
 When contributing, always work against the branch matching the Minecraft version and loader your change targets.
 
-For example, a change developed for Minecraft 1.19.2 with Fabric should target the corresponding 1.19.2 Fabric branch.
+For example, a change developed for Minecraft 1.18.2 with Fabric should target the corresponding 1.18.2 Fabric branch.
 
 Do **not** target the `assets` branch for code changes. The `assets` branch is used for project images and other repository assets.
 
@@ -117,7 +117,7 @@ Check the following line in the branch's `build.gradle` file if you are unsure:
 java.toolchain.languageVersion = JavaLanguageVersion.of(...)
 ```
 
-The Minecraft 1.19.2 Fabric branch compiles and runs on Java 17. Install JDK 17 for the game and tests, and JDK 21 to run the Gradle wrapper. Gradle selects the Java 17 toolchain for compilation and testing.
+The Minecraft 1.18.2 Fabric branch compiles and runs on Java 17. Install JDK 17 for the game and tests, and JDK 21 to run the Gradle wrapper. Gradle selects the Java 17 toolchain for compilation and testing.
 
 Java builds such as Eclipse Temurin can be downloaded from [Adoptium][adoptium].
 
@@ -149,7 +149,7 @@ Before beginning work, switch to the branch matching the Minecraft version you w
 For example:
 
 ```bash
-git switch 1.19.2-fabric
+git switch 1.18.2-fabric
 ```
 
 It is recommended to create your own development branch from there.

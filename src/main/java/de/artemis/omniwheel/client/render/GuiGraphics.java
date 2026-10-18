@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/** The wheel's drawing operations backed by Minecraft 1.19.2's pose-based GUI. */
+/** The wheel's drawing operations backed by Minecraft 1.18.2's pose-based GUI. */
 public final class GuiGraphics {
     private final Minecraft minecraft;
     private final PoseStack pose;

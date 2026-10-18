@@ -7,7 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Keeps profile GUI icon IDs stable using 1.19.2's resource-pack texture sheets. */
+/** Keeps profile GUI icon IDs stable using 1.18.2's resource-pack texture sheets. */
 public final class LegacyGuiIcons {
     private record Region(ResourceLocation texture, int textureWidth, int textureHeight, int x, int y, int width, int height) {}
     private static final Map<String, Region> REGIONS = new LinkedHashMap<>();
@@ -33,11 +33,11 @@ public final class LegacyGuiIcons {
         hearts("absorbing_", 160, 0);
         hearts("frozen_", 178, 0);
         hearts("vehicle_", 52, 9);
-        REGIONS.put("icon/checkmark", new Region(new ResourceLocation("realms", "textures/gui/realms/checkmark.png"), 9, 8, 0, 0, 9, 8));
+        REGIONS.put("icon/checkmark", new Region(new ResourceLocation("omniwheel", "textures/gui/checkmark.png"), 9, 8, 0, 0, 9, 8));
         region("icon/search", "recipe_book", 256, 256, 10, 14, 13, 13);
         region("icon/language", "widgets", 256, 256, 0, 106, 20, 20);
         region("icon/accessibility", "accessibility", 32, 64, 0, 0, 32, 32);
-        region("icon/draft_report", "report_button", 64, 64, 0, 0, 20, 20);
+        REGIONS.put("icon/draft_report", new Region(new ResourceLocation("omniwheel", "textures/gui/report_button.png"), 64, 64, 0, 0, 20, 20));
         for (int bars = 1; bars <= 5; bars++) icon("icon/ping_" + bars, 0, 176 + (5 - bars) * 8, 10, 8);
         icon("icon/ping_unknown", 0, 216, 10, 8);
     }

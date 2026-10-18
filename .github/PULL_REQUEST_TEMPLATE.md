@@ -16,9 +16,9 @@ Explain the purpose of the change rather than only listing modified files.
 <!--
 Example:
 
-- Minecraft version: 1.19.2
+- Minecraft version: 1.18.2
 - Mod loader: Fabric
-- Target branch: 1.19.2-fabric
+- Target branch: 1.18.2-fabric
 -->
 
 ## Changes
@@ -42,7 +42,7 @@ Please mention:
 Example:
 
 - `gradlew.bat build` completed successfully.
-- Tested the changes in the 1.19.2 Fabric development client.
+- Tested the changes in the 1.18.2 Fabric development client.
 - Tested radial wheel opening, selection, and closing.
 - Tested affected profiles, shortcuts, submenus, commands, or actions where applicable.
 -->

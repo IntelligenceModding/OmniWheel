@@ -721,9 +721,9 @@ public final class OmniWheelProfilesOverlay {
             graphics.flush();
             graphics.pose().pushPose();
             graphics.pose().translate(0.0F, commandSuggestionsYOffset, 0.0F);
-            boolean suggestionsVisible = commandSuggestions.renderSuggestions(graphics.pose(),
+            boolean suggestionsVisible = ((de.artemis.omniwheel.mixin.client.CommandSuggestionsAccessor) commandSuggestions).omniwheel$getSuggestions() != null;
+            if (suggestionsVisible || !renderWrappedUsage) commandSuggestions.render(graphics.pose(),
                     (int) currentMouseX(minecraft), (int) currentMouseY(minecraft) - commandSuggestionsYOffset);
-            if (!suggestionsVisible && !renderWrappedUsage) commandSuggestions.renderUsage(graphics.pose());
             graphics.pose().popPose();
             if (!suggestionsVisible && renderWrappedUsage) {
                 renderWrappedCommandUsage(graphics, minecraft);
@@ -743,7 +743,7 @@ public final class OmniWheelProfilesOverlay {
         if (CustomItemIcons.isCustom(hoveredCustomIcon)) {
             graphics.renderTooltip(minecraft.font, CustomItemIcons.decode(hoveredCustomIcon), hoveredCustomIconX, hoveredCustomIconY);
         } else if (CustomImageData.isImage(hoveredCustomIcon)) {
-            graphics.renderTooltip(minecraft.font, Component.literal(CustomImageData.displayName(hoveredCustomIcon)), hoveredCustomIconX, hoveredCustomIconY);
+            graphics.renderTooltip(minecraft.font, new net.minecraft.network.chat.TextComponent(CustomImageData.displayName(hoveredCustomIcon)), hoveredCustomIconX, hoveredCustomIconY);
         }
     }
 
@@ -2314,7 +2314,7 @@ public final class OmniWheelProfilesOverlay {
         if (normalized.startsWith("effect:")) {
             ResourceLocation effectId = ResourceLocation.tryParse(normalized.substring("effect:".length()));
             MobEffect effect = effectId == null ? null : Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
-            if (effect != null) return Component.translatable(effect.getDescriptionId()).getString();
+            if (effect != null) return new net.minecraft.network.chat.TranslatableComponent(effect.getDescriptionId()).getString();
         }
         String path = normalized.substring(normalized.lastIndexOf(':') + 1);
         StringBuilder name = new StringBuilder();
@@ -2641,8 +2641,8 @@ public final class OmniWheelProfilesOverlay {
         boolean leftFocus = focus.right() <= editorPanelX;
         int boxWidth = preview ? profilesPanelWidth - 8 : Math.min(330, editorPanelWidth - 24);
         String title = text(step.titleKey(TutorialType.MANAGER));
-        var titleLines = minecraft.font.split(Component.literal(title), boxWidth - 20);
-        var bodyLines = minecraft.font.split(Component.literal(text(step.bodyKey(TutorialType.MANAGER))), boxWidth - 20);
+        var titleLines = minecraft.font.split(new net.minecraft.network.chat.TextComponent(title), boxWidth - 20);
+        var bodyLines = minecraft.font.split(new net.minecraft.network.chat.TextComponent(text(step.bodyKey(TutorialType.MANAGER))), boxWidth - 20);
         int boxHeight = 24 + titleLines.size() * 10 + 8 + bodyLines.size() * 10 + 36;
         int boxX = preview || !leftFocus && step.focus() != TutorialGuide.Focus.ALL ? profilesPanelX + 4 : editorPanelX + 12;
         int boxY = step.focus() == TutorialGuide.Focus.ALL ? uiHeight(minecraft) - boxHeight - 38 : profilesPanelY + 38;
@@ -2772,12 +2772,12 @@ public final class OmniWheelProfilesOverlay {
             InputConstants.Key bound = OmniWheelKeyMappings.currentKey(keyMapping);
             if (bound.getType() == InputConstants.Type.MOUSE && spec.mouseButtons().contains(bound.getValue())
                     || bound.getType() == InputConstants.Type.SCANCODE && spec.scanCodes().contains(bound.getValue())) {
-                conflicts.add(Component.translatable(keyMapping.getName()).getString());
+                conflicts.add(new net.minecraft.network.chat.TranslatableComponent(keyMapping.getName()).getString());
                 continue;
             }
             for (int key : spec.keys()) {
                 if (keyMapping.matches(key, -1)) {
-                    conflicts.add(Component.translatable(keyMapping.getName()).getString());
+                    conflicts.add(new net.minecraft.network.chat.TranslatableComponent(keyMapping.getName()).getString());
                     break;
                 }
             }
@@ -3072,7 +3072,7 @@ public final class OmniWheelProfilesOverlay {
                 wrappedLines.add(line);
                 continue;
             }
-            List<FormattedCharSequence> split = minecraft.font.split(Component.literal(formattedSequenceToString(line)), maxWidth);
+            List<FormattedCharSequence> split = minecraft.font.split(new net.minecraft.network.chat.TextComponent(formattedSequenceToString(line)), maxWidth);
             if (split.isEmpty()) {
                 wrappedLines.add(line);
             } else {
@@ -3164,7 +3164,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void drawKeybindSelector(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
-        drawReadOnlyField(graphics, minecraft, x, y, width, text("omniwheel.manager.field.keybind"), Component.translatable(entryKeybindDraft).getString());
+        drawReadOnlyField(graphics, minecraft, x, y, width, text("omniwheel.manager.field.keybind"), new net.minecraft.network.chat.TranslatableComponent(entryKeybindDraft).getString());
         drawTextField(graphics, minecraft, EditorField.ENTRY_VALUE, x, y + 38, width, text("omniwheel.manager.field.keybind_search"), true);
         y += 76;
         height -= 76;
@@ -3246,8 +3246,8 @@ public final class OmniWheelProfilesOverlay {
             lastKeybindCategorySearch = query;
         }
         List<KeybindCategories.Option> options = java.util.Arrays.stream(minecraft.options.keyMappings)
-                .map(mapping -> new KeybindCategories.Option(mapping.getName(), Component.translatable(mapping.getName()).getString(),
-                        mapping.getCategory(), Component.translatable(mapping.getCategory()).getString())).toList();
+                .map(mapping -> new KeybindCategories.Option(mapping.getName(), new net.minecraft.network.chat.TranslatableComponent(mapping.getName()).getString(),
+                        mapping.getCategory(), new net.minecraft.network.chat.TranslatableComponent(mapping.getCategory()).getString())).toList();
         for (var option : options) if (knownKeybindCategories.add(option.categoryId())) collapsedKeybindCategories.add(option.categoryId());
         String selection = selectedProfileId + "/" + selectedWheelId + "/" + selectedEntryId;
         if (!Objects.equals(selection, keybindCategorySelection)) {
@@ -5000,7 +5000,7 @@ public final class OmniWheelProfilesOverlay {
                 continue;
             }
             String iconId = "effect:" + id;
-            String displayName = Component.translatable(effect.getDescriptionId()).getString();
+            String displayName = new net.minecraft.network.chat.TranslatableComponent(effect.getDescriptionId()).getString();
             String searchText = (iconId + " " + displayName).toLowerCase(java.util.Locale.ROOT);
             options.add(new IconPickerOption(iconId, searchText));
         }
@@ -5168,7 +5168,7 @@ public final class OmniWheelProfilesOverlay {
 
     private static boolean particleDefinitionExists(Minecraft minecraft, ResourceLocation particleId) {
         ResourceLocation definitionId = ResourceLocation.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
-        return definitionId != null && minecraft.getResourceManager().getResource(definitionId).isPresent();
+        return definitionId != null && minecraft.getResourceManager().hasResource(definitionId);
     }
 
     private static void addIconPickerOption(List<IconPickerOption> options, String id, String searchTerms) {
@@ -5389,7 +5389,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static String actionSummary(WheelAction action) {
-        return (java.util.Objects.requireNonNull(action) instanceof KeybindAction keybind ? (Component.translatable(keybind.keybindId()).getString()) :
+        return (java.util.Objects.requireNonNull(action) instanceof KeybindAction keybind ? (new net.minecraft.network.chat.TranslatableComponent(keybind.keybindId()).getString()) :
                 action instanceof CommandAction commandAction ? (text(commandAction.commands().size() > 1 ? "omniwheel.action.commands" : "omniwheel.action.command")) :
                 action instanceof ChatAction ignored ? (text("omniwheel.action.chat")) :
                 action instanceof FunctionAction functionAction ? (functionAction.function().displayName()) :

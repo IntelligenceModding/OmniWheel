@@ -51,7 +51,7 @@ public final class ClientActionExecutor {
         for (String template : templates) {
             String missing = snapshot.missingMessage(OmniWheelText.resolve(template));
             if (missing != null) {
-                if (minecraft.player != null) minecraft.player.displayClientMessage(Component.literal(missing), true);
+                if (minecraft.player != null) minecraft.player.displayClientMessage(new net.minecraft.network.chat.TextComponent(missing), true);
                 return false;
             }
         }
@@ -87,7 +87,7 @@ public final class ClientActionExecutor {
             if (resolved.startsWith("/")) {
                 resolved = resolved.substring(1);
             }
-            minecraft.player.commandSigned(resolved, null);
+            minecraft.player.chat("/" + resolved);
         }
     }
 
@@ -103,7 +103,7 @@ public final class ClientActionExecutor {
             minecraft.setScreen(new ChatScreen(resolved));
             return;
         }
-        minecraft.player.chatSigned(resolved, null);
+        minecraft.player.chat(resolved);
     }
 
     private void executeFunction(FunctionAction action) {
@@ -117,7 +117,7 @@ public final class ClientActionExecutor {
         }
 
         if (ContextValueFormatter.extractCopyValues(action.message(), minecraft).isEmpty()) {
-            minecraft.player.displayClientMessage(Component.literal(PlaceholderResolver.resolve(action.message(), minecraft)), true);
+            minecraft.player.displayClientMessage(new net.minecraft.network.chat.TextComponent(PlaceholderResolver.resolve(action.message(), minecraft)), true);
             return;
         }
 

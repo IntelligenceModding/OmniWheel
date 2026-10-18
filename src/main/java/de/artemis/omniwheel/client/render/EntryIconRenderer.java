@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
 public final class EntryIconRenderer {
     private static final String EFFECT_PREFIX = "effect:";
@@ -481,12 +480,8 @@ public final class EntryIconRenderer {
             return List.of();
         }
 
-        Optional<Resource> resource = minecraft.getResourceManager().getResource(definitionId);
-        if (resource.isEmpty()) {
-            return List.of();
-        }
-
-        try (Reader reader = resource.get().openAsReader()) {
+        try (Resource resource = minecraft.getResourceManager().getResource(definitionId);
+             Reader reader = new java.io.InputStreamReader(resource.getInputStream(), java.nio.charset.StandardCharsets.UTF_8)) {
             JsonObject data = GsonHelper.parse(reader);
             JsonArray textures = GsonHelper.getAsJsonArray(data, "textures", null);
             if (textures == null || textures.isEmpty()) {

@@ -8,7 +8,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Direction;
-import net.minecraft.util.RandomSource;
+import java.util.Random;
 import net.minecraft.client.renderer.block.model.ItemTransforms.TransformType;
 import net.minecraft.world.item.ItemStack;
 import com.mojang.math.Vector3f;
@@ -86,7 +86,7 @@ public final class IconAssetValidator {
             return hasVisibleExtents(pose, List.of(), true);
         }
         List<BakedQuad> quads = new ArrayList<>();
-        RandomSource random = RandomSource.create(42);
+        Random random = new Random(42);
         // Match ItemRenderer's directional and unculled model queries.
         for (Direction direction : Direction.values()) {
             random.setSeed(42);
@@ -204,11 +204,8 @@ public final class IconAssetValidator {
                 || (long) u + width > textureWidth || (long) v + height > textureHeight) {
             return false;
         }
-        var resource = minecraft.getResourceManager().getResource(id);
-        if (resource.isEmpty()) {
-            return false;
-        }
-        try (var stream = resource.get().open(); NativeImage image = NativeImage.read(stream)) {
+        try (var resource = minecraft.getResourceManager().getResource(id);
+             var stream = resource.getInputStream(); NativeImage image = NativeImage.read(stream)) {
             int x0 = (int) ((long) u * image.getWidth() / textureWidth);
             int y0 = (int) ((long) v * image.getHeight() / textureHeight);
             int x1 = (int) ((long) (u + width) * image.getWidth() / textureWidth);
