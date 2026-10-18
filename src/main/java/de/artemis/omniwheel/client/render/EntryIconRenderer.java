@@ -1,7 +1,10 @@
 package de.artemis.omniwheel.client.render;
 
 import net.minecraft.client.Minecraft;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.client.renderer.texture.AtlasTexture;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.resources.IResource;
 import net.minecraft.util.JSONUtils;
@@ -10,68 +13,81 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.block.Block;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.LinkedHashMap;
 
 public final class EntryIconRenderer {
+
     private static final String EFFECT_PREFIX = "effect:";
+
     private static final String GUI_PREFIX = "gui:";
+
     private static final String PARTICLE_PREFIX = "particle:";
+
     private static final String SYMBOL_PREFIX = "symbol:";
+
     private static final String TEXTURE_PREFIX = "texture:";
-    private static final ResourceLocation GUI_ICONS = minecraftTexture("gui/icons.png");
-    private static final ResourceLocation ACCESSIBILITY = minecraftTexture("gui/accessibility.png");
-    private static final ResourceLocation WIDGETS = minecraftTexture("gui/widgets.png");
-    private static final ResourceLocation CHECKBOX = minecraftTexture("gui/checkbox.png");
+
+    private static final Map<String, Boolean> VALID_ICONS = new LinkedHashMap<>();
+
+    private static long resourceGeneration;
+
+    private static final Map<String, ResourceLocation> GUI_SPRITES = new LinkedHashMap<>();
+
     private static final Map<ResourceLocation, List<ResourceLocation>> PARTICLE_FRAMES = new LinkedHashMap<>();
+
+    private static final Map<ResourceLocation, List<TextureAtlasSprite>> PARTICLE_SPRITES = new LinkedHashMap<>();
+
     private static final Map<String, String> SYMBOLS = new LinkedHashMap<>();
+
     private static final Map<String, TextureIcon> TEXTURE_ICONS = new LinkedHashMap<>();
 
     static {
-        registerTextureIcon("gui:hud/crosshair", GUI_ICONS, 256, 256, 0, 0, 15, 15);
-        registerTextureIcon("gui:hud/armor_empty", GUI_ICONS, 256, 256, 16, 9, 9, 9);
-        registerTextureIcon("gui:hud/armor_half", GUI_ICONS, 256, 256, 25, 9, 9, 9);
-        registerTextureIcon("gui:hud/armor_full", GUI_ICONS, 256, 256, 34, 9, 9, 9);
-        registerTextureIcon("gui:hud/food_empty", GUI_ICONS, 256, 256, 16, 27, 9, 9);
-        registerTextureIcon("gui:hud/food_half", GUI_ICONS, 256, 256, 25, 27, 9, 9);
-        registerTextureIcon("gui:hud/food_full", GUI_ICONS, 256, 256, 34, 27, 9, 9);
-        registerTextureIcon("gui:hud/food_empty_hunger", GUI_ICONS, 256, 256, 88, 27, 9, 9);
-        registerTextureIcon("gui:hud/food_half_hunger", GUI_ICONS, 256, 256, 97, 27, 9, 9);
-        registerTextureIcon("gui:hud/food_full_hunger", GUI_ICONS, 256, 256, 106, 27, 9, 9);
-        registerTextureIcon("gui:hud/air", GUI_ICONS, 256, 256, 16, 18, 9, 9);
-        registerTextureIcon("gui:hud/air_bursting", GUI_ICONS, 256, 256, 25, 18, 9, 9);
-        registerTextureIcon("gui:hud/heart/container", GUI_ICONS, 256, 256, 16, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/full", GUI_ICONS, 256, 256, 52, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/half", GUI_ICONS, 256, 256, 61, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/hardcore_full", GUI_ICONS, 256, 256, 52, 45, 9, 9);
-        registerTextureIcon("gui:hud/heart/hardcore_half", GUI_ICONS, 256, 256, 61, 45, 9, 9);
-        registerTextureIcon("gui:hud/heart/poisoned_full", GUI_ICONS, 256, 256, 88, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/poisoned_half", GUI_ICONS, 256, 256, 97, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/withered_full", GUI_ICONS, 256, 256, 124, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/withered_half", GUI_ICONS, 256, 256, 133, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/absorbing_full", GUI_ICONS, 256, 256, 160, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/absorbing_half", GUI_ICONS, 256, 256, 169, 0, 9, 9);
-        registerTextureIcon("gui:hud/heart/vehicle_full", GUI_ICONS, 256, 256, 52, 9, 9, 9);
-        registerTextureIcon("gui:hud/heart/vehicle_half", GUI_ICONS, 256, 256, 61, 9, 9, 9);
-        registerTextureIcon("gui:icon/checkmark", CHECKBOX, 64, 64, 2, 24, 16, 12);
-        registerTextureIcon("gui:icon/language", WIDGETS, 256, 256, 0, 106, 20, 20);
-        registerTextureIcon("gui:icon/accessibility", ACCESSIBILITY, 32, 64, 0, 0, 20, 20);
-        registerTextureIcon("gui:icon/ping_unknown", GUI_ICONS, 256, 256, 0, 176, 10, 8);
-        registerTextureIcon("gui:icon/ping_1", GUI_ICONS, 256, 256, 0, 168, 10, 8);
-        registerTextureIcon("gui:icon/ping_2", GUI_ICONS, 256, 256, 0, 160, 10, 8);
-        registerTextureIcon("gui:icon/ping_3", GUI_ICONS, 256, 256, 0, 152, 10, 8);
-        registerTextureIcon("gui:icon/ping_4", GUI_ICONS, 256, 256, 0, 144, 10, 8);
-        registerTextureIcon("gui:icon/ping_5", GUI_ICONS, 256, 256, 0, 136, 10, 8);
+        registerGuiSprite("hud/crosshair");
+        registerGuiSprite("hud/armor_full");
+        registerGuiSprite("hud/armor_half");
+        registerGuiSprite("hud/armor_empty");
+        registerGuiSprite("hud/food_full");
+        registerGuiSprite("hud/food_half");
+        registerGuiSprite("hud/food_empty");
+        registerGuiSprite("hud/food_full_hunger");
+        registerGuiSprite("hud/food_half_hunger");
+        registerGuiSprite("hud/food_empty_hunger");
+        registerGuiSprite("hud/air");
+        registerGuiSprite("hud/air_bursting");
+        registerGuiSprite("hud/heart/full");
+        registerGuiSprite("hud/heart/half");
+        registerGuiSprite("hud/heart/container");
+        registerGuiSprite("hud/heart/hardcore_full");
+        registerGuiSprite("hud/heart/hardcore_half");
+        registerGuiSprite("hud/heart/poisoned_full");
+        registerGuiSprite("hud/heart/poisoned_half");
+        registerGuiSprite("hud/heart/withered_full");
+        registerGuiSprite("hud/heart/withered_half");
+        registerGuiSprite("hud/heart/absorbing_full");
+        registerGuiSprite("hud/heart/absorbing_half");
+        registerGuiSprite("hud/heart/frozen_full");
+        registerGuiSprite("hud/heart/frozen_half");
+        registerGuiSprite("hud/heart/vehicle_full");
+        registerGuiSprite("hud/heart/vehicle_half");
+        registerGuiSprite("icon/checkmark");
+        registerGuiSprite("icon/search");
+        registerGuiSprite("icon/language");
+        registerGuiSprite("icon/accessibility");
+        registerGuiSprite("icon/draft_report");
+        registerGuiSprite("icon/ping_unknown");
+        registerGuiSprite("icon/ping_1");
+        registerGuiSprite("icon/ping_2");
+        registerGuiSprite("icon/ping_3");
+        registerGuiSprite("icon/ping_4");
+        registerGuiSprite("icon/ping_5");
         SYMBOLS.put("plus", "+");
         SYMBOLS.put("minus", "-");
         SYMBOLS.put("check", "\u2713");
@@ -81,28 +97,83 @@ public final class EntryIconRenderer {
     private EntryIconRenderer() {
     }
 
+    public static long resourceGeneration() {
+        return resourceGeneration;
+    }
+
+    public static void clearResourceCaches() {
+        VALID_ICONS.clear();
+        CustomItemIcons.clearCache();
+        CustomImageIcons.clearCache();
+        PARTICLE_FRAMES.clear();
+        PARTICLE_SPRITES.clear();
+        IconAssetValidator.clear();
+        resourceGeneration++;
+    }
+
+    public static boolean isUsableIcon(Minecraft minecraft, String icon) {
+        return VALID_ICONS.computeIfAbsent(icon, key -> {
+            try {
+                if (CustomImageData.isImage(key))
+                    return CustomImageIcons.isUsable(key);
+                ItemStack stack = resolveItemStack(key);
+                if (!stack.isEmpty()) {
+                    return IconAssetValidator.item(minecraft, stack);
+                }
+                ResourceLocation effectId = resolveEffectId(key);
+                if (effectId != null) {
+                    net.minecraft.potion.Effect holder = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
+                    return holder != null && IconAssetValidator.sprite(minecraft.getMobEffectTextures().get(holder));
+                }
+                ResourceLocation guiSprite = resolveGuiSprite(key);
+                if (guiSprite != null) {
+                    return IconAssetValidator.guiSprite(minecraft, guiSprite);
+                }
+                TextureIcon texture = resolveTextureIcon(key);
+                if (texture != null) {
+                    return IconAssetValidator.texture(minecraft, texture.texture(), texture.textureWidth(), texture.textureHeight(), texture.u(), texture.v(), texture.srcWidth(), texture.srcHeight());
+                }
+                ResourceLocation particle = resolveParticleId(key);
+                if (particle != null) {
+                    return !resolveParticleSprites(minecraft, particle).isEmpty();
+                }
+                return resolveSymbol(key) != null;
+            } catch (RuntimeException | LinkageError ignored) {
+                // A broken mod asset must not break the entire browser.
+                return false;
+            }
+        });
+    }
+
     public static boolean drawIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
+        if (!isUsableIcon(minecraft, icon)) {
+            return false;
+        }
+        if (CustomImageData.isImage(icon))
+            return CustomImageIcons.draw(graphics, icon, centerX, centerY, scale);
         ItemStack stack = resolveItemStack(icon);
         if (!stack.isEmpty()) {
             float iconSize = 16.0F * scale;
-            int x = Math.round(centerX - (iconSize * 0.5F));
-            int y = Math.round(centerY - (iconSize * 0.5F));
-            graphics.renderItem(stack, x, y, scale);
+            graphics.flush();
+            graphics.pose().pushPose();
+            graphics.pose().translate(centerX - (iconSize * 0.5F), centerY - (iconSize * 0.5F), 0.0F);
+            graphics.pose().scale(scale, scale, 1.0F);
+            graphics.renderItem(stack, 0, 0);
+            graphics.pose().popPose();
             return true;
         }
-
         if (drawEffectIcon(graphics, minecraft, icon, centerX, centerY, scale)) {
             return true;
         }
-
+        if (drawGuiSpriteIcon(graphics, icon, centerX, centerY, scale)) {
+            return true;
+        }
         if (drawTextureIcon(graphics, icon, centerX, centerY, scale)) {
             return true;
         }
-
         if (drawParticleIcon(graphics, minecraft, icon, centerX, centerY, scale)) {
             return true;
         }
-
         return drawSymbolIcon(graphics, minecraft, icon, centerX, centerY, scale);
     }
 
@@ -111,7 +182,7 @@ public final class EntryIconRenderer {
     }
 
     public static boolean isVisualIcon(String icon) {
-        return isItemIcon(icon) || isEffectIcon(icon) || isGuiSpriteIcon(icon) || isTextureIcon(icon) || isParticleIcon(icon) || isSymbolIcon(icon);
+        return CustomImageData.isImage(icon) || isItemIcon(icon) || isEffectIcon(icon) || isGuiSpriteIcon(icon) || isTextureIcon(icon) || isParticleIcon(icon) || isSymbolIcon(icon);
     }
 
     public static boolean isEffectIcon(String icon) {
@@ -123,7 +194,7 @@ public final class EntryIconRenderer {
     }
 
     public static boolean isGuiSpriteIcon(String icon) {
-        return resolveTextureIcon(icon) != null;
+        return resolveGuiSprite(icon) != null;
     }
 
     public static boolean isTextureIcon(String icon) {
@@ -134,33 +205,48 @@ public final class EntryIconRenderer {
         return resolveParticleId(icon) != null;
     }
 
+    public static String particleVisualSignature(Minecraft minecraft, String icon) {
+        ResourceLocation particleId = resolveParticleId(icon);
+        if (particleId == null) {
+            return "";
+        }
+        return particleVisualSignature(minecraft, particleId);
+    }
+
     private static ItemStack resolveItemStack(String icon) {
+        // Embedded PNGs can contain megabytes of data. They are not registry IDs;
+        // the legacy parser otherwise builds an equally large exception message.
+        if (CustomImageData.isImage(icon))
+            return ItemStack.EMPTY;
+        if (CustomItemIcons.isCustom(icon))
+            return CustomItemIcons.decode(icon);
         String trimmed = icon == null ? "" : icon.trim();
         if (trimmed.isEmpty()) {
             return ItemStack.EMPTY;
         }
-
         if (!trimmed.contains(":")) {
             trimmed = "minecraft:" + trimmed;
         }
-
+        if (!ResourceLocation.isValidResourceLocation(trimmed))
+            return ItemStack.EMPTY;
         ResourceLocation id = ResourceLocation.tryParse(trimmed);
         if (id == null) {
             return ItemStack.EMPTY;
         }
-
         Item item = Registry.ITEM.getOptional(id).orElse(null);
         if (item != null && item != Items.AIR) {
             return new ItemStack(item);
         }
-
         Block block = Registry.BLOCK.getOptional(id).orElse(null);
         if (block == null) {
             return ItemStack.EMPTY;
         }
-
         Item blockItem = block.asItem();
-        return blockItem == Items.AIR ? ItemStack.EMPTY : new ItemStack(blockItem);
+        if (blockItem == Items.AIR) {
+            return ItemStack.EMPTY;
+        } else {
+            return new ItemStack(blockItem);
+        }
     }
 
     private static boolean drawEffectIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
@@ -168,18 +254,33 @@ public final class EntryIconRenderer {
         if (effectId == null) {
             return false;
         }
-
-        Effect effect = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
-        if (effect == null) {
+        Effect effectHolder = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
+        if (effectHolder == null) {
             return false;
         }
+        int size = Math.max(12, Math.round(18.0F * scale));
+        int x = Math.round(centerX - (size * 0.5F));
+        int y = Math.round(centerY - (size * 0.5F));
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+        graphics.blit(x, y, 0, size, size, minecraft.getMobEffectTextures().get(effectHolder));
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        return true;
+    }
 
-        ResourceLocation texture = ResourceLocation.tryParse(effectId.getNamespace() + ":textures/mob_effect/" + effectId.getPath() + ".png");
-        if (texture == null || !textureResourceExists(minecraft, texture)) {
+    private static boolean drawGuiSpriteIcon(GuiGraphics graphics, String icon, float centerX, float centerY, float scale) {
+        ResourceLocation spriteId = resolveGuiSprite(icon);
+        if (spriteId == null) {
             return false;
         }
-
-        return drawTextureIcon(graphics, new TextureIcon(texture, 18, 18, 0, 0, 18, 18), centerX, centerY, scale);
+        int size = Math.max(12, Math.round(18.0F * scale));
+        int x = Math.round(centerX - (size * 0.5F));
+        int y = Math.round(centerY - (size * 0.5F));
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+        LegacyGuiIcons.draw(graphics, spriteId, x, y, size, size);
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        return true;
     }
 
     private static boolean drawTextureIcon(GuiGraphics graphics, String icon, float centerX, float centerY, float scale) {
@@ -187,13 +288,14 @@ public final class EntryIconRenderer {
         if (textureIcon == null) {
             return false;
         }
-
-        float baseSize = Math.max(textureIcon.srcWidth(), textureIcon.srcHeight());
-        float renderScale = (18.0F * scale) / Math.max(1.0F, baseSize);
+        graphics.flush();
         graphics.pose().pushPose();
-        graphics.pose().translate(centerX - ((textureIcon.srcWidth() * renderScale) * 0.5F), centerY - ((textureIcon.srcHeight() * renderScale) * 0.5F), 200.0F);
-        graphics.pose().scale(renderScale, renderScale, 1.0F);
-        graphics.blit(textureIcon.texture(), 0, 0, 0, (float) textureIcon.u(), (float) textureIcon.v(), textureIcon.srcWidth(), textureIcon.srcHeight(), textureIcon.textureWidth(), textureIcon.textureHeight());
+        graphics.pose().translate(centerX - (8.0F * scale), centerY - (8.0F * scale), 0.0F);
+        graphics.pose().scale(scale, scale, 1.0F);
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+        graphics.blit(textureIcon.texture(), 0, 0, (float) textureIcon.u(), (float) textureIcon.v(), textureIcon.srcWidth(), textureIcon.srcHeight(), textureIcon.textureWidth(), textureIcon.textureHeight());
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
         graphics.pose().popPose();
         return true;
     }
@@ -203,20 +305,55 @@ public final class EntryIconRenderer {
         if (particleId == null) {
             return false;
         }
+        List<TextureAtlasSprite> sprites = resolveParticleSprites(minecraft, particleId);
+        if (sprites.isEmpty()) {
+            return false;
+        }
+        int frameIndex = Math.floorMod((int) (System.currentTimeMillis() / 90L), sprites.size());
+        TextureAtlasSprite sprite = sprites.get(frameIndex);
+        int size = Math.max(12, Math.round(18.0F * scale));
+        int x = Math.round(centerX - (size * 0.5F));
+        int y = Math.round(centerY - (size * 0.5F));
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+        graphics.blit(x, y, 0, size, size, sprite);
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        return true;
+    }
 
+    private static List<TextureAtlasSprite> resolveParticleSprites(Minecraft minecraft, ResourceLocation particleId) {
+        List<TextureAtlasSprite> cached = PARTICLE_SPRITES.get(particleId);
+        if (cached != null) {
+            return cached;
+        }
+        List<TextureAtlasSprite> sprites = loadParticleAtlasSprites(minecraft, particleId);
+        sprites = sprites.stream().filter(IconAssetValidator::sprite).distinct().collect(de.artemis.omniwheel.common.Java8.toList());
+        PARTICLE_SPRITES.put(particleId, sprites);
+        return sprites;
+    }
+
+    private static List<TextureAtlasSprite> loadParticleAtlasSprites(Minecraft minecraft, ResourceLocation particleId) {
         List<ResourceLocation> frames = resolveParticleFrames(minecraft, particleId);
         if (frames.isEmpty()) {
-            return false;
+            return de.artemis.omniwheel.common.Java8.list();
         }
-
-        int frameIndex = Math.floorMod((int) (System.currentTimeMillis() / 90L), frames.size());
-        ResourceLocation frameId = frames.get(frameIndex);
-        TextureIcon particleTexture = resolveParticleTextureIcon(frameId);
-        if (particleTexture == null || !textureResourceExists(minecraft, particleTexture.texture())) {
-            return false;
+        if (minecraft.particleEngine == null)
+            return de.artemis.omniwheel.common.Java8.list();
+        AtlasTexture atlas = ((de.artemis.omniwheel.mixin.client.ParticleEngineAccessor) minecraft.particleEngine).omniwheel$getTextureAtlas();
+        TextureAtlasSprite missingSprite = atlas.getSprite(net.minecraft.client.renderer.texture.MissingTextureSprite.getLocation());
+        List<TextureAtlasSprite> sprites = new ArrayList<>(frames.size());
+        for (ResourceLocation frame : frames) {
+            // Before 1.19.3 the particle atlas keeps the particle/ path prefix.
+            TextureAtlasSprite sprite = atlas.getSprite(java.util.Objects.requireNonNull(ResourceLocation.tryParse(frame.getNamespace() + ":particle/" + frame.getPath())));
+            if (sprite != null && sprite != missingSprite && IconAssetValidator.sprite(sprite)) {
+                sprites.add(sprite);
+            }
         }
-
-        return drawTextureIcon(graphics, particleTexture, centerX, centerY, scale);
+        if (sprites.isEmpty()) {
+            return de.artemis.omniwheel.common.Java8.list();
+        } else {
+            return de.artemis.omniwheel.common.Java8.copyList(sprites);
+        }
     }
 
     private static boolean drawSymbolIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
@@ -224,13 +361,12 @@ public final class EntryIconRenderer {
         if (symbol == null) {
             return false;
         }
-
         float symbolScale = Math.max(0.9F, scale * 1.2F);
         int textWidth = minecraft.font.width(symbol);
         int x = Math.round((centerX / symbolScale) - (textWidth / 2.0F));
         int y = Math.round((centerY / symbolScale) - 4.0F);
+        graphics.flush();
         graphics.pose().pushPose();
-        graphics.pose().translate(0.0F, 0.0F, 200.0F);
         graphics.pose().scale(symbolScale, symbolScale, 1.0F);
         graphics.drawString(minecraft.font, symbol, x, y, 0xFFF2F5F8, false);
         graphics.pose().popPose();
@@ -250,7 +386,6 @@ public final class EntryIconRenderer {
         if (!trimmed.regionMatches(true, 0, EFFECT_PREFIX, 0, EFFECT_PREFIX.length())) {
             return null;
         }
-
         String effectPart = trimmed.substring(EFFECT_PREFIX.length()).trim().toLowerCase(Locale.ROOT);
         if (effectPart.isEmpty()) {
             return null;
@@ -262,14 +397,24 @@ public final class EntryIconRenderer {
         if (effectId == null) {
             return null;
         }
-        return Registry.MOB_EFFECT.containsKey(effectId) ? effectId : null;
+        if (Registry.MOB_EFFECT.containsKey(effectId)) {
+            return effectId;
+        } else {
+            return null;
+        }
+    }
+
+    private static ResourceLocation resolveGuiSprite(String icon) {
+        String trimmed = icon == null ? "" : icon.trim();
+        if (!trimmed.regionMatches(true, 0, GUI_PREFIX, 0, GUI_PREFIX.length())) {
+            return null;
+        }
+        String key = trimmed.substring(GUI_PREFIX.length()).trim().toLowerCase(Locale.ROOT);
+        return GUI_SPRITES.get(key);
     }
 
     private static TextureIcon resolveTextureIcon(String icon) {
         String trimmed = icon == null ? "" : icon.trim();
-        if (trimmed.regionMatches(true, 0, GUI_PREFIX, 0, GUI_PREFIX.length())) {
-            return TEXTURE_ICONS.get(trimmed.toLowerCase(Locale.ROOT));
-        }
         if (!trimmed.regionMatches(true, 0, TEXTURE_PREFIX, 0, TEXTURE_PREFIX.length())) {
             return null;
         }
@@ -282,7 +427,6 @@ public final class EntryIconRenderer {
         if (!trimmed.regionMatches(true, 0, PARTICLE_PREFIX, 0, PARTICLE_PREFIX.length())) {
             return null;
         }
-
         String particlePart = trimmed.substring(PARTICLE_PREFIX.length()).trim().toLowerCase(Locale.ROOT);
         if (particlePart.isEmpty()) {
             return null;
@@ -294,7 +438,11 @@ public final class EntryIconRenderer {
         if (particleId == null) {
             return null;
         }
-        return Registry.PARTICLE_TYPE.containsKey(particleId) ? particleId : null;
+        if (Registry.PARTICLE_TYPE.containsKey(particleId)) {
+            return particleId;
+        } else {
+            return null;
+        }
     }
 
     private static List<ResourceLocation> resolveParticleFrames(Minecraft minecraft, ResourceLocation particleId) {
@@ -302,26 +450,38 @@ public final class EntryIconRenderer {
         if (cached != null) {
             return cached;
         }
-
         List<ResourceLocation> frames = loadParticleFrames(minecraft, particleId);
         PARTICLE_FRAMES.put(particleId, frames);
         return frames;
     }
 
+    private static String particleVisualSignature(Minecraft minecraft, ResourceLocation particleId) {
+        List<TextureAtlasSprite> sprites = resolveParticleSprites(minecraft, particleId);
+        if (sprites.isEmpty()) {
+            return "";
+        }
+        StringBuilder signature = new StringBuilder();
+        for (TextureAtlasSprite sprite : sprites) {
+            if (!(signature.length() == 0)) {
+                signature.append('|');
+            }
+            signature.append(sprite.atlas().location()).append('#').append(sprite.getName());
+        }
+        return signature.toString();
+    }
+
     private static List<ResourceLocation> loadParticleFrames(Minecraft minecraft, ResourceLocation particleId) {
         ResourceLocation definitionId = ResourceLocation.tryParse(particleId.getNamespace() + ":particles/" + particleId.getPath() + ".json");
         if (definitionId == null) {
-            return com.google.common.collect.ImmutableList.of();
+            return de.artemis.omniwheel.common.Java8.list();
         }
-
         try (IResource resource = minecraft.getResourceManager().getResource(definitionId);
-             Reader reader = new InputStreamReader(resource.getInputStream(), java.nio.charset.StandardCharsets.UTF_8)) {
+            Reader reader = new java.io.InputStreamReader(resource.getInputStream(), java.nio.charset.StandardCharsets.UTF_8)) {
             JsonObject data = JSONUtils.parse(reader);
             JsonArray textures = JSONUtils.getAsJsonArray(data, "textures", null);
             if (textures == null || textures.size() == 0) {
-                return com.google.common.collect.ImmutableList.of();
+                return de.artemis.omniwheel.common.Java8.list();
             }
-
             List<ResourceLocation> frames = new ArrayList<>();
             for (int index = 0; index < textures.size(); index++) {
                 String textureId = JSONUtils.convertToString(textures.get(index), "texture");
@@ -330,9 +490,13 @@ public final class EntryIconRenderer {
                     frames.add(frameId);
                 }
             }
-            return frames.isEmpty() ? com.google.common.collect.ImmutableList.of() : com.google.common.collect.ImmutableList.copyOf(frames);
-        } catch (IOException ignored) {
-            return com.google.common.collect.ImmutableList.of();
+            if (frames.isEmpty()) {
+                return de.artemis.omniwheel.common.Java8.list();
+            } else {
+                return de.artemis.omniwheel.common.Java8.copyList(frames);
+            }
+        } catch (IOException | RuntimeException ignored) {
+            return de.artemis.omniwheel.common.Java8.list();
         }
     }
 
@@ -345,6 +509,13 @@ public final class EntryIconRenderer {
         return SYMBOLS.get(key);
     }
 
+    private static void registerGuiSprite(String path) {
+        ResourceLocation id = ResourceLocation.tryParse("minecraft:" + path);
+        if (id != null) {
+            GUI_SPRITES.put(path.toLowerCase(Locale.ROOT), id);
+        }
+    }
+
     private static void registerTextureIcon(String key, String textureId, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
         ResourceLocation id = ResourceLocation.tryParse(textureId);
         if (id != null) {
@@ -352,57 +523,23 @@ public final class EntryIconRenderer {
         }
     }
 
-    private static void registerTextureIcon(String key, ResourceLocation texture, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
-        TEXTURE_ICONS.put(key.toLowerCase(Locale.ROOT), new TextureIcon(texture, textureWidth, textureHeight, u, v, srcWidth, srcHeight));
-    }
+    private final static class TextureIcon {
 
-    private static boolean drawTextureIcon(GuiGraphics graphics, TextureIcon textureIcon, float centerX, float centerY, float scale) {
-        float baseSize = Math.max(textureIcon.srcWidth(), textureIcon.srcHeight());
-        float renderScale = (18.0F * scale) / Math.max(1.0F, baseSize);
-        graphics.pose().pushPose();
-        graphics.pose().translate(centerX - ((textureIcon.srcWidth() * renderScale) * 0.5F), centerY - ((textureIcon.srcHeight() * renderScale) * 0.5F), 200.0F);
-        graphics.pose().scale(renderScale, renderScale, 1.0F);
-        graphics.blit(textureIcon.texture(), 0, 0, 0, (float) textureIcon.u(), (float) textureIcon.v(), textureIcon.srcWidth(), textureIcon.srcHeight(), textureIcon.textureWidth(), textureIcon.textureHeight());
-        graphics.pose().popPose();
-        return true;
-    }
-
-    private static TextureIcon resolveParticleTextureIcon(ResourceLocation frameId) {
-        String path = frameId.getPath();
-        if (!path.startsWith("particle/")) {
-            path = "particle/" + path;
-        }
-        ResourceLocation texture = ResourceLocation.tryParse(frameId.getNamespace() + ":textures/" + path + ".png");
-        return texture == null ? null : new TextureIcon(texture, 16, 16, 0, 0, 16, 16);
-    }
-
-    private static boolean textureResourceExists(Minecraft minecraft, ResourceLocation texture) {
-        try (IResource resource = minecraft.getResourceManager().getResource(texture)) {
-            return true;
-        } catch (IOException ignored) {
-            return false;
-        }
-    }
-
-    private static ResourceLocation minecraftTexture(String path) {
-        ResourceLocation texture = ResourceLocation.tryParse("minecraft:textures/" + path);
-        if (texture == null) {
-            throw new IllegalArgumentException("Invalid Minecraft texture path: " + path);
-        }
-        return texture;
-    }
-
-    private static final class TextureIcon {
         private final ResourceLocation texture;
+
         private final int textureWidth;
+
         private final int textureHeight;
+
         private final int u;
+
         private final int v;
+
         private final int srcWidth;
+
         private final int srcHeight;
 
         private TextureIcon(ResourceLocation texture, int textureWidth, int textureHeight, int u, int v, int srcWidth, int srcHeight) {
-
             this.texture = texture;
             this.textureWidth = textureWidth;
             this.textureHeight = textureHeight;
@@ -441,11 +578,13 @@ public final class EntryIconRenderer {
         }
 
         @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof TextureIcon)) return false;
-            TextureIcon that = (TextureIcon) other;
-            return java.util.Objects.equals(texture, that.texture) && java.util.Objects.equals(textureWidth, that.textureWidth) && java.util.Objects.equals(textureHeight, that.textureHeight) && java.util.Objects.equals(u, that.u) && java.util.Objects.equals(v, that.v) && java.util.Objects.equals(srcWidth, that.srcWidth) && java.util.Objects.equals(srcHeight, that.srcHeight);
+        public boolean equals(Object value) {
+            if (this == value)
+                return true;
+            if (value == null || value.getClass() != getClass())
+                return false;
+            TextureIcon other = (TextureIcon) value;
+            return true && java.util.Objects.equals(texture, other.texture) && java.util.Objects.equals(textureWidth, other.textureWidth) && java.util.Objects.equals(textureHeight, other.textureHeight) && java.util.Objects.equals(u, other.u) && java.util.Objects.equals(v, other.v) && java.util.Objects.equals(srcWidth, other.srcWidth) && java.util.Objects.equals(srcHeight, other.srcHeight);
         }
 
         @Override
@@ -455,7 +594,7 @@ public final class EntryIconRenderer {
 
         @Override
         public String toString() {
-            return "TextureIcon[" + "texture=" + texture + ", " + "textureWidth=" + textureWidth + ", " + "textureHeight=" + textureHeight + ", " + "u=" + u + ", " + "v=" + v + ", " + "srcWidth=" + srcWidth + ", " + "srcHeight=" + srcHeight + "]";
+            return "TextureIcon[" + "texture=" + texture + ", textureWidth=" + textureWidth + ", textureHeight=" + textureHeight + ", u=" + u + ", v=" + v + ", srcWidth=" + srcWidth + ", srcHeight=" + srcHeight + "]";
         }
     }
 }

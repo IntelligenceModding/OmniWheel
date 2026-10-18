@@ -3,6 +3,7 @@ package de.artemis.omniwheel.client.profile.store;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.KeybindAction;
 import de.artemis.omniwheel.common.action.CommandAction;
 import de.artemis.omniwheel.common.action.CopyTextAction;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -16,7 +17,6 @@ import de.artemis.omniwheel.common.action.WheelAction;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,6 +24,9 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class ProfileJsonCodec {
+
+    static final int FORMAT_VERSION = 2;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     public String encode(ProfileCollection collection) {
@@ -35,11 +38,18 @@ public final class ProfileJsonCodec {
         if (dto == null) {
             throw new IllegalStateException("profiles json was empty");
         }
+        if (dto.formatVersion > FORMAT_VERSION)
+            throw new IllegalStateException("Profiles were saved by a newer OmniWheel format: " + dto.formatVersion);
         return fromDto(dto);
+    }
+
+    boolean needsUpgrade(String json) {
+        return GSON.fromJson(json, FormatVersion.class).formatVersion < FORMAT_VERSION;
     }
 
     private StoredProfiles toDto(ProfileCollection collection) {
         StoredProfiles dto = new StoredProfiles();
+        dto.formatVersion = FORMAT_VERSION;
         dto.activeProfileId = collection.activeProfileId();
         dto.profiles = new ArrayList<>();
         for (WheelProfile profile : collection.profiles()) {
@@ -55,6 +65,7 @@ public final class ProfileJsonCodec {
                 storedWheel.description = wheel.description();
                 storedWheel.segmentCount = wheel.segmentCount();
                 storedWheel.active = wheel.active();
+                storedWheel.radialOrder = wheel.radialOrder();
                 storedWheel.entries = new ArrayList<>();
                 for (WheelEntry entry : wheel.entries()) {
                     StoredEntry storedEntry = new StoredEntry();
@@ -84,90 +95,65 @@ public final class ProfileJsonCodec {
         if (dto.profiles == null || dto.profiles.isEmpty()) {
             throw new IllegalStateException("profiles json did not contain profiles");
         }
-
         for (StoredProfile storedProfile : dto.profiles) {
             Map<String, WheelDefinition> wheels = new LinkedHashMap<>();
             if (storedProfile.wheels == null || storedProfile.wheels.isEmpty()) {
                 throw new IllegalStateException("profile " + storedProfile.id + " did not contain wheels");
             }
-
             for (StoredWheel storedWheel : storedProfile.wheels) {
                 List<WheelEntry> entries = new ArrayList<>();
                 if (storedWheel.entries != null) {
                     for (StoredEntry storedEntry : storedWheel.entries) {
-                        entries.add(new WheelEntry(
-                                storedEntry.id,
-                                storedEntry.label,
-                                defaultString(storedEntry.description),
-                                defaultString(storedEntry.icon != null ? storedEntry.icon : storedEntry.glyph),
-                                storedEntry.color != null ? storedEntry.color : WheelEntry.DEFAULT_COLOR,
-                                storedEntry.guiColor != null ? storedEntry.guiColor : WheelEntry.DEFAULT_GUI_COLOR,
-                                fromDto(storedEntry.action),
-                                storedEntry.active == null || storedEntry.active,
-                                storedEntry.showIcon == null || storedEntry.showIcon,
-                                storedEntry.showLabel == null || storedEntry.showLabel,
-                                storedEntry.showShortcut == null || storedEntry.showShortcut,
-                                defaultString(storedEntry.shortcut)
-                        ));
+                        entries.add(new WheelEntry(storedEntry.id, storedEntry.label, defaultString(storedEntry.description), defaultString(storedEntry.icon != null ? storedEntry.icon : storedEntry.glyph), storedEntry.color != null ? storedEntry.color : WheelEntry.DEFAULT_COLOR, storedEntry.guiColor != null ? storedEntry.guiColor : WheelEntry.DEFAULT_GUI_COLOR, fromDto(storedEntry.action), storedEntry.active == null || storedEntry.active, storedEntry.showIcon == null || storedEntry.showIcon, storedEntry.showLabel == null || storedEntry.showLabel, storedEntry.showShortcut == null || storedEntry.showShortcut, defaultString(storedEntry.shortcut)));
                     }
                 }
-                WheelDefinition wheel = new WheelDefinition(
-                        storedWheel.id,
-                        storedWheel.title,
-                        defaultString(storedWheel.description),
-                        storedWheel.segmentCount,
-                        entries,
-                        storedWheel.active == null || storedWheel.active
-                );
-                wheels.put(wheel.id(), wheel);
+                WheelDefinition wheel = new WheelDefinition(storedWheel.id, storedWheel.title, defaultString(storedWheel.description), storedWheel.segmentCount, entries, storedWheel.active == null || storedWheel.active, storedWheel.radialOrder);
+                if (wheels.putIfAbsent(wheel.id(), wheel) != null)
+                    throw new IllegalStateException("Duplicate wheel ID: " + wheel.id());
             }
-
-            profiles.add(new WheelProfile(
-                    storedProfile.id,
-                    storedProfile.displayName,
-                    storedProfile.rootWheelId,
-                    wheels
-            ));
+            profiles.add(new WheelProfile(storedProfile.id, storedProfile.displayName, storedProfile.rootWheelId, wheels));
         }
-
-        String activeId = dto.activeProfileId != null && !dto.activeProfileId.trim().isEmpty()
-                ? dto.activeProfileId
-                : profiles.get(0).id();
+        String activeId = dto.activeProfileId != null && profiles.stream().anyMatch(profile -> profile.id().equals(dto.activeProfileId)) ? dto.activeProfileId : profiles.get(0).id();
         return new ProfileCollection(activeId, profiles);
     }
 
     private StoredAction toDto(WheelAction action) {
         StoredAction stored = new StoredAction();
-        if (action instanceof CommandAction) {
+        if (java.util.Objects.requireNonNull(action) instanceof CommandAction) {
             stored.type = "command";
-            if (((CommandAction) action).commands().size() == 1) {
-                stored.value = ((CommandAction) action).commands().get(0);
+            if (((CommandAction) (java.util.Objects.requireNonNull(action))).commands().size() == 1) {
+                stored.value = ((CommandAction) (java.util.Objects.requireNonNull(action))).commands().get(0);
             } else {
-                stored.values = new ArrayList<>(((CommandAction) action).commands());
+                stored.values = new ArrayList<>(((CommandAction) (java.util.Objects.requireNonNull(action))).commands());
             }
-            stored.requireConfirmation = ((CommandAction) action).requireConfirmation();
+            stored.requireConfirmation = ((CommandAction) (java.util.Objects.requireNonNull(action))).requireConfirmation();
+            stored.preset = ((CommandAction) (java.util.Objects.requireNonNull(action))).preset();
+        } else if (action instanceof KeybindAction) {
+            stored.type = "keybind";
+            stored.value = ((KeybindAction) (action)).keybindId();
         } else if (action instanceof ChatAction) {
             stored.type = "chat";
-            stored.value = ((ChatAction) action).message();
-            stored.requireConfirmation = ((ChatAction) action).requireConfirmation();
+            stored.value = ((ChatAction) (action)).message();
+            stored.requireConfirmation = ((ChatAction) (action)).requireConfirmation();
+            stored.preset = ((ChatAction) (action)).preset();
         } else if (action instanceof FunctionAction) {
             stored.type = "function";
-            stored.value = ((FunctionAction) action).function().id();
+            stored.value = ((FunctionAction) (action)).function().id();
         } else if (action instanceof LocalMessageAction) {
             stored.type = "local_message";
-            stored.value = ((LocalMessageAction) action).message();
+            stored.value = ((LocalMessageAction) (action)).message();
         } else if (action instanceof OpenChatAction) {
             stored.type = "open_chat";
-            stored.value = ((OpenChatAction) action).initialText();
+            stored.value = ((OpenChatAction) (action)).initialText();
         } else if (action instanceof CopyTextAction) {
             stored.type = "copy_text";
-            stored.value = ((CopyTextAction) action).text();
+            stored.value = ((CopyTextAction) (action)).text();
         } else if (action instanceof OpenWheelAction) {
             stored.type = "open_wheel";
-            stored.value = ((OpenWheelAction) action).wheelId();
+            stored.value = ((OpenWheelAction) (action)).wheelId();
         } else if (action instanceof OpenScreenAction) {
             stored.type = "open_screen";
-            stored.value = ((OpenScreenAction) action).target().name().toLowerCase(Locale.ROOT);
+            stored.value = ((OpenScreenAction) (action)).target().name().toLowerCase(Locale.ROOT);
         } else {
             throw new IllegalArgumentException("Unsupported action type: " + action.getClass().getName());
         }
@@ -178,86 +164,134 @@ public final class ProfileJsonCodec {
         if (stored == null || stored.type == null) {
             throw new IllegalStateException("entry action was missing");
         }
-
-        switch (stored.type) {
-            case "command": {
-                return new CommandAction(
-                        stored.values != null && !stored.values.isEmpty() ? stored.values : com.google.common.collect.ImmutableList.of(stored.value),
-                        stored.requireConfirmation
-                );
-            }
-            case "chat": {
-                return new ChatAction(stored.value, stored.requireConfirmation);
-            }
-            case "function": {
-                return new FunctionAction(GameplayFunction.byId(stored.value));
-            }
-            case "local_message": {
-                return new LocalMessageAction(stored.value);
-            }
-            case "open_chat": {
-                return new OpenChatAction(defaultString(stored.value));
-            }
-            case "copy_text": {
-                return new CopyTextAction(stored.value);
-            }
-            case "open_wheel": {
-                return new OpenWheelAction(stored.value);
-            }
-            case "open_screen": {
-                return new OpenScreenAction(ScreenTarget.valueOf(stored.value.toUpperCase(Locale.ROOT)));
-            }
-            default: {
-                throw new IllegalStateException("Unknown action type: " + stored.type);
+        if (java.util.Objects.equals(stored.type, "command")) {
+            return new CommandAction(stored.values != null && !stored.values.isEmpty() ? stored.values : de.artemis.omniwheel.common.Java8.list(stored.value), stored.requireConfirmation, stored.preset);
+        } else {
+            if (java.util.Objects.equals(stored.type, "keybind")) {
+                return new KeybindAction(stored.value);
+            } else {
+                if (java.util.Objects.equals(stored.type, "chat")) {
+                    return new ChatAction(stored.value, stored.requireConfirmation, stored.preset);
+                } else {
+                    if (java.util.Objects.equals(stored.type, "function")) {
+                        return new FunctionAction(java.util.Arrays.stream(GameplayFunction.values()).filter(function -> function.id().equalsIgnoreCase(stored.value) || function.name().equalsIgnoreCase(stored.value)).findFirst().orElseThrow(() -> new IllegalStateException("Unknown function: " + stored.value)));
+                    } else {
+                        if (java.util.Objects.equals(stored.type, "local_message")) {
+                            return new LocalMessageAction(stored.value);
+                        } else {
+                            if (java.util.Objects.equals(stored.type, "open_chat")) {
+                                return new OpenChatAction(defaultString(stored.value));
+                            } else {
+                                if (java.util.Objects.equals(stored.type, "copy_text")) {
+                                    return new CopyTextAction(stored.value);
+                                } else {
+                                    if (java.util.Objects.equals(stored.type, "open_wheel")) {
+                                        return new OpenWheelAction(stored.value);
+                                    } else {
+                                        if (java.util.Objects.equals(stored.type, "open_screen")) {
+                                            return new OpenScreenAction(ScreenTarget.valueOf(stored.value.toUpperCase(Locale.ROOT)));
+                                        } else {
+                                            return de.artemis.omniwheel.common.Java8.fail(new IllegalStateException("Unknown action type: " + stored.type));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
     private static String defaultString(String value) {
-        return value == null ? "" : value;
+        if (value == null) {
+            return "";
+        } else {
+            return value;
+        }
     }
 
     private static final class StoredProfiles {
+
+        int formatVersion;
+
         String activeProfileId;
+
         List<StoredProfile> profiles;
     }
 
+    private static final class FormatVersion {
+
+        int formatVersion;
+    }
+
     private static final class StoredProfile {
+
         String id;
+
         String displayName;
+
         String rootWheelId;
+
         List<StoredWheel> wheels;
     }
 
     private static final class StoredWheel {
+
         String id;
+
         String title;
+
         String description;
+
         int segmentCount;
+
         Boolean active;
+
         List<StoredEntry> entries;
+
+        List<String> radialOrder;
     }
 
     private static final class StoredEntry {
+
         String id;
+
         String label;
+
         String description;
+
         String icon;
+
         String glyph;
+
         Integer color;
+
         Integer guiColor;
+
         Boolean active;
+
         Boolean showIcon;
+
         Boolean showLabel;
+
         Boolean showShortcut;
+
         String shortcut;
+
         StoredAction action;
     }
 
     private static final class StoredAction {
+
         String type;
+
         String value;
+
         List<String> values;
+
         boolean requireConfirmation;
+
+        boolean preset;
     }
 }

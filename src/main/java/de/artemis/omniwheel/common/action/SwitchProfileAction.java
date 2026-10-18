@@ -3,15 +3,14 @@ package de.artemis.omniwheel.common.action;
 import java.util.Objects;
 
 public final class SwitchProfileAction implements WheelAction {
+
     private final String profileId;
 
     public SwitchProfileAction(String profileId) {
-
         profileId = Objects.requireNonNull(profileId, "profileId").trim();
         if (profileId.isEmpty()) {
             throw new IllegalArgumentException("profileId must not be empty");
         }
-
         this.profileId = profileId;
     }
 
@@ -20,11 +19,13 @@ public final class SwitchProfileAction implements WheelAction {
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof SwitchProfileAction)) return false;
-        SwitchProfileAction that = (SwitchProfileAction) other;
-        return java.util.Objects.equals(profileId, that.profileId);
+    public boolean equals(Object value) {
+        if (this == value)
+            return true;
+        if (value == null || value.getClass() != getClass())
+            return false;
+        SwitchProfileAction other = (SwitchProfileAction) value;
+        return true && java.util.Objects.equals(profileId, other.profileId);
     }
 
     @Override

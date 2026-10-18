@@ -5,7 +5,6 @@ import de.artemis.omniwheel.client.profile.store.ProfileCollection;
 import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,10 +13,13 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class OmniWheelProfileManager {
+
     private final OmniWheelProfileRepository repository = new OmniWheelProfileRepository();
 
     private ProfileCollection profiles;
-    private Map<String, WheelProfile> byId = com.google.common.collect.ImmutableMap.of();
+
+    private Map<String, WheelProfile> byId = de.artemis.omniwheel.common.Java8.map();
+
     private String observedChangeToken;
 
     public void ensureLoaded() {
@@ -47,7 +49,6 @@ public final class OmniWheelProfileManager {
         if (profile == null) {
             throw new IllegalArgumentException("Unknown profile: " + profileId);
         }
-
         replaceProfiles(new ProfileCollection(profile.id(), profiles.profiles()));
         repository.save(profiles);
         observedChangeToken = repository.currentChangeToken();
@@ -66,7 +67,6 @@ public final class OmniWheelProfileManager {
     public void saveProfile(WheelProfile updatedProfile) {
         ensureLoaded();
         Objects.requireNonNull(updatedProfile, "updatedProfile");
-
         List<WheelProfile> updatedProfiles = new ArrayList<>(profiles.profiles().size());
         boolean replaced = false;
         for (WheelProfile profile : profiles.profiles()) {
@@ -77,11 +77,9 @@ public final class OmniWheelProfileManager {
                 updatedProfiles.add(profile);
             }
         }
-
         if (!replaced) {
             throw new IllegalArgumentException("Unknown profile: " + updatedProfile.id());
         }
-
         replaceProfiles(new ProfileCollection(profiles.activeProfileId(), updatedProfiles));
         repository.save(profiles);
         observedChangeToken = repository.currentChangeToken();
@@ -91,18 +89,11 @@ public final class OmniWheelProfileManager {
         ensureLoaded();
         String profileId = nextProfileId();
         String displayName = nextDisplayName();
-        WheelDefinition rootWheel = new WheelDefinition("main", "omniwheel.default.wheel.main", "", 8, com.google.common.collect.ImmutableList.of());
-        WheelProfile createdProfile = new WheelProfile(
-                profileId,
-                displayName,
-                rootWheel.id(),
-                new LinkedHashMap<>(com.google.common.collect.ImmutableMap.of(rootWheel.id(), rootWheel))
-        );
-
+        WheelDefinition rootWheel = new WheelDefinition("main", "omniwheel.default.wheel.main", "", 8, de.artemis.omniwheel.common.Java8.list());
+        WheelProfile createdProfile = new WheelProfile(profileId, displayName, rootWheel.id(), new LinkedHashMap<>(de.artemis.omniwheel.common.Java8.map(rootWheel.id(), rootWheel)));
         List<WheelProfile> updatedProfiles = new ArrayList<>(profiles.profiles().size() + 1);
         updatedProfiles.addAll(profiles.profiles());
         updatedProfiles.add(createdProfile);
-
         replaceProfiles(new ProfileCollection(profiles.activeProfileId(), updatedProfiles));
         repository.save(profiles);
         observedChangeToken = repository.currentChangeToken();
@@ -116,7 +107,6 @@ public final class OmniWheelProfileManager {
         if (displayName.isEmpty()) {
             throw new IllegalArgumentException("displayName must not be empty");
         }
-
         WheelProfile profile = byId.get(profileId);
         if (profile == null) {
             throw new IllegalArgumentException("Unknown profile: " + profileId);
@@ -124,7 +114,6 @@ public final class OmniWheelProfileManager {
         if (profile.displayName().equals(displayName)) {
             return profile;
         }
-
         WheelProfile updatedProfile = new WheelProfile(profile.id(), displayName, profile.rootWheelId(), profile.wheels());
         saveProfile(updatedProfile);
         return updatedProfile;
@@ -137,7 +126,6 @@ public final class OmniWheelProfileManager {
         if (profile == null) {
             throw new IllegalArgumentException("Unknown profile: " + profileId);
         }
-
         List<WheelProfile> reorderedProfiles = new ArrayList<>(profiles.profiles());
         int currentIndex = -1;
         for (int index = 0; index < reorderedProfiles.size(); index++) {
@@ -149,11 +137,9 @@ public final class OmniWheelProfileManager {
         if (currentIndex < 0) {
             throw new IllegalArgumentException("Unknown profile: " + profileId);
         }
-
         WheelProfile movedProfile = reorderedProfiles.remove(currentIndex);
         int clampedTargetIndex = Math.max(0, Math.min(targetIndex, reorderedProfiles.size()));
         reorderedProfiles.add(clampedTargetIndex, movedProfile);
-
         replaceProfiles(new ProfileCollection(profiles.activeProfileId(), reorderedProfiles));
         repository.save(profiles);
         observedChangeToken = repository.currentChangeToken();
@@ -171,23 +157,16 @@ public final class OmniWheelProfileManager {
         if (profiles.profiles().size() <= 1) {
             throw new IllegalStateException("Cannot delete the last remaining profile");
         }
-
         List<WheelProfile> updatedProfiles = new ArrayList<>(profiles.profiles().size() - 1);
         for (WheelProfile profile : profiles.profiles()) {
             if (!profile.id().equals(profileId)) {
                 updatedProfiles.add(profile);
             }
         }
-
         String nextActiveProfileId = profiles.activeProfileId();
         if (nextActiveProfileId.equals(profileId)) {
-            nextActiveProfileId = updatedProfiles.stream()
-                    .filter(profile -> profile.id().equals("default"))
-                    .findFirst()
-                    .orElse(updatedProfiles.get(0))
-                    .id();
+            nextActiveProfileId = updatedProfiles.stream().filter(profile -> profile.id().equals("default")).findFirst().orElseGet(() -> updatedProfiles.get(0)).id();
         }
-
         replaceProfiles(new ProfileCollection(nextActiveProfileId, updatedProfiles));
         repository.save(profiles);
         observedChangeToken = repository.currentChangeToken();
@@ -200,7 +179,6 @@ public final class OmniWheelProfileManager {
         if (Objects.equals(currentChangeToken, observedChangeToken)) {
             return false;
         }
-
         replaceProfiles(repository.loadOrCreate());
         observedChangeToken = repository.currentChangeToken();
         return true;

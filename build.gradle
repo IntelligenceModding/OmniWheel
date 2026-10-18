@@ -1,3 +1,5 @@
+import net.minecraftforge.srgutils.IMappingFile
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -25,6 +27,8 @@ minecraft {
             workingDirectory project.file('run/client')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'info'
+            args '--mixin.config=omniwheel.mixins.json'
+            property 'mixin.env.disableRefMap', 'true'
 
             mods {
                 "${mod_id}" {
@@ -59,6 +63,26 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     testImplementation 'junit:junit:4.13.2'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+def mixinMappings = layout.buildDirectory.file('mixin/mapped-to-srg.srg')
+def prepareMixinMappings = tasks.register('prepareMixinMappings') {
+    dependsOn 'createMcpToSrg'
+    inputs.file(layout.buildDirectory.file('createMcpToSrg/output.tsrg'))
+    outputs.file(mixinMappings)
+    doLast {
+        def output = mixinMappings.get().asFile
+        output.parentFile.mkdirs()
+        IMappingFile.load(layout.buildDirectory.file('createMcpToSrg/output.tsrg').get().asFile)
+                .write(output.toPath(), IMappingFile.Format.SRG, false)
+    }
+}
+tasks.named('compileJava', JavaCompile) {
+    dependsOn prepareMixinMappings
+    options.compilerArgs += ["-AreobfSrgFile=${mixinMappings.get().asFile}",
+                            "-AoutRefMapFile=${layout.buildDirectory.file('classes/java/main/omniwheel.refmap.json').get().asFile}",
+                            '-AdefaultObfuscationEnv=searge']
 }
 
 tasks.named('test', Test).configure {
@@ -89,6 +113,7 @@ tasks.withType(org.gradle.api.publish.maven.tasks.AbstractPublishToMaven).config
 }
 
 tasks.named('jar', Jar).configure {
+    manifest.attributes('MixinConfigs': 'omniwheel.mixins.json')
     finalizedBy 'reobfJar'
 }
 

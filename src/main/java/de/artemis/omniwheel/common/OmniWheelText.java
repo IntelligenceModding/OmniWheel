@@ -1,10 +1,11 @@
 package de.artemis.omniwheel.common;
 
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.text.LanguageMap;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
 
 public final class OmniWheelText {
+
     private OmniWheelText() {
     }
 
@@ -13,14 +14,18 @@ public final class OmniWheelText {
     }
 
     public static ITextComponent component(String key, Object... args) {
-        return new TranslationTextComponent(key, args);
+        return new net.minecraft.util.text.TranslationTextComponent(key, args);
     }
 
     public static String resolve(String value) {
-        return isTranslationKey(value) ? I18n.get(value) : value;
+        if (isTranslationKey(value)) {
+            return I18n.get(value);
+        } else {
+            return value;
+        }
     }
 
     public static boolean isTranslationKey(String value) {
-        return value != null && I18n.exists(value);
+        return value != null && LanguageMap.getInstance().has(value);
     }
 }

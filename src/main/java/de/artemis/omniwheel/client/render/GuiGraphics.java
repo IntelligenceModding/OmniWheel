@@ -1,65 +1,160 @@
 package de.artemis.omniwheel.client.render;
 
-import net.minecraft.client.MainWindow;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.matrix.MatrixStack;
-import net.minecraft.util.math.vector.Vector4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.AbstractGui;
-import net.minecraft.client.renderer.ItemRenderer;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.item.ItemStack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
+/**
+ * The wheel's drawing operations backed by Minecraft 1.16.5's matrix-based GUI.
+ */
 public final class GuiGraphics {
-    private final MatrixStack pose;
+
     private final Minecraft minecraft;
 
-    public GuiGraphics(MatrixStack pose) {
+    private final MatrixStack pose;
+
+    private final Deque<Clip> clips = new ArrayDeque<>();
+
+    private final static class Clip {
+
+        private final int left;
+
+        private final int top;
+
+        private final int right;
+
+        private final int bottom;
+
+        private Clip(int left, int top, int right, int bottom) {
+            this.left = left;
+            this.top = top;
+            this.right = right;
+            this.bottom = bottom;
+        }
+
+        public int left() {
+            return left;
+        }
+
+        public int top() {
+            return top;
+        }
+
+        public int right() {
+            return right;
+        }
+
+        public int bottom() {
+            return bottom;
+        }
+
+        @Override
+        public boolean equals(Object value) {
+            if (this == value)
+                return true;
+            if (value == null || value.getClass() != getClass())
+                return false;
+            Clip other = (Clip) value;
+            return true && java.util.Objects.equals(left, other.left) && java.util.Objects.equals(top, other.top) && java.util.Objects.equals(right, other.right) && java.util.Objects.equals(bottom, other.bottom);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(left, top, right, bottom);
+        }
+
+        @Override
+        public String toString() {
+            return "Clip[" + "left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom + "]";
+        }
+    }
+
+    public GuiGraphics(Minecraft minecraft, MatrixStack pose) {
+        this.minecraft = minecraft;
         this.pose = pose;
-        this.minecraft = Minecraft.getInstance();
     }
 
     public MatrixStack pose() {
         return pose;
     }
 
-    public void fill(int minX, int minY, int maxX, int maxY, int color) {
-        AbstractGui.fill(pose, minX, minY, maxX, maxY, color);
+    public void flush() {
+        minecraft.renderBuffers().bufferSource().endBatch();
     }
 
-    public void drawString(FontRenderer font, String text, int x, int y, int color, boolean shadow) {
-        if (shadow) {
-            font.drawShadow(pose, text, x, y, color);
-        } else {
-            font.draw(pose, text, x, y, color);
+    public void fill(int left, int top, int right, int bottom, int color) {
+        AbstractGui.fill(pose, left, top, right, bottom, color);
+    }
+
+    public void fillGradient(int left, int top, int right, int bottom, int topColor, int bottomColor) {
+        Gradient.draw(pose, left, top, right, bottom, topColor, bottomColor);
+    }
+
+    private static final class Gradient extends AbstractGui {
+
+        private static final Gradient INSTANCE = new Gradient();
+
+        private static void draw(MatrixStack pose, int left, int top, int right, int bottom, int a, int b) {
+            INSTANCE.fillGradient(pose, left, top, right, bottom, a, b);
         }
     }
 
-    public void drawString(FontRenderer font, ITextComponent text, int x, int y, int color, boolean shadow) {
+    public int drawString(FontRenderer font, String text, int x, int y, int color, boolean shadow) {
         if (shadow) {
-            font.drawShadow(pose, text, x, y, color);
+            return font.drawShadow(pose, text, x, y, color);
         } else {
-            font.draw(pose, text, x, y, color);
+            return font.draw(pose, text, x, y, color);
         }
     }
 
-    public void drawString(FontRenderer font, IReorderingProcessor text, int x, int y, int color, boolean shadow) {
+    public int drawString(FontRenderer font, ITextComponent text, int x, int y, int color, boolean shadow) {
         if (shadow) {
-            font.drawShadow(pose, text, x, y, color);
+            return font.drawShadow(pose, text, x, y, color);
         } else {
-            font.draw(pose, text, x, y, color);
+            return font.draw(pose, text, x, y, color);
         }
+    }
+
+    public int drawString(FontRenderer font, IReorderingProcessor text, int x, int y, int color, boolean shadow) {
+        if (shadow) {
+            return font.drawShadow(pose, text, x, y, color);
+        } else {
+            return font.draw(pose, text, x, y, color);
+        }
+    }
+
+    public int drawString(FontRenderer font, String text, int x, int y, int color) {
+        return drawString(font, text, x, y, color, true);
+    }
+
+    public int drawString(FontRenderer font, ITextComponent text, int x, int y, int color) {
+        return drawString(font, text, x, y, color, true);
+    }
+
+    public int drawString(FontRenderer font, IReorderingProcessor text, int x, int y, int color) {
+        return drawString(font, text, x, y, color, true);
     }
 
     public void drawCenteredString(FontRenderer font, String text, int x, int y, int color) {
-        font.drawShadow(pose, text, x - font.width(text) / 2.0F, y, color);
+        drawString(font, text, x - font.width(text) / 2, y, color);
+    }
+
+    public void drawCenteredString(FontRenderer font, ITextComponent text, int x, int y, int color) {
+        drawString(font, text, x - font.width(text) / 2, y, color);
     }
 
     public void drawCenteredString(FontRenderer font, IReorderingProcessor text, int x, int y, int color) {
-        font.drawShadow(pose, text, x - font.width(text) / 2.0F, y, color);
+        drawString(font, text, x - font.width(text) / 2, y, color);
     }
 
     public void blit(ResourceLocation texture, int x, int y, float u, float v, int width, int height, int textureWidth, int textureHeight) {
@@ -67,101 +162,58 @@ public final class GuiGraphics {
         AbstractGui.blit(pose, x, y, u, v, width, height, textureWidth, textureHeight);
     }
 
-    public void blit(ResourceLocation texture, int x, int y, int z, float u, float v, int width, int height, int textureWidth, int textureHeight) {
-        minecraft.getTextureManager().bind(texture);
-        AbstractGui.blit(pose, x, y, z, u, v, width, height, textureWidth, textureHeight);
+    public void blit(int x, int y, int z, int width, int height, TextureAtlasSprite sprite) {
+        minecraft.getTextureManager().bind(sprite.atlas().location());
+        AbstractGui.blit(pose, x, y, z, width, height, sprite);
     }
 
     public void renderItem(ItemStack stack, int x, int y) {
-        ItemRenderer itemRenderer = minecraft.getItemRenderer();
-        itemRenderer.renderAndDecorateItem(stack, x, y);
-    }
-
-    public void renderItem(ItemStack stack, int x, int y, float scale) {
-        ItemRenderer itemRenderer = minecraft.getItemRenderer();
-        ItemRenderTransform transform = itemRenderTransform(x, y, scale);
-        if (Math.abs(transform.scale() - 1.0F) < 0.001F) {
-            itemRenderer.renderAndDecorateItem(stack, x, y);
-            return;
-        }
-
+        flush();
         RenderSystem.pushMatrix();
-        RenderSystem.translated(transform.x(), transform.y(), 0.0D);
-        RenderSystem.scaled(transform.scale(), transform.scale(), 1.0D);
-        itemRenderer.renderAndDecorateItem(stack, 0, 0);
-        RenderSystem.popMatrix();
+        RenderSystem.multMatrix(pose.last().pose());
+        try {
+            minecraft.getItemRenderer().renderAndDecorateItem(stack, x, y);
+        } finally {
+            RenderSystem.popMatrix();
+        }
     }
 
-    public void enableScissor(int x1, int y1, int x2, int y2) {
-        MainWindow window = minecraft.getWindow();
-        double scale = window.getGuiScale();
-        int minX = Math.min(x1, x2);
-        int minY = Math.min(y1, y2);
-        int maxX = Math.max(x1, x2);
-        int maxY = Math.max(y1, y2);
-        int scissorX = (int) Math.floor(minX * scale);
-        int scissorY = (int) Math.floor(window.getHeight() - (maxY * scale));
-        int scissorWidth = Math.max(0, (int) Math.ceil((maxX - minX) * scale));
-        int scissorHeight = Math.max(0, (int) Math.ceil((maxY - minY) * scale));
-        RenderSystem.enableScissor(scissorX, scissorY, scissorWidth, scissorHeight);
+    public void enableScissor(int left, int top, int right, int bottom) {
+        if (!clips.isEmpty()) {
+            Clip parent = clips.peek();
+            left = Math.max(left, parent.left());
+            top = Math.max(top, parent.top());
+            right = Math.min(right, parent.right());
+            bottom = Math.min(bottom, parent.bottom());
+        }
+        clips.push(new Clip(left, top, Math.max(left, right), Math.max(top, bottom)));
+        applyClip();
     }
 
     public void disableScissor() {
-        RenderSystem.disableScissor();
+        clips.pop();
+        applyClip();
     }
 
-    private ItemRenderTransform itemRenderTransform(int x, int y, float iconScale) {
-        Vector4f topLeft = new Vector4f(x, y, 0.0F, 1.0F);
-        Vector4f bottomRight = new Vector4f(x + (16.0F * iconScale), y + (16.0F * iconScale), 0.0F, 1.0F);
-        topLeft.transform(pose.last().pose());
-        bottomRight.transform(pose.last().pose());
-        float transformedScale = Math.max(
-                Math.abs(bottomRight.x() - topLeft.x()) / 16.0F,
-                Math.abs(bottomRight.y() - topLeft.y()) / 16.0F
-        );
-        return new ItemRenderTransform(Math.round(topLeft.x()), Math.round(topLeft.y()), transformedScale);
+    private void applyClip() {
+        flush();
+        if (clips.isEmpty()) {
+            RenderSystem.disableScissor();
+            return;
+        }
+        Clip clip = clips.peek();
+        double scale = minecraft.getWindow().getGuiScale();
+        RenderSystem.enableScissor((int) (clip.left() * scale), (int) (minecraft.getWindow().getHeight() - clip.bottom() * scale), (int) ((clip.right() - clip.left()) * scale), (int) ((clip.bottom() - clip.top()) * scale));
     }
 
-    private static final class ItemRenderTransform {
-        private final int x;
-        private final int y;
-        private final float scale;
+    public void renderTooltip(FontRenderer font, ItemStack stack, int x, int y) {
+        Screen screen = minecraft.screen;
+        if (screen != null)
+            screen.renderComponentTooltip(pose, screen.getTooltipFromItem(stack), x, y);
+    }
 
-        private ItemRenderTransform(int x, int y, float scale) {
-
-            this.x = x;
-            this.y = y;
-            this.scale = scale;
-        }
-
-        public int x() {
-            return x;
-        }
-
-        public int y() {
-            return y;
-        }
-
-        public float scale() {
-            return scale;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof ItemRenderTransform)) return false;
-            ItemRenderTransform that = (ItemRenderTransform) other;
-            return java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(scale, that.scale);
-        }
-
-        @Override
-        public int hashCode() {
-            return java.util.Objects.hash(x, y, scale);
-        }
-
-        @Override
-        public String toString() {
-            return "ItemRenderTransform[" + "x=" + x + ", " + "y=" + y + ", " + "scale=" + scale + "]";
-        }
+    public void renderTooltip(FontRenderer font, ITextComponent text, int x, int y) {
+        if (minecraft.screen != null)
+            minecraft.screen.renderTooltip(pose, text, x, y);
     }
 }

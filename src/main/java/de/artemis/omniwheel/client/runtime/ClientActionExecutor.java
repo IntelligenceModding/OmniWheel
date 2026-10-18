@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
 import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.KeybindAction;
 import de.artemis.omniwheel.common.action.CommandAction;
 import de.artemis.omniwheel.common.action.CopyTextAction;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -11,17 +12,18 @@ import de.artemis.omniwheel.common.action.WheelAction;
 import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.util.text.StringTextComponent;
-
+import net.minecraft.util.text.ITextComponent;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class ClientActionExecutor {
+
     private final Map<Class<?>, ClientActionHandler<?>> handlers = new LinkedHashMap<>();
 
     public ClientActionExecutor() {
         register(CommandAction.class, this::executeCommand);
         register(ChatAction.class, this::executeChat);
+        register(KeybindAction.class, action -> runtime().keybindController().enqueue(action.keybindId()));
         register(FunctionAction.class, this::executeFunction);
         register(OpenChatAction.class, this::executeOpenChat);
         register(CopyTextAction.class, this::executeCopyText);
@@ -37,6 +39,17 @@ public final class ClientActionExecutor {
         ClientActionHandler<WheelAction> handler = findHandler(action);
         if (handler == null) {
             return false;
+        }
+        net.minecraft.client.Minecraft minecraft = Minecraft.getInstance();
+        de.artemis.omniwheel.client.runtime.LiveDataSnapshot snapshot = LiveDataSnapshot.capture(minecraft);
+        java.util.List<String> templates = (java.util.Objects.requireNonNull(action) instanceof CommandAction ? (((CommandAction) (java.util.Objects.requireNonNull(action))).commands()) : action instanceof ChatAction ? (de.artemis.omniwheel.common.Java8.list(((ChatAction) (action)).message())) : action instanceof LocalMessageAction ? (de.artemis.omniwheel.common.Java8.list(((LocalMessageAction) (action)).message())) : action instanceof OpenChatAction ? (de.artemis.omniwheel.common.Java8.list(((OpenChatAction) (action)).initialText())) : action instanceof CopyTextAction ? (de.artemis.omniwheel.common.Java8.list(((CopyTextAction) (action)).text())) : (de.artemis.omniwheel.common.Java8.list()));
+        for (String template : templates) {
+            String missing = snapshot.missingMessage(OmniWheelText.resolve(template));
+            if (missing != null) {
+                if (minecraft.player != null)
+                    minecraft.player.displayClientMessage(new net.minecraft.util.text.StringTextComponent(missing), true);
+                return false;
+            }
         }
         handler.execute(action);
         return true;
@@ -57,9 +70,15 @@ public final class ClientActionExecutor {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return;
         }
-
+        if (action.preset()) {
+            String resolved = PlaceholderResolver.resolve(action.commands().get(0), minecraft);
+            minecraft.setScreen(new ChatScreen(resolved.startsWith("/") ? resolved : "/" + resolved));
+            return;
+        }
         for (String command : action.commands()) {
             String resolved = PlaceholderResolver.resolve(command, minecraft);
+            if (de.artemis.omniwheel.common.Java8.isBlank(resolved))
+                continue;
             if (resolved.startsWith("/")) {
                 resolved = resolved.substring(1);
             }
@@ -72,8 +91,14 @@ public final class ClientActionExecutor {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return;
         }
-
-        minecraft.player.chat(ContextValueFormatter.resolveForDisplay(action.message(), minecraft));
+        String resolved = ContextValueFormatter.resolveForDisplay(action.message(), minecraft);
+        if (de.artemis.omniwheel.common.Java8.isBlank(resolved) && !action.preset())
+            return;
+        if (action.preset()) {
+            minecraft.setScreen(new ChatScreen(resolved));
+            return;
+        }
+        minecraft.player.chat(resolved);
     }
 
     private void executeFunction(FunctionAction action) {
@@ -85,19 +110,11 @@ public final class ClientActionExecutor {
         if (minecraft.player == null) {
             return;
         }
-
         if (ContextValueFormatter.extractCopyValues(action.message(), minecraft).isEmpty()) {
-            minecraft.player.displayClientMessage(
-                    new StringTextComponent(PlaceholderResolver.resolve(action.message(), minecraft)),
-                    true
-            );
+            minecraft.player.displayClientMessage(new net.minecraft.util.text.StringTextComponent(PlaceholderResolver.resolve(action.message(), minecraft)), true);
             return;
         }
-
-        minecraft.player.displayClientMessage(
-                ContextValueFormatter.buildInteractiveComponent(action.message(), minecraft),
-                false
-        );
+        minecraft.player.displayClientMessage(ContextValueFormatter.buildInteractiveComponent(action.message(), minecraft), false);
     }
 
     private void executeOpenChat(OpenChatAction action) {
@@ -105,7 +122,6 @@ public final class ClientActionExecutor {
         if (minecraft.player == null) {
             return;
         }
-
         minecraft.setScreen(new ChatScreen(ContextValueFormatter.resolveForDisplay(action.initialText(), minecraft)));
     }
 
@@ -114,7 +130,6 @@ public final class ClientActionExecutor {
         if (minecraft.player == null) {
             return;
         }
-
         String resolved = PlaceholderResolver.resolve(action.text(), minecraft);
         minecraft.keyboardHandler.setClipboard(resolved);
         minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.copied_to_clipboard"), true);
@@ -124,10 +139,7 @@ public final class ClientActionExecutor {
         Minecraft minecraft = Minecraft.getInstance();
         runtime().profileManager().setActiveProfile(action.profileId());
         if (minecraft.player != null) {
-            minecraft.player.displayClientMessage(
-                    OmniWheelText.component("omniwheel.message.active_profile", OmniWheelText.resolve(runtime().activeProfile().displayName())),
-                    true
-            );
+            minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.active_profile", OmniWheelText.resolve(runtime().activeProfile().displayName())), true);
         }
     }
 
@@ -137,6 +149,7 @@ public final class ClientActionExecutor {
 
     @FunctionalInterface
     public interface ClientActionHandler<T extends WheelAction> {
+
         void execute(T action);
     }
 }

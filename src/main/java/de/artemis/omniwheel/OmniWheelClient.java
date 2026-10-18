@@ -11,9 +11,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 @Mod(OmniWheel.MOD_ID)
 public final class OmniWheelClient {
+
     public OmniWheelClient() {
-        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST,
-                () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (remoteVersion, isServer) -> true));
+        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (remoteVersion, isServer) -> true));
         DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> ClientBootstrap::initialize);
     }
 }

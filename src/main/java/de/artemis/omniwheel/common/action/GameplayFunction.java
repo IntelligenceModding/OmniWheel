@@ -1,12 +1,12 @@
 package de.artemis.omniwheel.common.action;
 
 import de.artemis.omniwheel.common.OmniWheelText;
-
 import java.util.Arrays;
 import java.util.Locale;
 
 @SuppressWarnings("unused")
 public enum GameplayFunction {
+
     OMNI_BACK(FunctionCategory.OMNIWHEEL, FunctionMode.TRIGGER),
     OMNI_OPEN_PROFILES(FunctionCategory.OMNIWHEEL, FunctionMode.TRIGGER),
     OMNI_OPEN_MANAGER(FunctionCategory.OMNIWHEEL, FunctionMode.TRIGGER),
@@ -43,9 +43,13 @@ public enum GameplayFunction {
     TOGGLE_AUTO_WALK(FunctionCategory.MOVEMENT, FunctionMode.TOGGLE);
 
     private final FunctionCategory category;
+
     private final FunctionMode mode;
+
     private final String id;
+
     private final String translationKey;
+
     private final String descriptionKey;
 
     GameplayFunction(FunctionCategory category, FunctionMode mode) {
@@ -89,16 +93,14 @@ public enum GameplayFunction {
     }
 
     public static GameplayFunction byId(String id) {
-        if (id == null || id.trim().isEmpty()) {
+        if (id == null || de.artemis.omniwheel.common.Java8.isBlank(id)) {
             return OPEN_INVENTORY;
         }
-        return Arrays.stream(values())
-                .filter(function -> function.id.equalsIgnoreCase(id) || function.name().equalsIgnoreCase(id))
-                .findFirst()
-                .orElse(OPEN_INVENTORY);
+        return Arrays.stream(values()).filter(function -> function.id.equalsIgnoreCase(id) || function.name().equalsIgnoreCase(id)).findFirst().orElse(OPEN_INVENTORY);
     }
 
     public enum FunctionCategory {
+
         OMNIWHEEL,
         SCREEN,
         INTERACTION,
@@ -118,7 +120,7 @@ public enum GameplayFunction {
     }
 
     public enum FunctionMode {
-        TRIGGER,
-        TOGGLE
+
+        TRIGGER, TOGGLE
     }
 }

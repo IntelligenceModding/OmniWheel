@@ -5,11 +5,27 @@ import java.util.List;
 import java.util.Objects;
 
 public final class CommandAction implements WheelAction {
+
     private final List<String> commands;
+
     private final boolean requireConfirmation;
 
-    public CommandAction(List<String> commands, boolean requireConfirmation) {
+    private final boolean preset;
 
+    public CommandAction(List<String> commands, boolean requireConfirmation) {
+        this(commands, requireConfirmation, false);
+    }
+
+    public CommandAction(String command, boolean requireConfirmation) {
+        this(de.artemis.omniwheel.common.Java8.list(command), requireConfirmation);
+    }
+
+    @Override
+    public boolean requiresConfirmation() {
+        return requireConfirmation;
+    }
+
+    public CommandAction(List<String> commands, boolean requireConfirmation, boolean preset) {
         Objects.requireNonNull(commands, "commands");
         List<String> normalized = new ArrayList<>(commands.size());
         for (String command : commands) {
@@ -21,10 +37,10 @@ public final class CommandAction implements WheelAction {
         if (normalized.isEmpty()) {
             throw new IllegalArgumentException("commands must not be empty");
         }
-        commands = com.google.common.collect.ImmutableList.copyOf(normalized);
-
+        commands = de.artemis.omniwheel.common.Java8.copyList(normalized);
         this.commands = commands;
         this.requireConfirmation = requireConfirmation;
+        this.preset = preset;
     }
 
     public List<String> commands() {
@@ -35,30 +51,27 @@ public final class CommandAction implements WheelAction {
         return requireConfirmation;
     }
 
+    public boolean preset() {
+        return preset;
+    }
+
     @Override
-    public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof CommandAction)) return false;
-        CommandAction that = (CommandAction) other;
-        return java.util.Objects.equals(commands, that.commands) && java.util.Objects.equals(requireConfirmation, that.requireConfirmation);
+    public boolean equals(Object value) {
+        if (this == value)
+            return true;
+        if (value == null || value.getClass() != getClass())
+            return false;
+        CommandAction other = (CommandAction) value;
+        return true && java.util.Objects.equals(commands, other.commands) && java.util.Objects.equals(requireConfirmation, other.requireConfirmation) && java.util.Objects.equals(preset, other.preset);
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(commands, requireConfirmation);
+        return java.util.Objects.hash(commands, requireConfirmation, preset);
     }
 
     @Override
     public String toString() {
-        return "CommandAction[" + "commands=" + commands + ", " + "requireConfirmation=" + requireConfirmation + "]";
-    }
-
-    public CommandAction(String command, boolean requireConfirmation) {
-        this(com.google.common.collect.ImmutableList.of(command), requireConfirmation);
-    }
-
-    @Override
-    public boolean requiresConfirmation() {
-        return requireConfirmation;
+        return "CommandAction[" + "commands=" + commands + ", requireConfirmation=" + requireConfirmation + ", preset=" + preset + "]";
     }
 }

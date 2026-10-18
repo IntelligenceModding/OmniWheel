@@ -3,11 +3,15 @@ package de.artemis.omniwheel.client.overlay;
 import net.minecraft.client.util.InputMappings;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
-import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.render.GeometryRenderer;
 import de.artemis.omniwheel.client.render.RadialLayout;
+import de.artemis.omniwheel.client.render.RadialAnimation;
+import de.artemis.omniwheel.client.render.RadialWheelRenderer;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import de.artemis.omniwheel.client.tutorial.TutorialType;
+import de.artemis.omniwheel.client.tutorial.TutorialGuide;
+import de.artemis.omniwheel.client.tutorial.TutorialSpotlight;
+import de.artemis.omniwheel.client.navigation.ManagementNavigation.Bounds;
 import de.artemis.omniwheel.client.runtime.WheelAvailabilityResolver;
 import de.artemis.omniwheel.common.action.FunctionAction;
 import de.artemis.omniwheel.common.action.GameplayFunction;
@@ -18,15 +22,15 @@ import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
+import de.artemis.omniwheel.common.wheel.WheelLayout;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.gui.FontRenderer;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.entity.player.PlayerInventory;
 import org.lwjgl.glfw.GLFW;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -35,57 +39,121 @@ import java.util.List;
 import java.util.Set;
 
 public final class OmniWheelOverlay {
-    private static final int MAX_RENDERED_SEGMENTS = 8;
+
+    private static final int MAX_RENDERED_SEGMENTS = WheelLayout.PAGE_SIZE;
+
     private static final float WHEEL_RADIUS = 118.0F;
+
     private static final float DEADZONE_RADIUS = 28.0F;
+
     private static final int SEGMENT_GAP_DEGREES = 2;
+
     private static final int PANEL_COLOR = 0xEE141A22;
+
     private static final int PANEL_OUTLINE = 0xFF6AC7FF;
+
     private static final int SEGMENT_COLOR = 0xD8212831;
+
     private static final int SEGMENT_ALT_COLOR = 0xD929313D;
+
     private static final int CENTER_BUTTON_COLOR = 0xF029313D;
+
     private static final int CENTER_BUTTON_OUTLINE = 0xFF465462;
+
     private static final int SELECTED_COLOR = 0xF042556C;
+
     private static final int SELECTED_OUTLINE = 0xFF8EE1FF;
+
     private static final int SUBWHEEL_HINT = 0xFFE4B96F;
+
     private static final int TEXT_PRIMARY = 0xFFF2F5F8;
+
     private static final int TEXT_SECONDARY = 0xFF9CAAB8;
+
     private static final int TEXT_SHORTCUT_SELECTED = 0xFFC9D8E7;
+
     private static final int TUTORIAL_PANEL = 0xF019212B;
+
     private static final int TUTORIAL_BUTTON = 0xE6232C36;
+
     private static final int TUTORIAL_BUTTON_HIGHLIGHT = 0xF03B5369;
+
     private static final int TUTORIAL_EDGE = 0xFF406176;
-    private static final int RADIAL_TUTORIAL_STEP_COUNT = 5;
+
+    private static final int RADIAL_TUTORIAL_STEP_COUNT = TutorialGuide.RADIAL.size();
+
     private static final int REFERENCE_UI_WIDTH = 960;
+
     private static final int REFERENCE_UI_HEIGHT = 540;
+
     private final OmniWheelClientRuntime runtime;
+
+    private final RadialAnimation animation = new RadialAnimation();
+
+    private WheelVisual lastVisual;
+
+    private WheelVisual closingVisual;
+
     private final Deque<String> wheelPath = new ArrayDeque<>();
+
     private final Set<String> pressedHotkeys = new HashSet<>();
+
     private final Set<Integer> pressedRadialPositionKeys = new HashSet<>();
 
     private boolean open;
+
     private boolean keyDown;
+
     private boolean leftMouseDown;
+
     private boolean rightMouseDown;
+
     private boolean mouseReleased;
+
     private boolean centerBackHovered;
+
     private boolean radialPositionInputLocked;
+
     private boolean radialPositionModeActive;
+
     private int hoveredIndex = -1;
+
     private int currentPageIndex;
+
     private int radialTutorialStepIndex = -1;
+
+    private int tutorialKeyboardButton = 1;
+
+    private boolean tutorialKeyboardFocus;
+
+    private float tutorialFocusMouseX = Float.NaN, tutorialFocusMouseY = Float.NaN;
+
+    private int tutorialBackButtonX, tutorialBackButtonY, tutorialBackButtonWidth, tutorialBackButtonHeight;
+
     private int lockedHotbarSlot = -1;
+
     private int tutorialNextButtonX;
+
     private int tutorialNextButtonY;
+
     private int tutorialNextButtonWidth;
+
     private int tutorialNextButtonHeight;
+
     private int tutorialSkipAllButtonX;
+
     private int tutorialSkipAllButtonY;
+
     private int tutorialSkipAllButtonWidth;
+
     private int tutorialSkipAllButtonHeight;
+
     private double lastFreeRawMouseX;
+
     private double lastFreeRawMouseY;
+
     private double accumulatedScrollX;
+
     private double accumulatedScrollY;
 
     public OmniWheelOverlay(OmniWheelClientRuntime runtime) {
@@ -96,7 +164,6 @@ public final class OmniWheelOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         boolean triggerDown = OmniWheelKeyMappings.OPEN_WHEEL.isDown();
         boolean canOpen = minecraft.player != null && minecraft.level != null && minecraft.screen == null;
-
         if (!canOpen) {
             close();
             keyDown = triggerDown;
@@ -104,7 +171,6 @@ public final class OmniWheelOverlay {
             rightMouseDown = isRightMouseDown(minecraft);
             return;
         }
-
         if (!open) {
             if (triggerDown && !keyDown) {
                 openRoot(minecraft);
@@ -114,7 +180,6 @@ public final class OmniWheelOverlay {
             rightMouseDown = isRightMouseDown(minecraft);
             return;
         }
-
         if (isRadialTutorialActive() && minecraft.mouseHandler.isMouseGrabbed()) {
             ensureMouseReleased(minecraft);
             keyDown = triggerDown;
@@ -130,7 +195,6 @@ public final class OmniWheelOverlay {
             lastFreeRawMouseY = minecraft.mouseHandler.ypos();
         }
         List<WheelEntry> visibleEntries = currentDisplayEntries();
-
         if (isRadialTutorialActive()) {
             suppressGameplayInput(minecraft);
             hoveredIndex = -1;
@@ -143,26 +207,22 @@ public final class OmniWheelOverlay {
             rightMouseDown = rightPressed;
             return;
         }
-
         if (!radialPositionModeActive && handleHotkeys(minecraft, visibleEntries)) {
             leftMouseDown = leftPressed;
             rightMouseDown = rightPressed;
             keyDown = triggerDown;
             return;
         }
-
         if (handleRadialPositionKeys(visibleEntries)) {
             leftMouseDown = leftPressed;
             rightMouseDown = rightPressed;
             keyDown = triggerDown;
             return;
         }
-
         if (consumePageScroll(minecraft)) {
             visibleEntries = currentDisplayEntries();
             updateSelection(freeMouseX(minecraft), freeMouseY(minecraft), minecraft);
         }
-
         if (leftPressed && !leftMouseDown) {
             activateHoveredEntry(visibleEntries, false);
             leftMouseDown = true;
@@ -170,7 +230,6 @@ public final class OmniWheelOverlay {
             keyDown = triggerDown;
             return;
         }
-
         if (rightPressed && !rightMouseDown) {
             if (!popWheel()) {
                 close();
@@ -180,7 +239,6 @@ public final class OmniWheelOverlay {
             keyDown = triggerDown;
             return;
         }
-
         updateSelection(freeMouseX(minecraft), freeMouseY(minecraft), minecraft);
         lastFreeRawMouseX = minecraft.mouseHandler.xpos();
         lastFreeRawMouseY = minecraft.mouseHandler.ypos();
@@ -201,25 +259,36 @@ public final class OmniWheelOverlay {
     }
 
     public void render(GuiGraphics graphics) {
-        if (!open) {
+        Minecraft minecraft = Minecraft.getInstance();
+        long frameTime = System.nanoTime();
+        if (!open && (closingVisual == null || !animation.isClosing(frameTime) || minecraft.player == null || minecraft.level == null || minecraft.screen != null)) {
+            closingVisual = null;
             return;
         }
-
-        Minecraft minecraft = Minecraft.getInstance();
         double uiScale = uiScale(minecraft);
         int width = uiWidth(minecraft);
         int height = uiHeight(minecraft);
-        if (!isRadialTutorialActive()) {
+        if (open && !isRadialTutorialActive()) {
             updateSelection(freeMouseX(minecraft), freeMouseY(minecraft), minecraft);
-        } else {
+        } else if (open) {
             hoveredIndex = -1;
             centerBackHovered = false;
         }
-
         graphics.pose().pushPose();
         graphics.pose().scale((float) uiScale, (float) uiScale, 1.0F);
-        WheelDefinition wheel = currentWheel();
-        List<WheelEntry> visibleEntries = currentDisplayEntries();
+        WheelVisual visual;
+        if (open) {
+            WheelDefinition wheel = currentWheel();
+            List<WheelEntry> entries = currentDisplayEntries();
+            animation.update(frameTime, activeProfile().id() + "/" + wheel.id() + "/" + currentPageIndex, entries.stream().map(WheelEntry::id).collect(de.artemis.omniwheel.common.Java8.toList()), hoveredIndex, centerBackHovered);
+            float[] selections = new float[entries.size()];
+            for (int index = 0; index < selections.length; index++) selections[index] = animation.selection(index);
+            visual = new WheelVisual(entries, selections, runtime.availabilityResolver().enabledEntries(activeProfile(), wheel.id(), entries, wheelPath), hoveredIndex, canGoBack(), centerBackHovered, activeProfile().displayName(), currentPageIndex, currentPageCount(), isRadialTutorialActive() ? 1 : animation.openingScale(frameTime) * animation.viewScale(frameTime));
+            lastVisual = visual;
+        } else {
+            visual = closingVisual;
+        }
+        List<WheelEntry> visibleEntries = visual.entries();
         int segmentCount = renderedSegmentCount(visibleEntries);
         float centerX = width * 0.5F;
         float centerY = height * 0.5F;
@@ -227,69 +296,16 @@ public final class OmniWheelOverlay {
         float innerRadius = DEADZONE_RADIUS;
         float ringInnerRadius = innerRadius + 18.0F;
         float ringOuterRadius = outerRadius;
-        double gapWidth = segmentGapWidth(ringOuterRadius, segmentCount);
-        boolean showingCenterBack = canGoBack();
-
-        if (!showingCenterBack) {
-            GeometryRenderer.fillCircle(graphics, centerX, centerY, innerRadius + 22.0F, PANEL_COLOR);
-        }
-
-        for (int index = 0; index < segmentCount; index++) {
-            WheelEntry entry = visibleEntries.get(index);
-            boolean selected = index == hoveredIndex;
-            float segmentOuter = selected ? ringOuterRadius + 6.0F : ringOuterRadius;
-            SegmentShape segmentShape = segmentShape(index, segmentCount, ringInnerRadius, segmentOuter, gapWidth);
-            SegmentPalette palette = paletteForGuiColor(entry.guiColor());
-            int fillColor = selected ? palette.selectedFill() : (index % 2 == 0 ? palette.baseFill() : palette.altFill());
-            int outlineColor = palette.selectedOutline();
-
-            GeometryRenderer.fillRingSegment(
-                    graphics,
-                    centerX,
-                    centerY,
-                    ringInnerRadius,
-                    segmentOuter,
-                    segmentShape.innerStartAngle(),
-                    segmentShape.innerEndAngle(),
-                    segmentShape.outerStartAngle(),
-                    segmentShape.outerEndAngle(),
-                    fillColor
-            );
-
-            if (selected) {
-                SegmentShape innerOutline = segmentShape(index, segmentCount, ringInnerRadius - 2.0F, ringInnerRadius + 1.0F, gapWidth);
-                SegmentShape outerOutline = segmentShape(index, segmentCount, segmentOuter - 1.0F, segmentOuter + 2.0F, gapWidth);
-                GeometryRenderer.fillRingSegment(
-                        graphics,
-                        centerX,
-                        centerY,
-                        ringInnerRadius - 2.0F,
-                        ringInnerRadius + 1.0F,
-                        innerOutline.innerStartAngle(),
-                        innerOutline.innerEndAngle(),
-                        innerOutline.outerStartAngle(),
-                        innerOutline.outerEndAngle(),
-                        outlineColor
-                );
-                GeometryRenderer.fillRingSegment(
-                        graphics,
-                        centerX,
-                        centerY,
-                        segmentOuter - 1.0F,
-                        segmentOuter + 2.0F,
-                        outerOutline.innerStartAngle(),
-                        outerOutline.innerEndAngle(),
-                        outerOutline.outerStartAngle(),
-                        outerOutline.outerEndAngle(),
-                        outlineColor
-                );
-            }
-
-            drawEntry(graphics, minecraft, entry, centerX, centerY, ringInnerRadius, segmentOuter, segmentShape.midAngle(), selected);
-        }
-
-        drawCenterPanel(graphics, minecraft, width, height, wheel, visibleEntries);
-        drawRadialTutorial(graphics, minecraft, width, height, centerX, centerY, ringOuterRadius);
+        float openingScale = open ? visual.scale() : animation.closingScale(frameTime);
+        graphics.pose().pushPose();
+        graphics.pose().translate(centerX, centerY, 0.0F);
+        graphics.pose().scale(openingScale, openingScale, 1.0F);
+        graphics.pose().translate(-centerX, -centerY, 0.0F);
+        RadialWheelRenderer.render(graphics, minecraft, visibleEntries, visual.selections(), centerX, centerY, ringInnerRadius, ringOuterRadius, -1, null, -1, true, visual.enabledEntries());
+        drawCenterPanel(graphics, minecraft, width, height, visual);
+        graphics.pose().popPose();
+        if (open)
+            drawRadialTutorial(graphics, minecraft, width, height, centerX, centerY, ringOuterRadius);
         graphics.pose().popPose();
     }
 
@@ -297,8 +313,15 @@ public final class OmniWheelOverlay {
         if (!open && !mouseReleased) {
             return;
         }
-
         Minecraft minecraft = Minecraft.getInstance();
+        if (open && lastVisual != null && minecraft.player != null && minecraft.level != null && minecraft.screen == null) {
+            closingVisual = lastVisual;
+            animation.close(System.nanoTime(), closingVisual.scale());
+        } else {
+            closingVisual = null;
+            animation.reset();
+        }
+        lastVisual = null;
         open = false;
         wheelPath.clear();
         hoveredIndex = -1;
@@ -314,7 +337,6 @@ public final class OmniWheelOverlay {
         radialTutorialStepIndex = -1;
         accumulatedScrollX = 0.0D;
         accumulatedScrollY = 0.0D;
-
         if (mouseReleased) {
             mouseReleased = false;
             if (minecraft.screen == null && minecraft.player != null && minecraft.level != null) {
@@ -332,11 +354,15 @@ public final class OmniWheelOverlay {
         if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
             return;
         }
-
         boolean wasOpen = open;
+        if (!wasOpen) {
+            closingVisual = null;
+            lastVisual = null;
+            animation.open(System.nanoTime());
+        }
         runtime.profileManager().ensureLoaded();
         WheelProfile profile = runtime.activeProfile();
-        List<String> path = wheelIds == null || wheelIds.isEmpty() ? com.google.common.collect.ImmutableList.of(resolveOpeningWheelId(profile)) : wheelIds;
+        List<String> path = wheelIds == null || wheelIds.isEmpty() ? de.artemis.omniwheel.common.Java8.list(resolveOpeningWheelId(profile)) : wheelIds;
         wheelPath.clear();
         wheelPath.addAll(path);
         open = true;
@@ -352,9 +378,9 @@ public final class OmniWheelOverlay {
         accumulatedScrollX = 0.0D;
         accumulatedScrollY = 0.0D;
         if (!wasOpen && !runtime.tutorialProgressStore().isCompleted(TutorialType.RADIAL)) {
+            tutorialKeyboardFocus = false;
             radialTutorialStepIndex = runtime.tutorialProgressStore().currentStep(TutorialType.RADIAL);
         }
-
         ensureMouseReleased(minecraft);
         updateSelection(freeMouseX(minecraft), freeMouseY(minecraft), minecraft);
     }
@@ -362,23 +388,22 @@ public final class OmniWheelOverlay {
     private void openRoot(Minecraft minecraft) {
         runtime.profileManager().ensureLoaded();
         WheelProfile profile = runtime.activeProfile();
-        openWheelPath(com.google.common.collect.ImmutableList.of(resolveOpeningWheelId(profile)));
+        openWheelPath(de.artemis.omniwheel.common.Java8.list(resolveOpeningWheelId(profile)));
     }
 
     public boolean handleMouseScroll(double scrollDeltaX, double scrollDeltaY) {
         if (!open) {
             return false;
         }
-
+        if (isRadialTutorialActive())
+            return true;
         Minecraft minecraft = Minecraft.getInstance();
-
         if (accumulatedScrollX != 0.0D && Math.signum(scrollDeltaX) != Math.signum(accumulatedScrollX)) {
             accumulatedScrollX = 0.0D;
         }
         if (accumulatedScrollY != 0.0D && Math.signum(scrollDeltaY) != Math.signum(accumulatedScrollY)) {
             accumulatedScrollY = 0.0D;
         }
-
         accumulatedScrollX += scrollDeltaX;
         accumulatedScrollY += scrollDeltaY;
         int wheelX = (int) accumulatedScrollX;
@@ -386,19 +411,16 @@ public final class OmniWheelOverlay {
         if (wheelX == 0 && wheelY == 0) {
             return true;
         }
-
         accumulatedScrollX -= wheelX;
         accumulatedScrollY -= wheelY;
         int wheel = wheelY == 0 ? -wheelX : wheelY;
         if (wheel == 0) {
             return true;
         }
-
         if (isShiftDown(minecraft)) {
             cycleActiveProfile(-(int) Math.signum(wheel), minecraft);
             return true;
         }
-
         if (currentPageCount() > 1) {
             int pageDelta = -(int) Math.signum(wheel);
             int lastPage = currentPageCount() - 1;
@@ -409,10 +431,11 @@ public final class OmniWheelOverlay {
     }
 
     public boolean handleMouseButton(int button, int action) {
-        if (!open || !isRadialTutorialActive() || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (!open || !isRadialTutorialActive()) {
             return false;
         }
-
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT)
+            return true;
         Minecraft minecraft = Minecraft.getInstance();
         if (action == GLFW.GLFW_PRESS) {
             handleTutorialClick(tutorialMouseX(minecraft), tutorialMouseY(minecraft), minecraft);
@@ -434,7 +457,6 @@ public final class OmniWheelOverlay {
             if (hotkey == null || !isHotkeyDown(minecraft, hotkey) || !pressedHotkeys.add(hotkey)) {
                 continue;
             }
-
             activateEntry(index, visibleEntries);
             return true;
         }
@@ -456,12 +478,10 @@ public final class OmniWheelOverlay {
         if (radialPositionInputLocked) {
             return false;
         }
-
         for (int position = 0; position < OmniWheelKeyMappings.RADIAL_POSITION_KEYS.size(); position++) {
             if (!isRadialPositionKeyDown(Minecraft.getInstance(), position) || !pressedRadialPositionKeys.add(position)) {
                 continue;
             }
-
             if (position == 4) {
                 if (canGoBack()) {
                     centerBackHovered = true;
@@ -474,14 +494,12 @@ public final class OmniWheelOverlay {
                 radialPositionModeActive = true;
                 return true;
             }
-
             int targetIndex = radialPositionTargetIndex(position, visibleEntries.size());
             if (targetIndex < 0 || targetIndex >= visibleEntries.size()) {
                 radialPositionInputLocked = true;
                 radialPositionModeActive = true;
                 return true;
             }
-
             activateEntry(targetIndex, visibleEntries);
             radialPositionInputLocked = true;
             radialPositionModeActive = true;
@@ -496,7 +514,6 @@ public final class OmniWheelOverlay {
         if (profiles.size() <= 1) {
             return;
         }
-
         String activeProfileId = runtime.activeProfile().id();
         int currentIndex = 0;
         for (int index = 0; index < profiles.size(); index++) {
@@ -505,13 +522,11 @@ public final class OmniWheelOverlay {
                 break;
             }
         }
-
         int nextIndex = Math.floorMod(currentIndex + delta, profiles.size());
         WheelProfile nextProfile = profiles.get(nextIndex);
         if (nextProfile.id().equals(activeProfileId)) {
             return;
         }
-
         runtime.profileManager().setActiveProfile(nextProfile.id());
         openRoot(minecraft);
     }
@@ -521,9 +536,8 @@ public final class OmniWheelOverlay {
     }
 
     private boolean isHotkeyDown(Minecraft minecraft, String hotkey) {
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
         for (int keyCode : hotkeyCodes(hotkey)) {
-            if (InputMappings.isKeyDown(windowHandle, keyCode)) {
+            if (InputMappings.isKeyDown(minecraft.getWindow().getWindow(), keyCode)) {
                 return true;
             }
         }
@@ -531,9 +545,7 @@ public final class OmniWheelOverlay {
     }
 
     private boolean isShiftDown(Minecraft minecraft) {
-        long windowHandle = resolveWindowHandle(minecraft.getWindow());
-        return InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputMappings.isKeyDown(windowHandle, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputMappings.isKeyDown(minecraft.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputMappings.isKeyDown(minecraft.getWindow().getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
     private void activateEntry(int index, List<WheelEntry> visibleEntries) {
@@ -551,156 +563,50 @@ public final class OmniWheelOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputMappings.grabOrReleaseMouse(resolveWindowHandle(minecraft.getWindow()), 212993, rawX, rawY);
+        InputMappings.grabOrReleaseMouse(minecraft.getWindow().getWindow(), 212993, rawX, rawY);
     }
 
-    private long resolveWindowHandle(net.minecraft.client.MainWindow window) {
-        return window.getWindow();
-    }
-
-    private void drawEntry(
-            GuiGraphics graphics,
-            Minecraft minecraft,
-            WheelEntry entry,
-            float centerX,
-            float centerY,
-            float innerRadius,
-            float outerRadius,
-            double labelAngle,
-            boolean selected
-    ) {
-        float labelRadius = (innerRadius + outerRadius) * 0.52F;
-        int labelX = Math.round(centerX + ((float) Math.cos(labelAngle) * labelRadius));
-        int labelY = Math.round(centerY + ((float) Math.sin(labelAngle) * labelRadius));
-        int textColor = selected ? TEXT_PRIMARY : entry.color();
-        int glyphColor = entry.action() instanceof OpenWheelAction && entry.color() == WheelEntry.DEFAULT_COLOR ? SUBWHEEL_HINT : textColor;
-        boolean showIcon = entry.showIcon();
-        boolean showLabel = entry.showLabel();
-        boolean showShortcut = entry.showShortcut() && !entry.shortcut().trim().isEmpty();
-        int maxTextWidth = Math.max(34, Math.round((outerRadius - innerRadius) * 0.9F));
-
-        float iconScale;
-        float iconCenterY;
-        int labelTextY;
-        int shortcutTextY;
-
-        if (showIcon && showLabel && showShortcut) {
-            iconScale = 0.88F;
-            iconCenterY = labelY - 9.0F;
-            labelTextY = labelY - 1;
-            shortcutTextY = labelY + 10;
-        } else if (showIcon && showLabel) {
-            iconScale = 0.94F;
-            iconCenterY = labelY - 6.0F;
-            labelTextY = labelY + 2;
-            shortcutTextY = labelY + 11;
-        } else if (showIcon && showShortcut) {
-            iconScale = 1.04F;
-            iconCenterY = labelY - 6.0F;
-            labelTextY = labelY + 1;
-            shortcutTextY = labelY + 7;
-        } else if (showIcon) {
-            iconScale = 1.28F;
-            iconCenterY = labelY + 1.0F;
-            labelTextY = labelY + 1;
-            shortcutTextY = labelY + 5;
-        } else if (showLabel && showShortcut) {
-            iconScale = 0.0F;
-            iconCenterY = labelY;
-            labelTextY = labelY - 4;
-            shortcutTextY = labelY + 7;
-        } else if (showLabel) {
-            iconScale = 0.0F;
-            iconCenterY = labelY;
-            labelTextY = labelY + 1;
-            shortcutTextY = labelY + 7;
-        } else {
-            iconScale = 0.0F;
-            iconCenterY = labelY;
-            labelTextY = labelY + 1;
-            shortcutTextY = labelY + 2;
-        }
-
-        if (showIcon) {
-            if (!EntryIconRenderer.drawIcon(graphics, minecraft, entry.glyph(), labelX, iconCenterY, iconScale)) {
-                int glyphY = Math.round(iconCenterY - (showLabel || showShortcut ? 4.0F : 8.0F));
-                graphics.drawCenteredString(minecraft.font, entry.glyph(), labelX, glyphY, glyphColor);
-            }
-        }
-        if (showLabel) {
-            String label = fitPlainText(minecraft.font, OmniWheelText.resolve(entry.label()), maxTextWidth);
-            graphics.drawCenteredString(minecraft.font, label, labelX, labelTextY, textColor);
-        }
-        if (showShortcut) {
-            float shortcutScale = showLabel ? 0.8F : 0.88F;
-            String shortcut = fitPlainText(minecraft.font, entry.shortcut(), Math.round(maxTextWidth / shortcutScale));
-            drawScaledCenteredString(
-                    graphics,
-                    minecraft.font,
-                    shortcut,
-                    labelX,
-                    shortcutTextY,
-                    shortcutScale,
-                    selected ? TEXT_SHORTCUT_SELECTED : TEXT_SECONDARY
-            );
-        }
-    }
-
-    private void drawCenterPanel(GuiGraphics graphics, Minecraft minecraft, int width, int height, WheelDefinition wheel, List<WheelEntry> entries) {
-        WheelEntry hovered = hoveredIndex >= 0 && hoveredIndex < entries.size() ? entries.get(hoveredIndex) : null;
+    private void drawCenterPanel(GuiGraphics graphics, Minecraft minecraft, int width, int height, WheelVisual visual) {
+        List<WheelEntry> entries = visual.entries();
+        WheelEntry hovered = visual.hoveredIndex() >= 0 && visual.hoveredIndex() < entries.size() ? entries.get(visual.hoveredIndex()) : null;
         int panelRadius = Math.round(DEADZONE_RADIUS + 18.0F);
         int contentWidth = Math.max(72, (panelRadius * 2) - 10);
         int contentHeight = Math.max(46, (panelRadius * 2) - 16);
         int centerX = width / 2;
         int centerY = height / 2;
-
         List<TextLayout> blocks = new ArrayList<>();
-        blocks.add(layoutText(minecraft, hovered != null ? OmniWheelText.resolve(hovered.label()) : OmniWheelText.resolve(activeProfile().displayName()), contentWidth, 30, 2));
-
-        if (canGoBack()) {
-            drawCenterBackButton(graphics, minecraft, centerX, centerY, panelRadius);
+        blocks.add(layoutText(minecraft, hovered != null ? OmniWheelText.resolve(hovered.label()) : OmniWheelText.resolve(visual.profileLabel()), contentWidth, 30, 2));
+        if (visual.canGoBack()) {
+            drawCenterBackButton(graphics, minecraft, centerX, centerY, panelRadius, visual.centerBackHovered());
             return;
         }
-
-        if (currentPageCount() > 1) {
-            blocks.add(layoutText(
-                    minecraft,
-                    OmniWheelText.translate("omniwheel.radial.page", currentPageIndex + 1, currentPageCount()),
-                    contentWidth,
-                    18,
-                    1
-            ));
+        if (visual.pageCount() > 1) {
+            blocks.add(layoutText(minecraft, OmniWheelText.translate("omniwheel.radial.page", visual.pageIndex() + 1, visual.pageCount()), contentWidth, 18, 1));
         }
-
         String hint = centerHint(hovered, entries);
         if (hint != null) {
             blocks.add(layoutText(minecraft, hint, contentWidth, 20, 2));
         }
-
         int spacing = 4;
         int totalHeight = -spacing;
         for (TextLayout block : blocks) {
             totalHeight += block.height() + spacing;
         }
-
         int startY = centerY - Math.min(totalHeight, contentHeight) / 2;
         for (int index = 0; index < blocks.size(); index++) {
             TextLayout block = blocks.get(index);
-            int color = index == 0 ? TEXT_PRIMARY : index == blocks.size() - 1 && hint != null && hovered != null && hovered.action().requiresConfirmation()
-                    ? SUBWHEEL_HINT
-                    : TEXT_SECONDARY;
+            int color = index == 0 ? TEXT_PRIMARY : index == blocks.size() - 1 && hint != null && hovered != null && hovered.action().requiresConfirmation() ? SUBWHEEL_HINT : TEXT_SECONDARY;
             drawAdaptiveCenteredText(graphics, minecraft, block, centerX, startY, color);
             startY += block.height() + spacing;
         }
-
     }
 
     private void suppressGameplayInput(Minecraft minecraft) {
         if (minecraft.player == null) {
             return;
         }
-        for (KeyBinding KeyBinding : gameplayKeyMappings(minecraft)) {
-            KeyBinding.setDown(false);
+        for (KeyBinding keyMapping : gameplayKeyMappings(minecraft)) {
+            keyMapping.setDown(false);
         }
         minecraft.player.xxa = 0.0F;
         minecraft.player.yya = 0.0F;
@@ -710,18 +616,7 @@ public final class OmniWheelOverlay {
     }
 
     private static List<KeyBinding> gameplayKeyMappings(Minecraft minecraft) {
-        return com.google.common.collect.ImmutableList.of(
-                minecraft.options.keyUp,
-                minecraft.options.keyDown,
-                minecraft.options.keyLeft,
-                minecraft.options.keyRight,
-                minecraft.options.keyJump,
-                minecraft.options.keyShift,
-                minecraft.options.keySprint,
-                minecraft.options.keyAttack,
-                minecraft.options.keyUse,
-                minecraft.options.keyPickItem
-        );
+        return de.artemis.omniwheel.common.Java8.list(minecraft.options.keyUp, minecraft.options.keyDown, minecraft.options.keyLeft, minecraft.options.keyRight, minecraft.options.keyJump, minecraft.options.keyShift, minecraft.options.keySprint, minecraft.options.keyAttack, minecraft.options.keyUse, minecraft.options.keyPickItem);
     }
 
     private void drawAdaptiveCenteredText(GuiGraphics graphics, Minecraft minecraft, TextLayout layout, int centerX, int topY, int color) {
@@ -729,13 +624,7 @@ public final class OmniWheelOverlay {
         for (IReorderingProcessor line : layout.lines()) {
             graphics.pose().pushPose();
             graphics.pose().scale(layout.scale(), layout.scale(), 1.0F);
-            graphics.drawCenteredString(
-                    minecraft.font,
-                    line,
-                    Math.round(centerX / layout.scale()),
-                    Math.round(lineY / layout.scale()),
-                    color
-            );
+            graphics.drawCenteredString(minecraft.font, line, Math.round(centerX / layout.scale()), Math.round(lineY / layout.scale()), color);
             graphics.pose().popPose();
             lineY += layout.lineHeight();
         }
@@ -745,27 +634,25 @@ public final class OmniWheelOverlay {
         float minScale = 0.55F;
         for (float scale = 1.0F; scale >= minScale; scale -= 0.05F) {
             int scaledWidth = Math.max(1, Math.round(maxWidth / scale));
-            List<IReorderingProcessor> lines = minecraft.font.split(new StringTextComponent(text), scaledWidth);
+            List<IReorderingProcessor> lines = minecraft.font.split(new net.minecraft.util.text.StringTextComponent(text), scaledWidth);
             if (lines.size() > maxLines) {
                 continue;
             }
-
             int lineHeight = Math.max(7, Math.round(9.0F * scale));
             int height = lines.size() * lineHeight;
             if (height <= maxHeight) {
                 return new TextLayout(lines, scale, lineHeight, height);
             }
         }
-
         float fallbackScale = minScale;
         int fallbackWidth = Math.max(1, Math.round(maxWidth / fallbackScale));
-        List<IReorderingProcessor> fallbackLines = new ArrayList<>(minecraft.font.split(new StringTextComponent(text), fallbackWidth));
+        List<IReorderingProcessor> fallbackLines = new ArrayList<>(minecraft.font.split(new net.minecraft.util.text.StringTextComponent(text), fallbackWidth));
         if (fallbackLines.size() > maxLines) {
             fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
             if (!fallbackLines.isEmpty()) {
                 int maxChars = Math.max(3, Math.round(fallbackWidth / 6.0F));
                 String shortened = shortenPlainText(text, maxChars);
-                fallbackLines = new ArrayList<>(minecraft.font.split(new StringTextComponent(shortened), fallbackWidth));
+                fallbackLines = new ArrayList<>(minecraft.font.split(new net.minecraft.util.text.StringTextComponent(shortened), fallbackWidth));
                 if (fallbackLines.size() > maxLines) {
                     fallbackLines = new ArrayList<>(fallbackLines.subList(0, maxLines));
                 }
@@ -775,94 +662,119 @@ public final class OmniWheelOverlay {
         return new TextLayout(fallbackLines, fallbackScale, fallbackLineHeight, fallbackLines.size() * fallbackLineHeight);
     }
 
-    private void drawCenterBackButton(GuiGraphics graphics, Minecraft minecraft, int centerX, int centerY, int panelRadius) {
-        float buttonRadius = centerBackButtonRadius();
-        int fill = centerBackHovered ? SELECTED_COLOR : CENTER_BUTTON_COLOR;
-        int outline = centerBackHovered ? SELECTED_OUTLINE : 0;
-
+    private void drawCenterBackButton(GuiGraphics graphics, Minecraft minecraft, int centerX, int centerY, int panelRadius, boolean centerBackHovered) {
+        float hover = open ? animation.centerSelection() : centerBackHovered ? 1 : 0;
+        float buttonRadius = centerBackButtonRadius() + 1.5F * hover;
+        int fill = RadialAnimation.blendColor(CENTER_BUTTON_COLOR, SELECTED_COLOR, hover);
+        int outline = RadialAnimation.blendColor(SELECTED_OUTLINE & 0x00FFFFFF, SELECTED_OUTLINE, hover);
         GeometryRenderer.fillDisc(graphics, centerX, centerY, buttonRadius, fill);
-        if (centerBackHovered) {
-            GeometryRenderer.fillRingSegment(
-                    graphics,
-                    centerX,
-                    centerY,
-                    buttonRadius - 2.0F,
-                    buttonRadius + 1.5F,
-                    0.0D,
-                    Math.PI * 2.0D,
-                    0.0D,
-                    Math.PI * 2.0D,
-                    outline
-            );
+        if (hover > 0.001F) {
+            GeometryRenderer.fillRingSegment(graphics, centerX, centerY, buttonRadius - 2.0F, buttonRadius + 1.5F, 0.0D, Math.PI * 2.0D, 0.0D, Math.PI * 2.0D, outline);
         }
-
         graphics.drawCenteredString(minecraft.font, "\u2190", centerX, centerY - 9, TEXT_PRIMARY);
         graphics.drawCenteredString(minecraft.font, OmniWheelText.translate("omniwheel.common.back"), centerX, centerY + 4, TEXT_PRIMARY);
     }
 
     private void drawRadialTutorial(GuiGraphics graphics, Minecraft minecraft, int width, int height, float centerX, float centerY, float outerRadius) {
-        TutorialStep tutorialStep = currentRadialTutorialStep(width, height, centerX, centerY, outerRadius);
-        if (tutorialStep == null) {
+        if (!isRadialTutorialActive())
             return;
+        float mouseX = tutorialMouseX(minecraft), mouseY = tutorialMouseY(minecraft);
+        if (!Float.isNaN(tutorialFocusMouseX) && (Math.abs(mouseX - tutorialFocusMouseX) > 0.5F || Math.abs(mouseY - tutorialFocusMouseY) > 0.5F))
+            tutorialKeyboardFocus = false;
+        tutorialFocusMouseX = mouseX;
+        tutorialFocusMouseY = mouseY;
+        de.artemis.omniwheel.client.tutorial.TutorialGuide.Step step = TutorialGuide.step(TutorialType.RADIAL, radialTutorialStepIndex);
+        Bounds focus = new Bounds(Math.round(centerX - outerRadius - 8), Math.round(centerY - outerRadius - 8), Math.round(outerRadius * 2 + 16), Math.round(outerRadius * 2 + 16));
+        if (step.id().equals("center"))
+            focus = new Bounds(Math.round(centerX) - 42, Math.round(centerY) - 42, 84, 84);
+        else if (step.id().equals("submenus")) {
+            java.util.List<de.artemis.omniwheel.common.wheel.WheelEntry> entries = currentDisplayEntries();
+            for (int index = 0; index < entries.size(); index++) if (entries.get(index).action() instanceof OpenWheelAction) {
+                double angle = RadialLayout.segmentMidAngle(index, entries.size());
+                focus = new Bounds(Math.round(centerX + (float) Math.cos(angle) * 85) - 32, Math.round(centerY + (float) Math.sin(angle) * 85) - 28, 64, 56);
+                break;
+            }
         }
-
-        int boxWidth = tutorialStep.width();
-        TextLayout title = layoutText(minecraft, tutorialStep.title(), boxWidth - 20, 16, 1);
-        List<IReorderingProcessor> bodyLines = minecraft.font.split(new StringTextComponent(tutorialStep.body()), boxWidth - 20);
-        int bodyHeight = Math.max(8, bodyLines.size() * 9);
-        int buttonHeight = 20;
-        int buttonGap = 6;
-        boolean lastStep = radialTutorialStepIndex >= RADIAL_TUTORIAL_STEP_COUNT - 1;
-        int buttonWidth = (boxWidth - 22 - buttonGap) / 2;
-        int boxHeight = 18 + title.height() + 8 + bodyHeight + 12 + buttonHeight + 12;
-        int boxX = Math.max(8, Math.min(tutorialStep.x(), Math.max(8, width - boxWidth - 8)));
-        int boxY = Math.max(8, Math.min(tutorialStep.y(), Math.max(8, height - boxHeight - 8)));
-
+        TutorialSpotlight.drawCircle(graphics, width, height, (float) focus.centerX(), (float) focus.centerY(), focus.width() * 0.5F);
+        int boxWidth = Math.min(300, Math.max(180, width / 2 - Math.round(outerRadius) - 30));
+        String title = OmniWheelText.translate(step.titleKey(TutorialType.RADIAL));
+        String body = step.id().equals("opening") ? OmniWheelText.translate(step.bodyKey(TutorialType.RADIAL), OmniWheelKeyMappings.OPEN_WHEEL.getTranslatedKeyMessage().getString()) : step.id().equals("management") ? OmniWheelText.translate(step.bodyKey(TutorialType.RADIAL), OmniWheelKeyMappings.OPEN_MANAGER.getTranslatedKeyMessage().getString()) : OmniWheelText.translate(step.bodyKey(TutorialType.RADIAL));
+        java.util.List<net.minecraft.util.IReorderingProcessor> titleLines = minecraft.font.split(new net.minecraft.util.text.StringTextComponent(title), boxWidth - 20);
+        java.util.List<net.minecraft.util.IReorderingProcessor> bodyLines = minecraft.font.split(new net.minecraft.util.text.StringTextComponent(body), boxWidth - 20);
+        int boxHeight = 24 + titleLines.size() * 10 + 8 + bodyLines.size() * 10 + 36;
+        int boxX = focus.centerX() >= centerX ? 16 : width - boxWidth - 16;
+        int boxY = Math.max(8, Math.min(20, height - boxHeight - 8));
+        de.artemis.omniwheel.client.render.LiftedRowRenderer.shadow(graphics, boxX, boxY, boxWidth, boxHeight);
+        graphics.flush();
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, TUTORIAL_PANEL);
         drawTutorialFrame(graphics, boxX, boxY, boxWidth, boxHeight);
-        String stepLabel = (Math.min(radialTutorialStepIndex, RADIAL_TUTORIAL_STEP_COUNT - 1) + 1) + "/" + RADIAL_TUTORIAL_STEP_COUNT;
-        graphics.drawString(minecraft.font, stepLabel, boxX + boxWidth - 10 - minecraft.font.width(stepLabel), boxY + 10, TEXT_SECONDARY, false);
-        drawAdaptiveCenteredText(graphics, minecraft, title, boxX + (boxWidth / 2), boxY + 10, TEXT_PRIMARY);
-        drawWrappedTutorialBody(graphics, minecraft, bodyLines, boxX + 10, boxY + 18 + title.height(), TEXT_SECONDARY);
-
-        int buttonY = boxY + boxHeight - buttonHeight - 10;
-        tutorialNextButtonX = boxX + 8;
-        tutorialNextButtonY = buttonY;
-        tutorialNextButtonWidth = lastStep ? boxWidth - 16 : buttonWidth;
-        tutorialNextButtonHeight = buttonHeight;
-        tutorialSkipAllButtonX = tutorialNextButtonX + buttonWidth + buttonGap;
-        tutorialSkipAllButtonY = buttonY;
-        tutorialSkipAllButtonWidth = lastStep ? 0 : buttonWidth;
-        tutorialSkipAllButtonHeight = buttonHeight;
-
-        drawTutorialButton(
-                graphics,
-                minecraft,
-                tutorialNextButtonX,
-                tutorialNextButtonY,
-                tutorialNextButtonWidth,
-                tutorialNextButtonHeight,
-                OmniWheelText.translate(lastStep ? "omniwheel.common.finish" : "omniwheel.common.next")
-        );
-        if (!lastStep) {
-            drawTutorialButton(
-                    graphics,
-                    minecraft,
-                    tutorialSkipAllButtonX,
-                    tutorialSkipAllButtonY,
-                    tutorialSkipAllButtonWidth,
-                    tutorialSkipAllButtonHeight,
-                    OmniWheelText.translate("omniwheel.common.skip_all")
-            );
+        graphics.drawString(minecraft.font, "Wheel guide " + (radialTutorialStepIndex + 1) + "/" + RADIAL_TUTORIAL_STEP_COUNT, boxX + 10, boxY + 10, SELECTED_OUTLINE, false);
+        int lineY = boxY + 25;
+        for (net.minecraft.util.IReorderingProcessor line : titleLines) {
+            graphics.drawString(minecraft.font, line, boxX + 10, lineY, TEXT_PRIMARY, false);
+            lineY += 10;
         }
+        lineY += 8;
+        for (net.minecraft.util.IReorderingProcessor line : bodyLines) {
+            graphics.drawString(minecraft.font, line, boxX + 10, lineY, TEXT_SECONDARY, false);
+            lineY += 10;
+        }
+        int buttonWidth = (boxWidth - 28) / 3, buttonY = boxY + boxHeight - 28;
+        tutorialBackButtonX = boxX + 8;
+        tutorialBackButtonY = buttonY;
+        tutorialBackButtonWidth = buttonWidth;
+        tutorialBackButtonHeight = 20;
+        tutorialNextButtonX = boxX + 14 + buttonWidth;
+        tutorialNextButtonY = buttonY;
+        tutorialNextButtonWidth = buttonWidth;
+        tutorialNextButtonHeight = 20;
+        tutorialSkipAllButtonX = boxX + 20 + buttonWidth * 2;
+        tutorialSkipAllButtonY = buttonY;
+        tutorialSkipAllButtonWidth = buttonWidth;
+        tutorialSkipAllButtonHeight = 20;
+        drawRadialGuideButton(graphics, minecraft, tutorialBackButtonX, buttonY, buttonWidth, "Back", radialTutorialStepIndex > 0, 0);
+        drawRadialGuideButton(graphics, minecraft, tutorialNextButtonX, buttonY, buttonWidth, radialTutorialStepIndex == RADIAL_TUTORIAL_STEP_COUNT - 1 ? "Finish" : "Next", true, 1);
+        drawRadialGuideButton(graphics, minecraft, tutorialSkipAllButtonX, buttonY, buttonWidth, "Skip", true, 2);
     }
 
-    private void drawWrappedTutorialBody(GuiGraphics graphics, Minecraft minecraft, List<IReorderingProcessor> bodyLines, int x, int y, int color) {
-        int lineY = y;
-        for (IReorderingProcessor line : bodyLines) {
-            graphics.drawString(minecraft.font, line, x, lineY, color, false);
-            lineY += 9;
-        }
+    private void drawRadialGuideButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, boolean enabled, int index) {
+        boolean highlighted = enabled && ((tutorialKeyboardFocus && tutorialKeyboardButton == index) || contains(tutorialMouseX(minecraft), tutorialMouseY(minecraft), x, y, width, 20));
+        graphics.fill(x, y, x + width, y + 20, highlighted ? TUTORIAL_BUTTON_HIGHLIGHT : TUTORIAL_BUTTON);
+        drawTutorialFrame(graphics, x, y, width, 20);
+        graphics.drawCenteredString(minecraft.font, label, x + width / 2, y + 6, enabled ? TEXT_PRIMARY : TEXT_SECONDARY);
+    }
+
+    public boolean handleTutorialKey(int key, int modifiers, int action) {
+        if (!isRadialTutorialActive())
+            return false;
+        if (key != GLFW.GLFW_KEY_TAB && key != GLFW.GLFW_KEY_UP && key != GLFW.GLFW_KEY_DOWN && key != GLFW.GLFW_KEY_LEFT && key != GLFW.GLFW_KEY_RIGHT && key != GLFW.GLFW_KEY_ENTER && key != GLFW.GLFW_KEY_KP_ENTER && key != GLFW.GLFW_KEY_SPACE && key != GLFW.GLFW_KEY_ESCAPE)
+            return true;
+        if (action != GLFW.GLFW_PRESS)
+            return true;
+        tutorialKeyboardFocus = true;
+        if (key == GLFW.GLFW_KEY_ESCAPE)
+            completeRadialTutorial();
+        else if (key == GLFW.GLFW_KEY_LEFT)
+            previousRadialTutorial();
+        else if (key == GLFW.GLFW_KEY_RIGHT)
+            advanceRadialTutorial();
+        else if (key == GLFW.GLFW_KEY_TAB || key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN)
+            tutorialKeyboardButton = Math.floorMod(tutorialKeyboardButton + ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || key == GLFW.GLFW_KEY_UP ? -1 : 1), 3);
+        else if (tutorialKeyboardButton == 0)
+            previousRadialTutorial();
+        else if (tutorialKeyboardButton == 1)
+            advanceRadialTutorial();
+        else
+            completeRadialTutorial();
+        return true;
+    }
+
+    private void previousRadialTutorial() {
+        if (radialTutorialStepIndex <= 0)
+            return;
+        radialTutorialStepIndex--;
+        tutorialKeyboardButton = 1;
+        runtime.tutorialProgressStore().setCurrentStep(TutorialType.RADIAL, radialTutorialStepIndex);
     }
 
     private void drawTutorialFrame(GuiGraphics graphics, int x, int y, int width, int height) {
@@ -872,83 +784,15 @@ public final class OmniWheelOverlay {
         graphics.fill(x + width - 1, y, x + width, y + height, TUTORIAL_EDGE);
     }
 
-    private void drawTutorialButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height, String label) {
-        boolean highlighted = contains(tutorialMouseX(minecraft), tutorialMouseY(minecraft), x, y, width, height);
-        int fill = highlighted ? TUTORIAL_BUTTON_HIGHLIGHT : TUTORIAL_BUTTON;
-        graphics.fill(x, y, x + width, y + height, fill);
-        drawTutorialFrame(graphics, x, y, width, height);
-        if (highlighted) {
-            graphics.fill(x, y, x + width, y + 1, SELECTED_OUTLINE);
-            graphics.fill(x, y + height - 1, x + width, y + height, SELECTED_OUTLINE);
-            graphics.fill(x, y, x + 1, y + height, SELECTED_OUTLINE);
-            graphics.fill(x + width - 1, y, x + width, y + height, SELECTED_OUTLINE);
-        }
-        graphics.drawCenteredString(minecraft.font, label, x + (width / 2), y + 6, TEXT_PRIMARY);
-    }
-
-    private TutorialStep currentRadialTutorialStep(int width, int height, float centerX, float centerY, float outerRadius) {
-        if (radialTutorialStepIndex < 0 || runtime.tutorialProgressStore().isCompleted(TutorialType.RADIAL)) {
-            return null;
-        }
-
-        FontRenderer font = Minecraft.getInstance().font;
-        String title;
-        String body;
-        int cardWidth;
-        switch (Math.min(radialTutorialStepIndex, 4)) {
-            case 0: {
-
-                title = OmniWheelText.translate("omniwheel.tutorial.radial.menu.title");
-                body = OmniWheelText.translate("omniwheel.tutorial.radial.menu.body");
-                cardWidth = tutorialCardWidth(font, title, body, 176, 248);
-                return new TutorialStep(title, body, 16, 18, cardWidth);
-
-            }
-            case 1: {
-
-                title = OmniWheelText.translate("omniwheel.tutorial.radial.direction.title");
-                body = OmniWheelText.translate("omniwheel.tutorial.radial.direction.body");
-                cardWidth = tutorialCardWidth(font, title, body, 184, 264);
-                return new TutorialStep(title, body, width - cardWidth - 16, 18, cardWidth);
-
-            }
-            case 2: {
-
-                title = OmniWheelText.translate("omniwheel.tutorial.radial.submenus.title");
-                body = OmniWheelText.translate("omniwheel.tutorial.radial.submenus.body");
-                cardWidth = tutorialCardWidth(font, title, body, 184, 256);
-                return new TutorialStep(title, body, width - cardWidth - 16, height - 116, cardWidth);
-
-            }
-            case 3: {
-
-                title = OmniWheelText.translate("omniwheel.tutorial.radial.center.title");
-                body = OmniWheelText.translate("omniwheel.tutorial.radial.center.body");
-                cardWidth = tutorialCardWidth(font, title, body, 184, 256);
-                return new TutorialStep(title, body, 16, 18, cardWidth);
-
-            }
-            default: {
-
-                title = OmniWheelText.translate("omniwheel.tutorial.radial.numpad.title");
-                body = OmniWheelText.translate("omniwheel.tutorial.radial.numpad.body");
-                cardWidth = tutorialCardWidth(font, title, body, 184, 252);
-                return new TutorialStep(title, body, 16, height - 116, cardWidth);
-
-            }
-        }
-    }
-
     private boolean handleTutorialClick(float mouseX, float mouseY, Minecraft minecraft) {
-        int width = uiWidth(minecraft);
-        int height = uiHeight(minecraft);
-        if (currentRadialTutorialStep(width, height,
-                width * 0.5F,
-                height * 0.5F,
-                WHEEL_RADIUS) == null) {
+        if (!isRadialTutorialActive())
             return false;
-        }
+        tutorialKeyboardFocus = false;
         int button = tutorialButtonAt(mouseX, mouseY);
+        if (button == 3) {
+            previousRadialTutorial();
+            return true;
+        }
         if (button == 1) {
             advanceRadialTutorial();
             return true;
@@ -961,6 +805,8 @@ public final class OmniWheelOverlay {
     }
 
     private int tutorialButtonAt(float mouseX, float mouseY) {
+        if (contains(mouseX, mouseY, tutorialBackButtonX, tutorialBackButtonY, tutorialBackButtonWidth, tutorialBackButtonHeight))
+            return 3;
         if (contains(mouseX, mouseY, tutorialNextButtonX, tutorialNextButtonY, tutorialNextButtonWidth, tutorialNextButtonHeight)) {
             return 1;
         }
@@ -975,7 +821,8 @@ public final class OmniWheelOverlay {
             return;
         }
         radialTutorialStepIndex++;
-        if (radialTutorialStepIndex >= 5) {
+        tutorialKeyboardButton = 1;
+        if (radialTutorialStepIndex >= RADIAL_TUTORIAL_STEP_COUNT) {
             completeRadialTutorial();
             return;
         }
@@ -984,7 +831,7 @@ public final class OmniWheelOverlay {
 
     private void completeRadialTutorial() {
         Minecraft minecraft = Minecraft.getInstance();
-        List<String> currentPath = com.google.common.collect.ImmutableList.copyOf(wheelPath);
+        List<String> currentPath = de.artemis.omniwheel.common.Java8.copyList(wheelPath);
         runtime.tutorialProgressStore().markCompleted(TutorialType.RADIAL);
         radialTutorialStepIndex = -1;
         if (minecraft.player != null && minecraft.level != null) {
@@ -1019,86 +866,91 @@ public final class OmniWheelOverlay {
             popWheel();
             return;
         }
-
         if (hoveredIndex < 0 || hoveredIndex >= visibleEntries.size()) {
             if (closeOnEmpty) {
                 close();
             }
             return;
         }
-
         WheelEntry entry = visibleEntries.get(hoveredIndex);
+        if (!runtime.availabilityResolver().canActivate(activeProfile(), wheelPath.getLast(), entry, wheelPath)) {
+            if (closeOnEmpty)
+                close();
+            return;
+        }
         if (entry.action() instanceof OpenWheelAction) {
-            if (isWheelAvailable(((OpenWheelAction) entry.action()).wheelId())) {
-                navigateToWheel(((OpenWheelAction) entry.action()).wheelId());
+            if (isWheelAvailable(((OpenWheelAction) (entry.action())).wheelId())) {
+                navigateToWheel(((OpenWheelAction) (entry.action())).wheelId());
                 hoveredIndex = -1;
                 return;
             }
-
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player != null) {
-                minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.missing_wheel", ((OpenWheelAction) entry.action()).wheelId()), true);
+                minecraft.player.displayClientMessage(OmniWheelText.component("omniwheel.message.missing_wheel", ((OpenWheelAction) (entry.action())).wheelId()), true);
             }
             close();
             return;
         }
-
         if (entry.action() instanceof OpenScreenAction) {
-            runtime.openTargetScreen(((OpenScreenAction) entry.action()).target(), null);
+            runtime.openTargetScreen(((OpenScreenAction) (entry.action())).target(), null);
             return;
         }
-
-        if (entry.action() instanceof FunctionAction && handleOmniWheelFunction(((FunctionAction) entry.action()).function())) {
+        if (entry.action() instanceof FunctionAction && handleOmniWheelFunction(((FunctionAction) (entry.action())).function())) {
             return;
         }
-
         runtime.actionExecutor().execute(entry.action());
         close();
     }
 
     private boolean handleOmniWheelFunction(GameplayFunction function) {
         Minecraft minecraft = Minecraft.getInstance();
-        switch (function) {
-            case OMNI_BACK: {
-
-                if (!popWheel()) {
-                    close();
+        switch(function) {
+            case OMNI_BACK:
+                {
+                    {
+                        if (!popWheel()) {
+                            close();
+                        }
+                        return true;
+                    }
                 }
-                return true;
-
-            }
-            case OMNI_OPEN_PROFILES: {
-
-                navigateToWheel(WheelAvailabilityResolver.PROFILES_WHEEL_ID);
-                hoveredIndex = -1;
-                return true;
-
-            }
-            case OMNI_OPEN_MANAGER: {
-
-                runtime.openTargetScreen(ScreenTarget.PROFILE_MANAGER, null);
-                return true;
-
-            }
-            case OMNI_NEXT_PROFILE: {
-
-                cycleActiveProfile(1, minecraft);
-                hoveredIndex = -1;
-                return true;
-
-            }
-            case OMNI_PREVIOUS_PROFILE: {
-
-                cycleActiveProfile(-1, minecraft);
-                hoveredIndex = -1;
-                return true;
-
-            }
-            default: {
-
-                return false;
-
-            }
+            case OMNI_OPEN_PROFILES:
+                {
+                    {
+                        navigateToWheel(WheelAvailabilityResolver.PROFILES_WHEEL_ID);
+                        hoveredIndex = -1;
+                        return true;
+                    }
+                }
+            case OMNI_OPEN_MANAGER:
+                {
+                    {
+                        runtime.openTargetScreen(ScreenTarget.PROFILE_MANAGER, null);
+                        return true;
+                    }
+                }
+            case OMNI_NEXT_PROFILE:
+                {
+                    {
+                        cycleActiveProfile(1, minecraft);
+                        hoveredIndex = -1;
+                        return true;
+                    }
+                }
+            case OMNI_PREVIOUS_PROFILE:
+                {
+                    {
+                        cycleActiveProfile(-1, minecraft);
+                        hoveredIndex = -1;
+                        return true;
+                    }
+                }
+            default:
+                {
+                    {
+                        return false;
+                    }
+                }
         }
     }
 
@@ -1106,7 +958,6 @@ public final class OmniWheelOverlay {
         if (wheelPath.size() <= 1) {
             return false;
         }
-
         wheelPath.removeLast();
         hoveredIndex = -1;
         centerBackHovered = false;
@@ -1120,15 +971,12 @@ public final class OmniWheelOverlay {
             currentPageIndex = 0;
             return;
         }
-
         if (wheelId.equals(wheelPath.getLast())) {
             return;
         }
-
         while (wheelPath.size() > 1 && wheelPath.contains(wheelId) && !wheelId.equals(wheelPath.getLast())) {
             wheelPath.removeLast();
         }
-
         if (!wheelId.equals(wheelPath.getLast())) {
             wheelPath.addLast(wheelId);
         }
@@ -1142,22 +990,13 @@ public final class OmniWheelOverlay {
             centerBackHovered = false;
             return;
         }
-
         List<WheelEntry> visibleEntries = currentDisplayEntries();
         int segmentCount = renderedSegmentCount(visibleEntries);
         centerBackHovered = canGoBack() && isMouseInCenterBackButton(mouseX, mouseY, minecraft);
-
         if (segmentCount == 0 || centerBackHovered) {
             hoveredIndex = -1;
         } else {
-            hoveredIndex = RadialLayout.pickDirectionalSegment(
-                    mouseX,
-                    mouseY,
-                    uiWidth(minecraft) * 0.5F,
-                    uiHeight(minecraft) * 0.5F,
-                    radialSelectionRadius(),
-                    segmentCount
-            );
+            hoveredIndex = RadialLayout.pickDirectionalSegment(mouseX, mouseY, uiWidth(minecraft) * 0.5F, uiHeight(minecraft) * 0.5F, radialSelectionRadius(), segmentCount);
             if (hoveredIndex >= visibleEntries.size()) {
                 hoveredIndex = -1;
             }
@@ -1190,33 +1029,13 @@ public final class OmniWheelOverlay {
     }
 
     private String resolveOpeningWheelId(WheelProfile profile) {
-        String rootWheelId = profile.rootWheelId();
-        if (!runtime.availabilityResolver().visibleEntries(profile, rootWheelId, new ArrayDeque<>(com.google.common.collect.ImmutableList.of(rootWheelId))).isEmpty()) {
-            return rootWheelId;
-        }
-
-        for (WheelDefinition wheel : profile.wheels().values()) {
-            if (!wheel.active() || wheel.id().equals(rootWheelId)) {
-                continue;
-            }
-            if (!runtime.availabilityResolver().visibleEntries(profile, wheel.id(), new ArrayDeque<>(com.google.common.collect.ImmutableList.of(wheel.id()))).isEmpty()) {
-                return wheel.id();
-            }
-        }
-
-        return rootWheelId;
+        return profile.rootWheelId();
     }
 
     private WheelDefinition currentWheel() {
         String wheelId = wheelPath.getLast();
         if (WheelAvailabilityResolver.PROFILES_WHEEL_ID.equals(wheelId)) {
-            return new WheelDefinition(
-                    wheelId,
-                    "omniwheel.profiles_wheel.title",
-                    "omniwheel.profiles_wheel.description",
-                    8,
-                    currentVisibleEntries()
-            );
+            return new WheelDefinition(wheelId, "omniwheel.profiles_wheel.title", "omniwheel.profiles_wheel.description", 8, currentVisibleEntries());
         }
         return activeProfile().wheel(wheelId);
     }
@@ -1226,7 +1045,7 @@ public final class OmniWheelOverlay {
     }
 
     private List<WheelEntry> currentVisibleEntries() {
-        return runtime.availabilityResolver().visibleEntries(activeProfile(), wheelPath.getLast(), wheelPath);
+        return runtime.availabilityResolver().layoutEntries(activeProfile(), wheelPath.getLast());
     }
 
     private List<WheelEntry> currentDisplayEntries() {
@@ -1235,12 +1054,9 @@ public final class OmniWheelOverlay {
             currentPageIndex = 0;
             return visibleEntries;
         }
-
         int pageCount = pageCount(visibleEntries);
         currentPageIndex = Math.max(0, Math.min(currentPageIndex, pageCount - 1));
-        int startIndex = currentPageIndex * MAX_RENDERED_SEGMENTS;
-        int endIndex = Math.min(visibleEntries.size(), startIndex + MAX_RENDERED_SEGMENTS);
-        return com.google.common.collect.ImmutableList.copyOf(visibleEntries.subList(startIndex, endIndex));
+        return WheelLayout.page(visibleEntries, currentPageIndex);
     }
 
     private static int renderedSegmentCount(List<WheelEntry> visibleEntries) {
@@ -1252,7 +1068,7 @@ public final class OmniWheelOverlay {
     }
 
     private static int pageCount(List<WheelEntry> visibleEntries) {
-        return Math.max(1, (visibleEntries.size() + MAX_RENDERED_SEGMENTS - 1) / MAX_RENDERED_SEGMENTS);
+        return WheelLayout.pageCount(visibleEntries.size());
     }
 
     private int selectedHotbarSlot(PlayerInventory inventory) {
@@ -1260,20 +1076,18 @@ public final class OmniWheelOverlay {
     }
 
     private void setSelectedHotbarSlot(PlayerInventory inventory, int selectedSlot) {
-        inventory.selected = Math.max(0, Math.min(8, selectedSlot));
+        inventory.selected = selectedSlot;
     }
 
     private boolean consumePageScroll(Minecraft minecraft) {
         if (minecraft.player == null || lockedHotbarSlot < 0) {
             return false;
         }
-
         PlayerInventory inventory = minecraft.player.inventory;
         int selectedSlot = selectedHotbarSlot(inventory);
         if (selectedSlot == lockedHotbarSlot) {
             return false;
         }
-
         setSelectedHotbarSlot(inventory, lockedHotbarSlot);
         int normalizedDelta = selectedSlot - lockedHotbarSlot;
         if (normalizedDelta > 4) {
@@ -1281,44 +1095,14 @@ public final class OmniWheelOverlay {
         } else if (normalizedDelta < -4) {
             normalizedDelta += 9;
         }
-
         if (Math.abs(normalizedDelta) != 1 || currentPageCount() <= 1) {
             return false;
         }
-
         int nextPage = currentPageIndex + normalizedDelta;
         int lastPage = currentPageCount() - 1;
         currentPageIndex = Math.max(0, Math.min(nextPage, lastPage));
         hoveredIndex = -1;
         return true;
-    }
-
-    private static double segmentGapWidth(float outerRadius, int segmentCount) {
-        if (segmentCount <= 1) {
-            return 0.0D;
-        }
-        return Math.toRadians(SEGMENT_GAP_DEGREES) * outerRadius;
-    }
-
-    private static SegmentShape segmentShape(int index, int segmentCount, float innerRadius, float outerRadius, double gapWidth) {
-        double start = RadialLayout.segmentStartAngle(index, segmentCount);
-        double end = RadialLayout.segmentEndAngle(index, segmentCount);
-        double span = end - start;
-        double innerOffset = gapAngleOffset(gapWidth, innerRadius, span);
-        double outerOffset = gapAngleOffset(gapWidth, outerRadius, span);
-        double innerStart = start + innerOffset;
-        double innerEnd = end - innerOffset;
-        double outerStart = start + outerOffset;
-        double outerEnd = end - outerOffset;
-        double midAngle = (innerStart + innerEnd + outerStart + outerEnd) * 0.25D;
-        return new SegmentShape(innerStart, innerEnd, outerStart, outerEnd, midAngle);
-    }
-
-    private static double gapAngleOffset(double gapWidth, float radius, double span) {
-        if (gapWidth <= 0.0D || radius <= 0.0F) {
-            return 0.0D;
-        }
-        return Math.min(span * 0.49D, gapWidth / Math.max(radius * 2.0D, 1.0D));
     }
 
     private String buildPathLabel() {
@@ -1386,11 +1170,11 @@ public final class OmniWheelOverlay {
     }
 
     private static boolean isLeftMouseDown(Minecraft minecraft) {
-        return GLFW.glfwGetMouseButton(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+        return GLFW.glfwGetMouseButton(minecraft.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
     }
 
     private static boolean isRightMouseDown(Minecraft minecraft) {
-        return GLFW.glfwGetMouseButton(resolveWindowHandleStatic(minecraft.getWindow()), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+        return GLFW.glfwGetMouseButton(minecraft.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
     }
 
     private static String shorten(String text, int maxLength) {
@@ -1407,124 +1191,13 @@ public final class OmniWheelOverlay {
         return text.substring(0, Math.max(0, maxLength - 3)) + "...";
     }
 
-    private static String fitPlainText(FontRenderer font, String text, int maxWidth) {
-        if (font.width(text) <= maxWidth) {
-            return text;
-        }
-
-        String fitted = text;
-        while (!fitted.isEmpty() && font.width(fitted + "...") > maxWidth) {
-            fitted = fitted.substring(0, fitted.length() - 1);
-        }
-        return fitted.isEmpty() ? "..." : fitted + "...";
-    }
-
-    private static void drawScaledCenteredString(
-            GuiGraphics graphics,
-            FontRenderer font,
-            String text,
-            int centerX,
-            int topY,
-            float scale,
-            int color
-    ) {
-        graphics.pose().pushPose();
-        graphics.pose().scale(scale, scale, 1.0F);
-        graphics.drawCenteredString(
-                font,
-                text,
-                Math.round(centerX / scale),
-                Math.round(topY / scale),
-                color
-        );
-        graphics.pose().popPose();
-    }
-
-    private static SegmentPalette paletteForGuiColor(int guiColor) {
-        switch (guiColor) {
-            case WheelEntry.DEFAULT_GUI_COLOR: {
-                return new SegmentPalette(
-                        SEGMENT_COLOR,
-                        SEGMENT_ALT_COLOR,
-                        SELECTED_COLOR,
-                        SELECTED_OUTLINE
-                );
-            }
-            case 0xFFFFD36A: {
-                return new SegmentPalette(
-                        0xD8343022,
-                        0xD83E3827,
-                        0xF06D5A2F,
-                        0xFFFFE08A
-                );
-            }
-            case 0xFF7FE3FF: {
-                return new SegmentPalette(
-                        0xD81C2D35,
-                        0xD8243740,
-                        0xF0365E6E,
-                        0xFF9EEBFF
-                );
-            }
-            case 0xFF8EE89A: {
-                return new SegmentPalette(
-                        0xD81D2E24,
-                        0xD825382C,
-                        0xF0376446,
-                        0xFFA7F2B1
-                );
-            }
-            case 0xFFFF9AB5: {
-                return new SegmentPalette(
-                        0xD8322430,
-                        0xD83C2C3A,
-                        0xF0634261,
-                        0xFFFFB5CB
-                );
-            }
-            case 0xFFD1A0FF: {
-                return new SegmentPalette(
-                        0xD82A2435,
-                        0xD8332D40,
-                        0xF0524573,
-                        0xFFE0BCFF
-                );
-            }
-            case 0xFFFFB36A: {
-                return new SegmentPalette(
-                        0xD834281F,
-                        0xD83F3125,
-                        0xF06B4C30,
-                        0xFFFFC68A
-                );
-            }
-            case 0xFFA7B6C6: {
-                return new SegmentPalette(
-                        0xD8262C33,
-                        0xD82F363E,
-                        0xF0465565,
-                        0xFFC3D1DF
-                );
-            }
-            default: {
-                return new SegmentPalette(
-                        SEGMENT_COLOR,
-                        SEGMENT_ALT_COLOR,
-                        SELECTED_COLOR,
-                        SELECTED_OUTLINE
-                );
-            }
-        }
-    }
-
     private static String normalizeHotkeyGlyph(String glyph) {
+        if (glyph == null || glyph.length() != 1) {
+            return null;
+        }
         if (EntryIconRenderer.isItemIcon(glyph)) {
             return null;
         }
-        if (glyph.length() != 1) {
-            return null;
-        }
-
         char character = Character.toUpperCase(glyph.charAt(0));
         if ((character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9')) {
             return Character.toString(character);
@@ -1535,14 +1208,14 @@ public final class OmniWheelOverlay {
     private static int[] hotkeyCodes(String hotkey) {
         char character = hotkey.charAt(0);
         if (character >= 'A' && character <= 'Z') {
-            return new int[]{GLFW.GLFW_KEY_A + (character - 'A')};
+            return new int[] { GLFW.GLFW_KEY_A + (character - 'A') };
         }
         if (character >= '1' && character <= '9') {
             int offset = character - '1';
-            return new int[]{GLFW.GLFW_KEY_1 + offset, GLFW.GLFW_KEY_KP_1 + offset};
+            return new int[] { GLFW.GLFW_KEY_1 + offset, GLFW.GLFW_KEY_KP_1 + offset };
         }
         if (character == '0') {
-            return new int[]{GLFW.GLFW_KEY_0, GLFW.GLFW_KEY_KP_0};
+            return new int[] { GLFW.GLFW_KEY_0, GLFW.GLFW_KEY_KP_0 };
         }
         return new int[0];
     }
@@ -1568,72 +1241,32 @@ public final class OmniWheelOverlay {
         if (position < 0 || position >= OmniWheelKeyMappings.RADIAL_POSITION_KEYS.size()) {
             return false;
         }
-
-        InputMappings.Input key = OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).getKey();
-        long windowHandle = resolveWindowHandleStatic(minecraft.getWindow());
-        switch (key.getType()) {
-            case KEYSYM:
-            case SCANCODE: {
-                return InputMappings.isKeyDown(windowHandle, key.getValue());
-            }
-            default: {
-                return OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).isDown();
+        net.minecraft.client.MainWindow window = minecraft.getWindow();
+        InputMappings.Input key = OmniWheelKeyMappings.currentKey(OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position));
+        long windowHandle = window.getWindow();
+        if (java.util.Objects.equals(key.getType(), net.minecraft.client.util.InputMappings.Type.KEYSYM)) {
+            return InputMappings.isKeyDown(window.getWindow(), key.getValue());
+        } else {
+            if (java.util.Objects.equals(key.getType(), net.minecraft.client.util.InputMappings.Type.SCANCODE)) {
+                return GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+            } else {
+                if (java.util.Objects.equals(key.getType(), net.minecraft.client.util.InputMappings.Type.MOUSE)) {
+                    return GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+                } else {
+                    return OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).isDown();
+                }
             }
         }
-    }
-
-    private static long resolveWindowHandleStatic(net.minecraft.client.MainWindow window) {
-        return window.getWindow();
     }
 
     private static int radialPositionTargetIndex(int positionIndex, int segmentCount) {
         if (segmentCount <= 0 || positionIndex < 0 || positionIndex >= 9 || positionIndex == 4) {
             return -1;
         }
-
-        DirectionVector desiredDirection;
-        switch (positionIndex) {
-            case 0: {
-                desiredDirection = new DirectionVector(-1.0D, -1.0D);
-                break;
-            }
-            case 1: {
-                desiredDirection = new DirectionVector(0.0D, -1.0D);
-                break;
-            }
-            case 2: {
-                desiredDirection = new DirectionVector(1.0D, -1.0D);
-                break;
-            }
-            case 3: {
-                desiredDirection = new DirectionVector(-1.0D, 0.0D);
-                break;
-            }
-            case 5: {
-                desiredDirection = new DirectionVector(1.0D, 0.0D);
-                break;
-            }
-            case 6: {
-                desiredDirection = new DirectionVector(-1.0D, 1.0D);
-                break;
-            }
-            case 7: {
-                desiredDirection = new DirectionVector(0.0D, 1.0D);
-                break;
-            }
-            case 8: {
-                desiredDirection = new DirectionVector(1.0D, 1.0D);
-                break;
-            }
-            default: {
-                desiredDirection = null;
-                break;
-            }
-        }
+        DirectionVector desiredDirection = (java.util.Objects.equals(positionIndex, 0) ? new DirectionVector(-1.0D, -1.0D) : (java.util.Objects.equals(positionIndex, 1) ? new DirectionVector(0.0D, -1.0D) : (java.util.Objects.equals(positionIndex, 2) ? new DirectionVector(1.0D, -1.0D) : (java.util.Objects.equals(positionIndex, 3) ? new DirectionVector(-1.0D, 0.0D) : (java.util.Objects.equals(positionIndex, 5) ? new DirectionVector(1.0D, 0.0D) : (java.util.Objects.equals(positionIndex, 6) ? new DirectionVector(-1.0D, 1.0D) : (java.util.Objects.equals(positionIndex, 7) ? new DirectionVector(0.0D, 1.0D) : (java.util.Objects.equals(positionIndex, 8) ? new DirectionVector(1.0D, 1.0D) : null))))))));
         if (desiredDirection == null) {
             return -1;
         }
-
         double bestScore = Double.NEGATIVE_INFINITY;
         int bestIndex = -1;
         for (int index = 0; index < segmentCount; index++) {
@@ -1647,14 +1280,113 @@ public final class OmniWheelOverlay {
         return bestIndex;
     }
 
-    private static final class TextLayout {
-        private final List<IReorderingProcessor> lines;
+    private final static class WheelVisual {
+
+        private final List<WheelEntry> entries;
+
+        private final float[] selections;
+
+        private final boolean[] enabledEntries;
+
+        private final int hoveredIndex;
+
+        private final boolean canGoBack;
+
+        private final boolean centerBackHovered;
+
+        private final String profileLabel;
+
+        private final int pageIndex;
+
+        private final int pageCount;
+
         private final float scale;
+
+        private WheelVisual(List<WheelEntry> entries, float[] selections, boolean[] enabledEntries, int hoveredIndex, boolean canGoBack, boolean centerBackHovered, String profileLabel, int pageIndex, int pageCount, float scale) {
+            this.entries = entries;
+            this.selections = selections;
+            this.enabledEntries = enabledEntries;
+            this.hoveredIndex = hoveredIndex;
+            this.canGoBack = canGoBack;
+            this.centerBackHovered = centerBackHovered;
+            this.profileLabel = profileLabel;
+            this.pageIndex = pageIndex;
+            this.pageCount = pageCount;
+            this.scale = scale;
+        }
+
+        public List<WheelEntry> entries() {
+            return entries;
+        }
+
+        public float[] selections() {
+            return selections;
+        }
+
+        public boolean[] enabledEntries() {
+            return enabledEntries;
+        }
+
+        public int hoveredIndex() {
+            return hoveredIndex;
+        }
+
+        public boolean canGoBack() {
+            return canGoBack;
+        }
+
+        public boolean centerBackHovered() {
+            return centerBackHovered;
+        }
+
+        public String profileLabel() {
+            return profileLabel;
+        }
+
+        public int pageIndex() {
+            return pageIndex;
+        }
+
+        public int pageCount() {
+            return pageCount;
+        }
+
+        public float scale() {
+            return scale;
+        }
+
+        @Override
+        public boolean equals(Object value) {
+            if (this == value)
+                return true;
+            if (value == null || value.getClass() != getClass())
+                return false;
+            WheelVisual other = (WheelVisual) value;
+            return true && java.util.Objects.equals(entries, other.entries) && java.util.Objects.equals(selections, other.selections) && java.util.Objects.equals(enabledEntries, other.enabledEntries) && java.util.Objects.equals(hoveredIndex, other.hoveredIndex) && java.util.Objects.equals(canGoBack, other.canGoBack) && java.util.Objects.equals(centerBackHovered, other.centerBackHovered) && java.util.Objects.equals(profileLabel, other.profileLabel) && java.util.Objects.equals(pageIndex, other.pageIndex) && java.util.Objects.equals(pageCount, other.pageCount) && java.util.Objects.equals(scale, other.scale);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(entries, selections, enabledEntries, hoveredIndex, canGoBack, centerBackHovered, profileLabel, pageIndex, pageCount, scale);
+        }
+
+        @Override
+        public String toString() {
+            return "WheelVisual[" + "entries=" + entries + ", selections=" + selections + ", enabledEntries=" + enabledEntries + ", hoveredIndex=" + hoveredIndex + ", canGoBack=" + canGoBack + ", centerBackHovered=" + centerBackHovered + ", profileLabel=" + profileLabel + ", pageIndex=" + pageIndex + ", pageCount=" + pageCount + ", scale=" + scale + "]";
+        }
+    }
+
+    private final static class TextLayout {
+
+        private final List<IReorderingProcessor> lines;
+
+        private final float scale;
+
         private final int lineHeight;
+
         private final int height;
 
         private TextLayout(List<IReorderingProcessor> lines, float scale, int lineHeight, int height) {
-
             this.lines = lines;
             this.scale = scale;
             this.lineHeight = lineHeight;
@@ -1678,11 +1410,13 @@ public final class OmniWheelOverlay {
         }
 
         @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof TextLayout)) return false;
-            TextLayout that = (TextLayout) other;
-            return java.util.Objects.equals(lines, that.lines) && java.util.Objects.equals(scale, that.scale) && java.util.Objects.equals(lineHeight, that.lineHeight) && java.util.Objects.equals(height, that.height);
+        public boolean equals(Object value) {
+            if (this == value)
+                return true;
+            if (value == null || value.getClass() != getClass())
+                return false;
+            TextLayout other = (TextLayout) value;
+            return true && java.util.Objects.equals(lines, other.lines) && java.util.Objects.equals(scale, other.scale) && java.util.Objects.equals(lineHeight, other.lineHeight) && java.util.Objects.equals(height, other.height);
         }
 
         @Override
@@ -1692,120 +1426,25 @@ public final class OmniWheelOverlay {
 
         @Override
         public String toString() {
-            return "TextLayout[" + "lines=" + lines + ", " + "scale=" + scale + ", " + "lineHeight=" + lineHeight + ", " + "height=" + height + "]";
+            return "TextLayout[" + "lines=" + lines + ", scale=" + scale + ", lineHeight=" + lineHeight + ", height=" + height + "]";
         }
     }
 
-    private static final class SegmentShape {
-        private final double innerStartAngle;
-        private final double innerEndAngle;
-        private final double outerStartAngle;
-        private final double outerEndAngle;
-        private final double midAngle;
+    private final static class DirectionVector {
 
-        private SegmentShape(double innerStartAngle, double innerEndAngle, double outerStartAngle, double outerEndAngle, double midAngle) {
-
-            this.innerStartAngle = innerStartAngle;
-            this.innerEndAngle = innerEndAngle;
-            this.outerStartAngle = outerStartAngle;
-            this.outerEndAngle = outerEndAngle;
-            this.midAngle = midAngle;
-        }
-
-        public double innerStartAngle() {
-            return innerStartAngle;
-        }
-
-        public double innerEndAngle() {
-            return innerEndAngle;
-        }
-
-        public double outerStartAngle() {
-            return outerStartAngle;
-        }
-
-        public double outerEndAngle() {
-            return outerEndAngle;
-        }
-
-        public double midAngle() {
-            return midAngle;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof SegmentShape)) return false;
-            SegmentShape that = (SegmentShape) other;
-            return java.util.Objects.equals(innerStartAngle, that.innerStartAngle) && java.util.Objects.equals(innerEndAngle, that.innerEndAngle) && java.util.Objects.equals(outerStartAngle, that.outerStartAngle) && java.util.Objects.equals(outerEndAngle, that.outerEndAngle) && java.util.Objects.equals(midAngle, that.midAngle);
-        }
-
-        @Override
-        public int hashCode() {
-            return java.util.Objects.hash(innerStartAngle, innerEndAngle, outerStartAngle, outerEndAngle, midAngle);
-        }
-
-        @Override
-        public String toString() {
-            return "SegmentShape[" + "innerStartAngle=" + innerStartAngle + ", " + "innerEndAngle=" + innerEndAngle + ", " + "outerStartAngle=" + outerStartAngle + ", " + "outerEndAngle=" + outerEndAngle + ", " + "midAngle=" + midAngle + "]";
-        }
-    }
-
-    private static final class SegmentPalette {
-        private final int baseFill;
-        private final int altFill;
-        private final int selectedFill;
-        private final int selectedOutline;
-
-        private SegmentPalette(int baseFill, int altFill, int selectedFill, int selectedOutline) {
-
-            this.baseFill = baseFill;
-            this.altFill = altFill;
-            this.selectedFill = selectedFill;
-            this.selectedOutline = selectedOutline;
-        }
-
-        public int baseFill() {
-            return baseFill;
-        }
-
-        public int altFill() {
-            return altFill;
-        }
-
-        public int selectedFill() {
-            return selectedFill;
-        }
-
-        public int selectedOutline() {
-            return selectedOutline;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof SegmentPalette)) return false;
-            SegmentPalette that = (SegmentPalette) other;
-            return java.util.Objects.equals(baseFill, that.baseFill) && java.util.Objects.equals(altFill, that.altFill) && java.util.Objects.equals(selectedFill, that.selectedFill) && java.util.Objects.equals(selectedOutline, that.selectedOutline);
-        }
-
-        @Override
-        public int hashCode() {
-            return java.util.Objects.hash(baseFill, altFill, selectedFill, selectedOutline);
-        }
-
-        @Override
-        public String toString() {
-            return "SegmentPalette[" + "baseFill=" + baseFill + ", " + "altFill=" + altFill + ", " + "selectedFill=" + selectedFill + ", " + "selectedOutline=" + selectedOutline + "]";
-        }
-    }
-
-    private static final class DirectionVector {
         private final double x;
+
         private final double y;
 
-        private DirectionVector(double x, double y) {
+        private double dot(double otherX, double otherY) {
+            double length = Math.hypot(x, y);
+            if (length <= 0.0D) {
+                return Double.NEGATIVE_INFINITY;
+            }
+            return ((x / length) * otherX) + ((y / length) * otherY);
+        }
 
+        private DirectionVector(double x, double y) {
             this.x = x;
             this.y = y;
         }
@@ -1819,11 +1458,13 @@ public final class OmniWheelOverlay {
         }
 
         @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof DirectionVector)) return false;
-            DirectionVector that = (DirectionVector) other;
-            return java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y);
+        public boolean equals(Object value) {
+            if (this == value)
+                return true;
+            if (value == null || value.getClass() != getClass())
+                return false;
+            DirectionVector other = (DirectionVector) value;
+            return true && java.util.Objects.equals(x, other.x) && java.util.Objects.equals(y, other.y);
         }
 
         @Override
@@ -1833,70 +1474,7 @@ public final class OmniWheelOverlay {
 
         @Override
         public String toString() {
-            return "DirectionVector[" + "x=" + x + ", " + "y=" + y + "]";
-        }
-
-        private double dot(double otherX, double otherY) {
-            double length = Math.hypot(x, y);
-            if (length <= 0.0D) {
-                return Double.NEGATIVE_INFINITY;
-            }
-            return ((x / length) * otherX) + ((y / length) * otherY);
-        }
-    }
-
-    private static final class TutorialStep {
-        private final String title;
-        private final String body;
-        private final int x;
-        private final int y;
-        private final int width;
-
-        private TutorialStep(String title, String body, int x, int y, int width) {
-
-            this.title = title;
-            this.body = body;
-            this.x = x;
-            this.y = y;
-            this.width = width;
-        }
-
-        public String title() {
-            return title;
-        }
-
-        public String body() {
-            return body;
-        }
-
-        public int x() {
-            return x;
-        }
-
-        public int y() {
-            return y;
-        }
-
-        public int width() {
-            return width;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof TutorialStep)) return false;
-            TutorialStep that = (TutorialStep) other;
-            return java.util.Objects.equals(title, that.title) && java.util.Objects.equals(body, that.body) && java.util.Objects.equals(x, that.x) && java.util.Objects.equals(y, that.y) && java.util.Objects.equals(width, that.width);
-        }
-
-        @Override
-        public int hashCode() {
-            return java.util.Objects.hash(title, body, x, y, width);
-        }
-
-        @Override
-        public String toString() {
-            return "TutorialStep[" + "title=" + title + ", " + "body=" + body + ", " + "x=" + x + ", " + "y=" + y + ", " + "width=" + width + "]";
+            return "DirectionVector[" + "x=" + x + ", y=" + y + "]";
         }
     }
 }

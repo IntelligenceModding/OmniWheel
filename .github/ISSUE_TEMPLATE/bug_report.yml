@@ -26,7 +26,7 @@ body:
     attributes:
       label: Omni Wheel Version
       description: Which version of Omni Wheel are you using?
-      placeholder: "Example: 1.1.0"
+      placeholder: "Example: 2.0.0"
     validations:
       required: true
 

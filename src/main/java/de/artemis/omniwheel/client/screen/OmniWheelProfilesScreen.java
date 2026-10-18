@@ -1,32 +1,41 @@
 package de.artemis.omniwheel.client.screen;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
-import de.artemis.omniwheel.client.render.GuiGraphics;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import de.artemis.omniwheel.common.OmniWheelText;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.client.gui.screen.Screen;
 
 public final class OmniWheelProfilesScreen extends Screen {
+
     private final OmniWheelProfilesOverlay editor;
+
     private final Screen parent;
+
+    private long lastClickTime;
+
+    private double lastClickX, lastClickY;
+
+    private int lastClickButton = -1;
 
     public OmniWheelProfilesScreen(OmniWheelClientRuntime runtime, Screen parent) {
         super(OmniWheelText.component("omniwheel.screen.profile_manager"));
         this.editor = new OmniWheelProfilesOverlay(runtime);
+        this.editor.captureIconSources(parent);
         this.parent = parent;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        if (!editor.isOpen())
+            editor.openForScreen();
     }
 
     @Override
     public void removed() {
         editor.closeForScreen();
         super.removed();
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-        editor.openForScreen();
     }
 
     @Override
@@ -70,7 +79,13 @@ public final class OmniWheelProfilesScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return editor.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+        long now = net.minecraft.util.Util.getMillis();
+        boolean doubleClick = button == lastClickButton && now - lastClickTime < 250 && Math.abs(mouseX - lastClickX) < 4 && Math.abs(mouseY - lastClickY) < 4;
+        lastClickTime = now;
+        lastClickX = mouseX;
+        lastClickY = mouseY;
+        lastClickButton = doubleClick ? -1 : button;
+        return editor.mouseClicked(mouseX, mouseY, button, doubleClick) || super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -89,7 +104,14 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public void render(MatrixStack MatrixStack, int mouseX, int mouseY, float partialTick) {
-        editor.render(new GuiGraphics(MatrixStack));
+    public void renderBackground(com.mojang.blaze3d.matrix.MatrixStack pose) {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            super.renderBackground(pose);
+        }
+    }
+
+    @Override
+    public void render(com.mojang.blaze3d.matrix.MatrixStack pose, int mouseX, int mouseY, float partialTick) {
+        editor.render(new GuiGraphics(minecraft, pose));
     }
 }

@@ -1,22 +1,21 @@
 package de.artemis.omniwheel.client.profile;
 
-import de.artemis.omniwheel.common.action.ChatAction;
-import de.artemis.omniwheel.common.action.CommandAction;
-import de.artemis.omniwheel.common.action.CopyTextAction;
-import de.artemis.omniwheel.common.action.FunctionAction;
-import de.artemis.omniwheel.common.action.GameplayFunction;
-import de.artemis.omniwheel.common.action.LocalMessageAction;
-import de.artemis.omniwheel.common.action.OpenChatAction;
-import de.artemis.omniwheel.common.action.OpenWheelAction;
+import de.artemis.omniwheel.common.action.*;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A vanilla survival starter: ordinary controls and client-visible information, with no operator commands.
+ */
 public final class DefaultProfiles {
+
+    // Also identifies the replacement generation, so upgrades never rebuild an already customized new default.
+    public static final String ROOT_WHEEL_ID = "vanilla_main";
+
     private DefaultProfiles() {
     }
 
@@ -24,61 +23,38 @@ public final class DefaultProfiles {
         return "omniwheel.default." + suffix;
     }
 
+    private static WheelEntry entry(String id, String icon, WheelAction action) {
+        return new WheelEntry(id, key("entry." + id), key("entry." + id + ".description"), "minecraft:" + icon, action);
+    }
+
+    private static WheelEntry function(String id, String icon, GameplayFunction function) {
+        return entry(id, icon, new FunctionAction(function));
+    }
+
+    private static WheelEntry binding(String id, String icon, String keybind) {
+        return entry(id, icon, new KeybindAction("key." + keybind));
+    }
+
+    private static WheelEntry submenu(String id, String icon, String wheel) {
+        return entry(id, icon, new OpenWheelAction(wheel));
+    }
+
+    private static WheelEntry chat(String id, String icon) {
+        return entry(id, icon, new ChatAction(key("text." + id), false, true));
+    }
+
+    private static void wheel(Map<String, WheelDefinition> wheels, String id, String title, WheelEntry... entries) {
+        wheels.put(id, new WheelDefinition(id, key("wheel." + title), key("wheel." + title + ".description"), 8, de.artemis.omniwheel.common.Java8.list(entries)));
+    }
+
     public static WheelProfile createDefaultProfile() {
         Map<String, WheelDefinition> wheels = new LinkedHashMap<>();
-
-        wheels.put("main", new WheelDefinition(
-                "main",
-                key("wheel.main"),
-                key("wheel.main.description"),
-                8,
-                com.google.common.collect.ImmutableList.of(
-                        new WheelEntry("spawn", key("entry.spawn"), key("entry.spawn.description"), "S", new CommandAction("/spawn", false)),
-                        new WheelEntry("home", key("entry.home"), key("entry.home.description"), "H", new CommandAction("/home", false)),
-                        new WheelEntry("chat", key("entry.chat"), key("entry.chat.description"), "C", new OpenWheelAction("communication")),
-                        new WheelEntry("quick", key("entry.quick"), key("entry.quick.description"), "Q", new OpenWheelAction("quick")),
-                        new WheelEntry("util", key("entry.utility"), key("entry.utility.description"), "U", new OpenWheelAction("utility")))
-        ));
-
-        wheels.put("communication", new WheelDefinition(
-                "communication",
-                key("wheel.communication"),
-                key("wheel.communication.description"),
-                8,
-                com.google.common.collect.ImmutableList.of(
-                        new WheelEntry("chat_omw", key("entry.chat_omw"), key("entry.chat_omw.description"), "1", new ChatAction(key("chat.on_my_way"), false)),
-                        new WheelEntry("chat_help", key("entry.chat_help"), key("entry.chat_help.description"), "2", new ChatAction(key("chat.need_help"), false)),
-                        new WheelEntry("chat_thanks", key("entry.chat_thanks"), key("entry.chat_thanks.description"), "3", new ChatAction(key("chat.thanks"), false)),
-                        new WheelEntry("chat_share", key("entry.chat_share"), key("entry.chat_share.description"), "4", new ChatAction(key("chat.share_position"), false)),
-                        new WheelEntry("chat_open", key("entry.chat_open"), key("entry.chat_open.description"), "5", new FunctionAction(GameplayFunction.OPEN_CHAT)),
-                        new WheelEntry("chat_message", key("entry.chat_message"), key("entry.chat_message.description"), "6", new OpenChatAction("/msg ")),
-                        new WheelEntry("chat_reply", key("entry.chat_reply"), key("entry.chat_reply.description"), "7", new OpenChatAction("/r ")))
-        ));
-
-        wheels.put("quick", new WheelDefinition(
-                "quick",
-                key("wheel.quick"),
-                key("wheel.quick.description"),
-                8,
-                com.google.common.collect.ImmutableList.of(
-                        new WheelEntry("quick_inventory", key("entry.quick_inventory"), key("entry.quick_inventory.description"), "1", new FunctionAction(GameplayFunction.OPEN_INVENTORY)),
-                        new WheelEntry("quick_command", key("entry.quick_command"), key("entry.quick_command.description"), "2", new FunctionAction(GameplayFunction.OPEN_COMMAND_CHAT)),
-                        new WheelEntry("quick_view", key("entry.quick_view"), key("entry.quick_view.description"), "3", new FunctionAction(GameplayFunction.TOGGLE_PERSPECTIVE)),
-                        new WheelEntry("quick_shot", key("entry.quick_shot"), key("entry.quick_shot.description"), "4", new FunctionAction(GameplayFunction.TAKE_SCREENSHOT)))
-        ));
-
-        wheels.put("utility", new WheelDefinition(
-                "utility",
-                key("wheel.utility"),
-                key("wheel.utility.description"),
-                8,
-                com.google.common.collect.ImmutableList.of(
-                        new WheelEntry("util_profile", key("entry.util_profile"), key("entry.util_profile.description"), "P", new FunctionAction(GameplayFunction.OMNI_OPEN_PROFILES)),
-                        new WheelEntry("util_manage", key("entry.util_manage"), key("entry.util_manage.description"), "G", new FunctionAction(GameplayFunction.OMNI_OPEN_MANAGER)),
-                        new WheelEntry("util_copy", key("entry.util_copy"), key("entry.util_copy.description"), "C", new CopyTextAction("{x} {y} {z}")),
-                        new WheelEntry("util_server", key("entry.util_server"), key("entry.util_server.description"), "S", new LocalMessageAction(key("local.current_context"))))
-        ));
-
-        return new WheelProfile("default", key("profile.default"), "main", wheels);
+        wheel(wheels, ROOT_WHEEL_ID, "main", function("inventory", "chest", GameplayFunction.OPEN_INVENTORY), function("advancements", "book", GameplayFunction.OPEN_ADVANCEMENTS), function("screenshot", "painting", GameplayFunction.TAKE_SCREENSHOT), submenu("communication", "writable_book", "communication"), submenu("location", "compass", "location"), submenu("inspect", "spyglass", "inspect"), submenu("controls", "lever", "controls"), submenu("view", "ender_eye", "view"));
+        wheel(wheels, "communication", "communication", function("open_chat", "paper", GameplayFunction.OPEN_CHAT), chat("share_position", "compass"), chat("share_block", "stone"), chat("share_item", "item_frame"), chat("need_help", "bell"), chat("thanks", "sunflower"), entry("whisper", "name_tag", new OpenChatAction("/tell ")), entry("command_help", "book", new CommandAction(de.artemis.omniwheel.common.Java8.list("/help"), false, true)));
+        wheel(wheels, "location", "location", entry("copy_position", "map", new CopyTextAction("{position}")), entry("copy_exact_position", "filled_map", new CopyTextAction("{exact_position}")), entry("location_info", "compass", new LocalMessageAction(key("text.location_info"))), entry("copy_dimension", "obsidian", new CopyTextAction("{dimension}")), entry("copy_biome", "grass_block", new CopyTextAction("{biome}")), entry("copy_facing", "recovery_compass", new CopyTextAction("{facing}")));
+        wheel(wheels, "inspect", "inspect", entry("block_info", "spyglass", new LocalMessageAction(key("text.block_info"))), entry("copy_block_position", "map", new CopyTextAction("{target_block_position}")), entry("copy_block_id", "stone", new CopyTextAction("{target_block_id}")), entry("entity_info", "name_tag", new LocalMessageAction(key("text.entity_info"))), entry("copy_entity_uuid", "lead", new CopyTextAction("{target_entity_uuid}")), entry("copy_entity_position", "compass", new CopyTextAction("{target_entity_position}")), entry("item_info", "diamond_pickaxe", new LocalMessageAction(key("text.item_info"))), entry("copy_item_id", "item_frame", new CopyTextAction("{held_item_id}")));
+        wheel(wheels, "controls", "controls", function("swap_offhand", "shield", GameplayFunction.SWAP_OFFHAND), function("pick_block", "grass_block", GameplayFunction.PICK_BLOCK), function("previous_slot", "wooden_sword", GameplayFunction.HOTBAR_PREVIOUS), function("next_slot", "wooden_pickaxe", GameplayFunction.HOTBAR_NEXT));
+        wheel(wheels, "view", "view", binding("perspective", "ender_eye", "togglePerspective"), binding("hud", "glass_pane", "toggleGui"), binding("smooth_camera", "feather", "smoothCamera"), binding("fullscreen", "painting", "fullscreen"), binding("debug_overlay", "redstone", "debug.overlay"), binding("hitboxes", "target", "debug.showHitboxes"), binding("chunk_borders", "slime_block", "debug.showChunkBorders"), binding("advanced_tooltips", "book", "debug.showAdvancedTooltips"));
+        return new WheelProfile("default", key("profile.default"), ROOT_WHEEL_ID, wheels);
     }
 }

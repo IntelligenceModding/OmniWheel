@@ -7,17 +7,14 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.event.HoverEvent;
 import net.minecraft.util.text.IFormattableTextComponent;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.StringTextComponent;
 import de.artemis.omniwheel.common.OmniWheelText;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public final class ContextValueFormatter {
-    private static final Style COPY_STYLE = Style.EMPTY
-            .withColor(TextFormatting.AQUA)
-            .withUnderlined(true);
+
+    private static final Style COPY_STYLE = Style.EMPTY.withColor(TextFormatting.AQUA).withUnderlined(true);
 
     private ContextValueFormatter() {
     }
@@ -28,20 +25,11 @@ public final class ContextValueFormatter {
         if (minecraft.player == null || minecraft.level == null) {
             return values;
         }
-
         if (containsCoordinates(template)) {
-            values.add(new CopyValue(
-                    OmniWheelText.translate("omniwheel.context.coords", currentCoordinatesDisplay(minecraft)),
-                    currentCoordinatesClipboard(minecraft),
-                    OmniWheelText.translate("omniwheel.context.coordinates")
-            ));
+            values.add(new CopyValue(OmniWheelText.translate("omniwheel.context.coords", currentCoordinatesDisplay(minecraft)), currentCoordinatesClipboard(minecraft), OmniWheelText.translate("omniwheel.context.coordinates")));
         }
         if (template.contains("{dimension}")) {
-            values.add(new CopyValue(
-                    OmniWheelText.translate("omniwheel.context.dimension", currentDimensionDisplay(minecraft)),
-                    currentDimensionRaw(minecraft),
-                    OmniWheelText.translate("omniwheel.context.dimension_label")
-            ));
+            values.add(new CopyValue(OmniWheelText.translate("omniwheel.context.dimension", currentDimensionDisplay(minecraft)), currentDimensionRaw(minecraft), OmniWheelText.translate("omniwheel.context.dimension_label")));
         }
         return values;
     }
@@ -57,25 +45,22 @@ public final class ContextValueFormatter {
     public static ITextComponent buildInteractiveComponent(String template, Minecraft minecraft) {
         template = OmniWheelText.resolve(template);
         if (minecraft.player == null || minecraft.level == null) {
-            return new StringTextComponent(template);
+            return new net.minecraft.util.text.StringTextComponent(template);
         }
-
-        IFormattableTextComponent result = new StringTextComponent("");
+        template = LiveDataSnapshot.capture(minecraft).omitUnavailableDurability(template);
+        IFormattableTextComponent result = new net.minecraft.util.text.StringTextComponent("");
         int cursor = 0;
         while (cursor < template.length()) {
             int coordIndex = findNextCoordinateToken(template, cursor);
             int dimensionIndex = template.indexOf("{dimension}", cursor);
             int nextIndex = minPositive(coordIndex, dimensionIndex);
-
             if (nextIndex < 0) {
-                result.append(new StringTextComponent(resolveLiteral(template.substring(cursor), minecraft)));
+                result.append(new net.minecraft.util.text.StringTextComponent(resolveLiteral(template.substring(cursor), minecraft)));
                 break;
             }
-
             if (nextIndex > cursor) {
-                result.append(new StringTextComponent(resolveLiteral(template.substring(cursor, nextIndex), minecraft)));
+                result.append(new net.minecraft.util.text.StringTextComponent(resolveLiteral(template.substring(cursor, nextIndex), minecraft)));
             }
-
             if (nextIndex == coordIndex) {
                 result.append(copyableLiteral(currentCoordinatesDisplay(minecraft), currentCoordinatesClipboard(minecraft), "omniwheel.context.copy_coordinates"));
                 cursor = nextIndex + coordinateTokenLength(template, nextIndex);
@@ -84,7 +69,6 @@ public final class ContextValueFormatter {
                 cursor = nextIndex + "{dimension}".length();
             }
         }
-
         return result;
     }
 
@@ -98,26 +82,19 @@ public final class ContextValueFormatter {
     }
 
     public static String currentCoordinatesDisplay(Minecraft minecraft) {
-        return minecraft.player.blockPosition().getX() + ", "
-                + minecraft.player.blockPosition().getY() + ", "
-                + minecraft.player.blockPosition().getZ();
+        return minecraft.player.blockPosition().getX() + ", " + minecraft.player.blockPosition().getY() + ", " + minecraft.player.blockPosition().getZ();
     }
 
     public static String currentCoordinatesClipboard(Minecraft minecraft) {
-        return minecraft.player.blockPosition().getX() + " "
-                + minecraft.player.blockPosition().getY() + " "
-                + minecraft.player.blockPosition().getZ();
+        return minecraft.player.blockPosition().getX() + " " + minecraft.player.blockPosition().getY() + " " + minecraft.player.blockPosition().getZ();
     }
 
     private static ITextComponent copyableLiteral(String display, String raw, String hoverKey) {
-        return new StringTextComponent(display).withStyle(COPY_STYLE
-                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, raw))
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, OmniWheelText.component(hoverKey, raw))));
+        return new net.minecraft.util.text.StringTextComponent(display).withStyle(COPY_STYLE.withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, raw)).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, OmniWheelText.component(hoverKey, raw))));
     }
 
     private static String resolveLiteral(String raw, Minecraft minecraft) {
-        return PlaceholderResolver.resolve(raw, minecraft)
-                .replace(currentDimensionRaw(minecraft), currentDimensionDisplay(minecraft));
+        return PlaceholderResolver.resolve(raw, minecraft).replace(currentDimensionRaw(minecraft), currentDimensionDisplay(minecraft));
     }
 
     private static boolean containsCoordinates(String template) {
@@ -129,17 +106,16 @@ public final class ContextValueFormatter {
         if (first < 0) {
             return -1;
         }
-
         int tokenLength = coordinateTokenLength(template, first);
-        return tokenLength > 0 ? first : -1;
+        if (tokenLength > 0) {
+            return first;
+        } else {
+            return -1;
+        }
     }
 
     private static int coordinateTokenLength(String template, int startIndex) {
-        String[] variants = {
-                "{x}, {y}, {z}",
-                "{x},{y},{z}",
-                "{x} {y} {z}"
-        };
+        String[] variants = { "{x}, {y}, {z}", "{x},{y},{z}", "{x} {y} {z}" };
         for (String variant : variants) {
             if (template.startsWith(variant, startIndex)) {
                 return variant.length();
@@ -159,18 +135,17 @@ public final class ContextValueFormatter {
     }
 
     private static String formatDimensionId(String raw) {
-        switch (raw) {
-            case "minecraft:overworld": {
-                return OmniWheelText.translate("omniwheel.dimension.overworld");
-            }
-            case "minecraft:the_nether": {
+        if (java.util.Objects.equals(raw, "minecraft:overworld")) {
+            return OmniWheelText.translate("omniwheel.dimension.overworld");
+        } else {
+            if (java.util.Objects.equals(raw, "minecraft:the_nether")) {
                 return OmniWheelText.translate("omniwheel.dimension.nether");
-            }
-            case "minecraft:the_end": {
-                return OmniWheelText.translate("omniwheel.dimension.end");
-            }
-            default: {
-                return titleCase(raw.contains(":") ? raw.substring(raw.indexOf(':') + 1) : raw);
+            } else {
+                if (java.util.Objects.equals(raw, "minecraft:the_end")) {
+                    return OmniWheelText.translate("omniwheel.dimension.end");
+                } else {
+                    return titleCase(raw.contains(":") ? raw.substring(raw.indexOf(':') + 1) : raw);
+                }
             }
         }
     }
@@ -190,16 +165,22 @@ public final class ContextValueFormatter {
                 builder.append(word.substring(1).toLowerCase(Locale.ROOT));
             }
         }
-        return (builder.length() == 0) ? value : builder.toString();
+        if ((builder.length() == 0)) {
+            return value;
+        } else {
+            return builder.toString();
+        }
     }
 
-    public static final class CopyValue {
+    public final static class CopyValue {
+
         private final String display;
+
         private final String raw;
+
         private final String label;
 
         public CopyValue(String display, String raw, String label) {
-
             this.display = display;
             this.raw = raw;
             this.label = label;
@@ -218,11 +199,13 @@ public final class ContextValueFormatter {
         }
 
         @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof CopyValue)) return false;
-            CopyValue that = (CopyValue) other;
-            return java.util.Objects.equals(display, that.display) && java.util.Objects.equals(raw, that.raw) && java.util.Objects.equals(label, that.label);
+        public boolean equals(Object value) {
+            if (this == value)
+                return true;
+            if (value == null || value.getClass() != getClass())
+                return false;
+            CopyValue other = (CopyValue) value;
+            return true && java.util.Objects.equals(display, other.display) && java.util.Objects.equals(raw, other.raw) && java.util.Objects.equals(label, other.label);
         }
 
         @Override
@@ -232,7 +215,7 @@ public final class ContextValueFormatter {
 
         @Override
         public String toString() {
-            return "CopyValue[" + "display=" + display + ", " + "raw=" + raw + ", " + "label=" + label + "]";
+            return "CopyValue[" + "display=" + display + ", raw=" + raw + ", label=" + label + "]";
         }
     }
 }

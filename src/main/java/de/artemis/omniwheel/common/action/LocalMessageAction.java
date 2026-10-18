@@ -3,15 +3,14 @@ package de.artemis.omniwheel.common.action;
 import java.util.Objects;
 
 public final class LocalMessageAction implements WheelAction {
+
     private final String message;
 
     public LocalMessageAction(String message) {
-
         message = Objects.requireNonNull(message, "message").trim();
         if (message.isEmpty()) {
             throw new IllegalArgumentException("message must not be empty");
         }
-
         this.message = message;
     }
 
@@ -20,11 +19,13 @@ public final class LocalMessageAction implements WheelAction {
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof LocalMessageAction)) return false;
-        LocalMessageAction that = (LocalMessageAction) other;
-        return java.util.Objects.equals(message, that.message);
+    public boolean equals(Object value) {
+        if (this == value)
+            return true;
+        if (value == null || value.getClass() != getClass())
+            return false;
+        LocalMessageAction other = (LocalMessageAction) value;
+        return true && java.util.Objects.equals(message, other.message);
     }
 
     @Override

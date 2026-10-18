@@ -7,7 +7,6 @@ import net.minecraft.util.Session;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.world.storage.FolderName;
 import net.minecraftforge.fml.loading.FMLPaths;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,82 +16,82 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class TutorialProgressStore {
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     private final Path storagePath = FMLPaths.CONFIGDIR.get().resolve("omniwheel").resolve("tutorials.json");
+
     private StoreState state;
 
     public boolean isCompleted(TutorialType tutorialType) {
         TutorialState current = currentContextState();
-        switch (tutorialType) {
-            case RADIAL: {
-                return current.radialCompleted;
-            }
-            case MANAGER: {
+        if (java.util.Objects.equals(tutorialType, de.artemis.omniwheel.client.tutorial.TutorialType.RADIAL)) {
+            return current.radialCompleted;
+        } else {
+            if (java.util.Objects.equals(tutorialType, de.artemis.omniwheel.client.tutorial.TutorialType.MANAGER)) {
                 return current.managerCompleted;
+            } else {
+                return de.artemis.omniwheel.common.Java8.fail(new IllegalStateException("Unexpected switch value"));
             }
-            default:
-                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
         }
     }
 
     public int currentStep(TutorialType tutorialType) {
         TutorialState current = currentContextState();
-        switch (tutorialType) {
-            case RADIAL: {
-                return Math.max(0, current.radialStep);
-            }
-            case MANAGER: {
+        if (java.util.Objects.equals(tutorialType, de.artemis.omniwheel.client.tutorial.TutorialType.RADIAL)) {
+            return Math.max(0, current.radialStep);
+        } else {
+            if (java.util.Objects.equals(tutorialType, de.artemis.omniwheel.client.tutorial.TutorialType.MANAGER)) {
                 return Math.max(0, current.managerStep);
+            } else {
+                return de.artemis.omniwheel.common.Java8.fail(new IllegalStateException("Unexpected switch value"));
             }
-            default:
-                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
         }
     }
 
     public void setCurrentStep(TutorialType tutorialType, int step) {
         TutorialState current = currentContextState();
         int normalizedStep = Math.max(0, step);
-        switch (tutorialType) {
-            case RADIAL: {
-
-                current.radialCompleted = false;
-                current.radialStep = normalizedStep;
-
-                break;
-            }
-            case MANAGER: {
-
-                current.managerCompleted = false;
-                current.managerStep = normalizedStep;
-
-                break;
-            }
-            default:
-                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
+        switch(tutorialType) {
+            case RADIAL:
+                {
+                    {
+                        current.radialCompleted = false;
+                        current.radialStep = normalizedStep;
+                    }
+                    break;
+                }
+            case MANAGER:
+                {
+                    {
+                        current.managerCompleted = false;
+                        current.managerStep = normalizedStep;
+                    }
+                    break;
+                }
         }
         save(state);
     }
 
     public void markCompleted(TutorialType tutorialType) {
         TutorialState current = currentContextState();
-        switch (tutorialType) {
-            case RADIAL: {
-
-                current.radialCompleted = true;
-                current.radialStep = 0;
-
-                break;
-            }
-            case MANAGER: {
-
-                current.managerCompleted = true;
-                current.managerStep = 0;
-
-                break;
-            }
-            default:
-                throw new IllegalStateException("Unexpected switch value: " + (tutorialType));
+        switch(tutorialType) {
+            case RADIAL:
+                {
+                    {
+                        current.radialCompleted = true;
+                        current.radialStep = 0;
+                    }
+                    break;
+                }
+            case MANAGER:
+                {
+                    {
+                        current.managerCompleted = true;
+                        current.managerStep = 0;
+                    }
+                    break;
+                }
         }
         save(state);
     }
@@ -109,10 +108,11 @@ public final class TutorialProgressStore {
         }
         if (!Files.exists(storagePath)) {
             state = new StoreState();
+            state.guideRevision = TutorialGuide.REVISION;
             return state;
         }
         try {
-            String raw = new String(Files.readAllBytes(storagePath), StandardCharsets.UTF_8);
+            String raw = de.artemis.omniwheel.common.Java8.readString(storagePath, StandardCharsets.UTF_8);
             StoreState loaded = GSON.fromJson(raw, StoreState.class);
             if (loaded == null) {
                 loaded = new StoreState();
@@ -120,14 +120,22 @@ public final class TutorialProgressStore {
             if (loaded.contexts == null) {
                 loaded.contexts = new LinkedHashMap<>();
             }
-            if ((loaded.radialCompleted || loaded.managerCompleted || loaded.radialStep > 0 || loaded.managerStep > 0)
-                    && loaded.contexts.isEmpty()) {
+            if ((loaded.radialCompleted || loaded.managerCompleted || loaded.radialStep > 0 || loaded.managerStep > 0) && loaded.contexts.isEmpty()) {
                 TutorialState legacy = new TutorialState();
                 legacy.radialCompleted = loaded.radialCompleted;
                 legacy.managerCompleted = loaded.managerCompleted;
                 legacy.radialStep = loaded.radialStep;
                 legacy.managerStep = loaded.managerStep;
                 loaded.contexts.put("legacy", legacy);
+            }
+            migrateSingleplayerContexts(loaded);
+            if (loaded.guideRevision != TutorialGuide.REVISION) {
+                loaded.contexts.clear();
+                loaded.radialCompleted = false;
+                loaded.managerCompleted = false;
+                loaded.radialStep = 0;
+                loaded.managerStep = 0;
+                loaded.guideRevision = TutorialGuide.REVISION;
             }
             state = loaded;
             return state;
@@ -139,7 +147,7 @@ public final class TutorialProgressStore {
     private void save(StoreState tutorialState) {
         try {
             Files.createDirectories(storagePath.getParent());
-            Files.write(storagePath, GSON.toJson(tutorialState).getBytes(StandardCharsets.UTF_8));
+            de.artemis.omniwheel.common.Java8.writeString(storagePath, GSON.toJson(tutorialState), StandardCharsets.UTF_8);
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to save OmniWheel tutorial state to " + storagePath, exception);
         }
@@ -148,7 +156,6 @@ public final class TutorialProgressStore {
     private static String currentContextKey() {
         Minecraft minecraft = Minecraft.getInstance();
         String userKey = currentUserKey(minecraft);
-
         if (minecraft.hasSingleplayerServer() && minecraft.getSingleplayerServer() != null) {
             String worldKey;
             try {
@@ -156,15 +163,13 @@ public final class TutorialProgressStore {
             } catch (Exception ignored) {
                 worldKey = minecraft.getSingleplayerServer().getWorldData().getLevelName();
             }
-            return "sp:" + userKey + ":" + normalizeKey(worldKey);
+            return "sp:" + normalizeKey(worldKey);
         }
-
         ServerData server = minecraft.getCurrentServer();
         if (server != null) {
-            String serverKey = !server.ip.trim().isEmpty() ? server.ip : server.name;
+            String serverKey = !de.artemis.omniwheel.common.Java8.isBlank(server.ip) ? server.ip : server.name;
             return "mp:" + userKey + ":" + normalizeKey(serverKey);
         }
-
         return "global:" + userKey;
     }
 
@@ -181,27 +186,74 @@ public final class TutorialProgressStore {
         return normalizeKey(user.getName());
     }
 
+    private static void migrateSingleplayerContexts(StoreState storeState) {
+        Map<String, TutorialState> migrated = new LinkedHashMap<>();
+        for (Map.Entry<String, TutorialState> entry : storeState.contexts.entrySet()) {
+            String contextKey = entry.getKey();
+            if (contextKey == null || !contextKey.startsWith("sp:")) {
+                continue;
+            }
+            int worldSeparator = contextKey.indexOf(':', 3);
+            if (worldSeparator < 0 || worldSeparator >= contextKey.length() - 1) {
+                continue;
+            }
+            String worldScopedKey = "sp:" + contextKey.substring(worldSeparator + 1);
+            mergeState(migrated.computeIfAbsent(worldScopedKey, ignored -> new TutorialState()), entry.getValue());
+        }
+        for (Map.Entry<String, TutorialState> entry : migrated.entrySet()) {
+            mergeState(storeState.contexts.computeIfAbsent(entry.getKey(), ignored -> new TutorialState()), entry.getValue());
+        }
+    }
+
+    private static void mergeState(TutorialState target, TutorialState source) {
+        if (source == null) {
+            return;
+        }
+        target.radialCompleted = target.radialCompleted || source.radialCompleted;
+        target.managerCompleted = target.managerCompleted || source.managerCompleted;
+        if (!target.radialCompleted) {
+            target.radialStep = Math.max(target.radialStep, source.radialStep);
+        } else {
+            target.radialStep = 0;
+        }
+        if (!target.managerCompleted) {
+            target.managerStep = Math.max(target.managerStep, source.managerStep);
+        } else {
+            target.managerStep = 0;
+        }
+    }
+
     private static String normalizeKey(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || de.artemis.omniwheel.common.Java8.isBlank(value)) {
             return "unknown";
         }
         return value.trim().replace('\\', '/').toLowerCase(Locale.ROOT);
     }
 
     private static final class StoreState {
+
+        int guideRevision;
+
         Map<String, TutorialState> contexts = new LinkedHashMap<>();
 
         // Legacy root-level fields kept for backward compatibility while reading older files.
         boolean radialCompleted;
+
         boolean managerCompleted;
+
         int radialStep;
+
         int managerStep;
     }
 
     private static final class TutorialState {
+
         boolean radialCompleted;
+
         boolean managerCompleted;
+
         int radialStep;
+
         int managerStep;
     }
 }

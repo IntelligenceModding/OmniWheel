@@ -2,6 +2,7 @@ package de.artemis.omniwheel.client.runtime;
 
 import com.mojang.brigadier.ParseResults;
 import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.KeybindAction;
 import de.artemis.omniwheel.common.action.CommandAction;
 import de.artemis.omniwheel.common.action.CopyTextAction;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -18,13 +19,39 @@ import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.play.ClientPlayNetHandler;
-
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
 public final class WheelAvailabilityResolver {
+
     public static final String PROFILES_WHEEL_ID = "__profiles__";
+
+    /**
+     * Configured slots never collapse as permissions or context change.
+     */
+    public List<WheelEntry> layoutEntries(WheelProfile profile, String wheelId) {
+        if (PROFILES_WHEEL_ID.equals(wheelId)) {
+            return profileEntries();
+        } else {
+            return profile.wheel(wheelId).radialEntries();
+        }
+    }
+
+    public boolean canActivate(WheelProfile profile, String wheelId, WheelEntry entry, Deque<String> path) {
+        if (!entry.active() || !PROFILES_WHEEL_ID.equals(wheelId) && !profile.wheel(wheelId).active())
+            return false;
+        if (entry.action() instanceof OpenWheelAction) {
+            return PROFILES_WHEEL_ID.equals(((OpenWheelAction) (entry.action())).wheelId()) || profile.wheels().containsKey(((OpenWheelAction) (entry.action())).wheelId()) && profile.wheel(((OpenWheelAction) (entry.action())).wheelId()).active();
+        }
+        return isVisible(profile, entry, path);
+    }
+
+    public boolean[] enabledEntries(WheelProfile profile, String wheelId, List<WheelEntry> entries, Deque<String> path) {
+        boolean[] result = new boolean[entries.size()];
+        for (int index = 0; index < result.length; index++) result[index] = canActivate(profile, wheelId, entries.get(index), path);
+        return result;
+    }
 
     public List<WheelEntry> visibleEntries(WheelProfile profile, String wheelId, Deque<String> wheelPath) {
         if (PROFILES_WHEEL_ID.equals(wheelId)) {
@@ -32,7 +59,7 @@ public final class WheelAvailabilityResolver {
         }
         WheelDefinition wheel = profile.wheel(wheelId);
         if (!wheel.active()) {
-            return com.google.common.collect.ImmutableList.of();
+            return de.artemis.omniwheel.common.Java8.list();
         }
         List<WheelEntry> visibleEntries = new ArrayList<>();
         for (WheelEntry entry : wheel.entries()) {
@@ -47,30 +74,47 @@ public final class WheelAvailabilityResolver {
         if (!entry.active()) {
             return false;
         }
-        WheelAction action = entry.action();
-        if (action instanceof CommandAction) {
-            return isCommandAvailable(((CommandAction) action));
+        if (java.util.Objects.requireNonNull(entry.action()) instanceof CommandAction) {
+            return (isCommandAvailable(((CommandAction) (java.util.Objects.requireNonNull(entry.action())))));
+        } else {
+            if (entry.action() instanceof KeybindAction) {
+                return (KeybindActionController.find(Minecraft.getInstance(), ((KeybindAction) (entry.action())).keybindId()) != null);
+            } else {
+                if (entry.action() instanceof ChatAction) {
+                    return (isChatAvailable());
+                } else {
+                    if (entry.action() instanceof FunctionAction) {
+                        return (((FunctionAction) (entry.action())).function() != GameplayFunction.OMNI_BACK && OmniWheelClientRuntime.getInstance().functionController().isAvailable(((FunctionAction) (entry.action())).function()));
+                    } else {
+                        if (entry.action() instanceof OpenChatAction) {
+                            return (isOpenChatAvailable(((OpenChatAction) (entry.action()))));
+                        } else {
+                            if (entry.action() instanceof CopyTextAction) {
+                                return (true);
+                            } else {
+                                if (entry.action() instanceof LocalMessageAction) {
+                                    return (true);
+                                } else {
+                                    if (entry.action() instanceof OpenScreenAction) {
+                                        return (true);
+                                    } else {
+                                        if (entry.action() instanceof SwitchProfileAction) {
+                                            return (true);
+                                        } else {
+                                            if (entry.action() instanceof OpenWheelAction) {
+                                                return (isWheelEntryVisible(profile, ((OpenWheelAction) (entry.action())), wheelPath));
+                                            } else {
+                                                return (false);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
-        if (action instanceof ChatAction) {
-            return isChatAvailable();
-        }
-        if (action instanceof FunctionAction) {
-            return ((FunctionAction) action).function() != GameplayFunction.OMNI_BACK
-                    && OmniWheelClientRuntime.getInstance().functionController().isAvailable(((FunctionAction) action).function());
-        }
-        if (action instanceof OpenChatAction) {
-            return isOpenChatAvailable(((OpenChatAction) action));
-        }
-        if (action instanceof CopyTextAction
-                || action instanceof LocalMessageAction
-                || action instanceof OpenScreenAction
-                || action instanceof SwitchProfileAction) {
-            return true;
-        }
-        if (action instanceof OpenWheelAction) {
-            return isWheelEntryVisible(profile, ((OpenWheelAction) action), wheelPath);
-        }
-        return false;
     }
 
     private boolean isWheelEntryVisible(WheelProfile profile, OpenWheelAction action, Deque<String> wheelPath) {
@@ -83,11 +127,9 @@ public final class WheelAvailabilityResolver {
         if (!profile.wheel(action.wheelId()).active()) {
             return false;
         }
-
         if (wheelPath.contains(action.wheelId())) {
             return true;
         }
-
         return hasUsefulVisibleEntry(profile, action.wheelId(), new ArrayList<>(wheelPath));
     }
 
@@ -97,27 +139,24 @@ public final class WheelAvailabilityResolver {
             return false;
         }
         path.add(wheelId);
-
         for (WheelEntry entry : wheel.entries()) {
             if (!entry.active()) {
                 continue;
             }
             WheelAction action = entry.action();
             if (action instanceof OpenWheelAction) {
-                if (path.contains(((OpenWheelAction) action).wheelId())) {
+                if (path.contains(((OpenWheelAction) (action)).wheelId())) {
                     continue;
                 }
-                if (profile.wheels().containsKey(((OpenWheelAction) action).wheelId()) && hasUsefulVisibleEntry(profile, ((OpenWheelAction) action).wheelId(), new ArrayList<>(path))) {
+                if (profile.wheels().containsKey(((OpenWheelAction) (action)).wheelId()) && hasUsefulVisibleEntry(profile, ((OpenWheelAction) (action)).wheelId(), new ArrayList<>(path))) {
                     return true;
                 }
                 continue;
             }
-
             if (isVisible(profile, entry, copyAsDeque(path))) {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -129,7 +168,6 @@ public final class WheelAvailabilityResolver {
         if (!canPlayerChat(minecraft, true)) {
             return false;
         }
-
         for (String command : action.commands()) {
             if (!isSingleCommandAvailable(command, minecraft)) {
                 return false;
@@ -166,12 +204,10 @@ public final class WheelAvailabilityResolver {
         if (!canPlayerChat(minecraft, true)) {
             return false;
         }
-
         String normalized = normalizeCommand(command);
-        if (normalized.trim().isEmpty()) {
+        if (de.artemis.omniwheel.common.Java8.isBlank(normalized)) {
             return false;
         }
-
         String commandName = normalized.split("\\s+", 2)[0];
         ClientPlayNetHandler connection = minecraft.player.connection;
         return connection.getCommands().getRoot().getChild(commandName) != null;
@@ -190,16 +226,11 @@ public final class WheelAvailabilityResolver {
     }
 
     private static boolean canPlayerChat(Minecraft minecraft, boolean command) {
-        return minecraft.player != null && canPlayerChat(minecraft.isLocalServer(), minecraft.allowsChat(),
-                minecraft.options.chatVisibility, command);
+        return minecraft.player != null && canPlayerChat(minecraft.isLocalServer(), minecraft.allowsChat(), minecraft.options.chatVisibility, command);
     }
 
-    static boolean canPlayerChat(boolean localServer, boolean allowsChat,
-                                 net.minecraft.entity.player.ChatVisibility visibility, boolean command) {
-        // Minecraft 1.16.5's openChatScreen ignores account chat restrictions in singleplayer.
-        return (localServer || allowsChat)
-                && visibility != net.minecraft.entity.player.ChatVisibility.HIDDEN
-                && (command || visibility == net.minecraft.entity.player.ChatVisibility.FULL);
+    static boolean canPlayerChat(boolean localServer, boolean allowsChat, net.minecraft.entity.player.ChatVisibility visibility, boolean command) {
+        return (localServer || allowsChat) && visibility != net.minecraft.entity.player.ChatVisibility.HIDDEN && (command || visibility == net.minecraft.entity.player.ChatVisibility.FULL);
     }
 
     private List<WheelEntry> profileEntries() {
@@ -208,18 +239,9 @@ public final class WheelAvailabilityResolver {
         List<WheelEntry> entries = new ArrayList<>(profiles.size());
         for (WheelProfile profile : profiles) {
             String displayName = OmniWheelText.resolve(profile.displayName());
-            String glyph = displayName.trim().isEmpty()
-                    ? "P"
-                    : Character.toString(Character.toUpperCase(displayName.charAt(0)));
+            String glyph = de.artemis.omniwheel.common.Java8.isBlank(displayName) ? "P" : Character.toString(Character.toUpperCase(displayName.charAt(0)));
             int color = profile.id().equals(activeProfile.id()) ? 0xFF8BDAF8 : WheelEntry.DEFAULT_COLOR;
-            entries.add(new WheelEntry(
-                    "profile_" + profile.id(),
-                    profile.displayName(),
-                    profile.id().equals(activeProfile.id()) ? "omniwheel.profiles_wheel.current" : "omniwheel.profiles_wheel.activate",
-                    glyph,
-                    color,
-                    new SwitchProfileAction(profile.id())
-            ));
+            entries.add(new WheelEntry("profile_" + profile.id(), profile.displayName(), profile.id().equals(activeProfile.id()) ? "omniwheel.profiles_wheel.current" : "omniwheel.profiles_wheel.activate", glyph, color, new SwitchProfileAction(profile.id())));
         }
         return entries;
     }

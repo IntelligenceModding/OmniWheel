@@ -2,10 +2,10 @@ package de.artemis.omniwheel.client.runtime;
 
 import org.junit.Test;
 import org.lwjgl.glfw.GLFW;
-
 import static org.junit.Assert.*;
 
 public class EntryShortcutPortTest {
+
     @Test
     public void parsesModifiersAndMultipleKeysOnJava8() {
         EntryShortcutMatcher.ShortcutSpec shortcut = EntryShortcutMatcher.parse("Ctrl+Shift+G+Numpad1");

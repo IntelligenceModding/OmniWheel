@@ -3,12 +3,11 @@ package de.artemis.omniwheel.common.action;
 import java.util.Objects;
 
 public final class OpenScreenAction implements WheelAction {
+
     private final ScreenTarget target;
 
     public OpenScreenAction(ScreenTarget target) {
-
         target = Objects.requireNonNull(target, "target");
-
         this.target = target;
     }
 
@@ -17,11 +16,13 @@ public final class OpenScreenAction implements WheelAction {
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof OpenScreenAction)) return false;
-        OpenScreenAction that = (OpenScreenAction) other;
-        return java.util.Objects.equals(target, that.target);
+    public boolean equals(Object value) {
+        if (this == value)
+            return true;
+        if (value == null || value.getClass() != getClass())
+            return false;
+        OpenScreenAction other = (OpenScreenAction) value;
+        return true && java.util.Objects.equals(target, other.target);
     }
 
     @Override

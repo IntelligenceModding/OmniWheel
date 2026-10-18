@@ -6,42 +6,29 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import static org.junit.Assert.*;
 
 public class ProfilePortTest {
+
     private final ProfileJsonCodec codec = new ProfileJsonCodec();
 
     @Test
     public void allStoredActionsAndEntrySettingsRoundTrip() {
-        List<WheelAction> actions = Arrays.asList(
-                new CommandAction(Arrays.asList("/spawn", "/say {player}"), true),
-                new ChatAction("Hello {player}", true),
-                new FunctionAction(GameplayFunction.TOGGLE_AUTO_WALK),
-                new LocalMessageAction("Position: {x} {y} {z}"),
-                new OpenChatAction("/msg "),
-                new CopyTextAction("{dimension}"),
-                new OpenWheelAction("submenu"),
-                new OpenScreenAction(ScreenTarget.PROFILE_MANAGER)
-        );
+        List<WheelAction> actions = Arrays.asList(new CommandAction(Arrays.asList("/spawn", "/say {player}"), true), new ChatAction("Hello {player}", true), new FunctionAction(GameplayFunction.TOGGLE_AUTO_WALK), new LocalMessageAction("Position: {x} {y} {z}"), new OpenChatAction("/msg "), new CopyTextAction("{dimension}"), new OpenWheelAction("submenu"), new OpenScreenAction(ScreenTarget.PROFILE_MANAGER));
         List<WheelEntry> entries = new ArrayList<>();
         for (int i = 0; i < actions.size(); i++) {
-            entries.add(new WheelEntry("entry_" + i, "Label " + i, "Description", "minecraft:stone",
-                    0xFF123456, 0xDD654321, actions.get(i), i % 2 == 0, false, true, false, "Ctrl+G"));
+            entries.add(new WheelEntry("entry_" + i, "Label " + i, "Description", "minecraft:stone", 0xFF123456, 0xDD654321, actions.get(i), i % 2 == 0, false, true, false, "Ctrl+G"));
         }
         Map<String, WheelDefinition> wheels = new LinkedHashMap<>();
         wheels.put("main", new WheelDefinition("main", "Main", "Description", 16, entries, true));
         wheels.put("submenu", new WheelDefinition("submenu", "Submenu", "", 1, Collections.emptyList(), false));
-        ProfileCollection collection = new ProfileCollection("custom", Collections.singletonList(
-                new WheelProfile("custom", "Custom \u00e4 \u65e5", "main", wheels)));
-
+        ProfileCollection collection = new ProfileCollection("custom", Collections.singletonList(new WheelProfile("custom", "Custom \u00e4 \u65e5", "main", wheels)));
         ProfileCollection restored = codec.decode(codec.encode(collection));
         assertEquals(collection, restored);
         assertEquals(collection.hashCode(), restored.hashCode());
@@ -52,10 +39,7 @@ public class ProfilePortTest {
 
     @Test
     public void legacyProfilesKeepDefaultsAndSingleCommands() {
-        String legacy = "{\"profiles\":[{\"id\":\"old\",\"displayName\":\"Old\",\"rootWheelId\":\"main\","
-                + "\"wheels\":[{\"id\":\"main\",\"title\":\"Main\",\"segmentCount\":8,\"entries\":["
-                + "{\"id\":\"spawn\",\"label\":\"Spawn\",\"glyph\":\"S\","
-                + "\"action\":{\"type\":\"command\",\"value\":\"/spawn\"}}]}]}]}";
+        String legacy = "{\"profiles\":[{\"id\":\"old\",\"displayName\":\"Old\",\"rootWheelId\":\"main\"," + "\"wheels\":[{\"id\":\"main\",\"title\":\"Main\",\"segmentCount\":8,\"entries\":[" + "{\"id\":\"spawn\",\"label\":\"Spawn\",\"glyph\":\"S\"," + "\"action\":{\"type\":\"command\",\"value\":\"/spawn\"}}]}]}]}";
         ProfileCollection restored = codec.decode(legacy);
         WheelEntry entry = restored.activeProfile().wheel("main").entries().get(0);
         assertEquals("old", restored.activeProfileId());
@@ -93,7 +77,6 @@ public class ProfilePortTest {
         assertEquals(Arrays.asList("/spawn", "/home"), action.commands());
         assertEquals(new CommandAction(Arrays.asList("/spawn", "/home"), true), action);
         assertThrows(UnsupportedOperationException.class, () -> action.commands().add("/say changed"));
-
         List<WheelEntry> entries = new ArrayList<>();
         WheelDefinition wheel = new WheelDefinition(" main ", " Main ", "", 8, entries);
         entries.add(new WheelEntry("test", "Test", "", "T", action));
