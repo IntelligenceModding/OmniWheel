@@ -40,6 +40,8 @@ public final class EntryIconRenderer {
     private static final Field PARTICLE_RESOURCE_MANAGER_FIELD = findField(Minecraft.class, "particleEngine", "resourceManager");
     private static final Field PARTICLE_SPRITE_SETS_FIELD = findField(PARTICLE_RESOURCE_MANAGER_FIELD == null ? null : PARTICLE_RESOURCE_MANAGER_FIELD.getType(), "spriteSets");
     private static final Field PARTICLE_SPRITES_FIELD = findField(PARTICLE_RESOURCE_MANAGER_FIELD == null ? null : findMutableSpriteSetType(PARTICLE_RESOURCE_MANAGER_FIELD.getType()), "sprites");
+    private static final Map<String, Boolean> VALID_ICONS = new LinkedHashMap<>();
+    private static long resourceGeneration;
     private static final Map<String, Identifier> GUI_SPRITES = new LinkedHashMap<>();
     private static final Map<Identifier, List<Identifier>> PARTICLE_FRAMES = new LinkedHashMap<>();
     private static final Map<Identifier, List<TextureAtlasSprite>> PARTICLE_SPRITES = new LinkedHashMap<>();
@@ -94,7 +96,59 @@ public final class EntryIconRenderer {
     private EntryIconRenderer() {
     }
 
+    public static long resourceGeneration() {
+        return resourceGeneration;
+    }
+
+    public static void clearResourceCaches() {
+        VALID_ICONS.clear();
+        CustomItemIcons.clearCache();
+        CustomImageIcons.clearCache();
+        PARTICLE_FRAMES.clear();
+        PARTICLE_SPRITES.clear();
+        IconAssetValidator.clear();
+        resourceGeneration++;
+    }
+
+    public static boolean isUsableIcon(Minecraft minecraft, String icon) {
+        return VALID_ICONS.computeIfAbsent(icon, key -> {
+            try {
+                if (CustomImageData.isImage(key)) return CustomImageIcons.isUsable(key);
+                ItemStack stack = resolveItemStack(key);
+                if (!stack.isEmpty()) {
+                    return IconAssetValidator.item(minecraft, stack);
+                }
+                Identifier effectId = resolveEffectId(key);
+                if (effectId != null) {
+                    var holder = BuiltInRegistries.MOB_EFFECT.get(effectId).orElse(null);
+                    return holder != null && IconAssetValidator.guiSprite(minecraft, Gui.getMobEffectSprite(holder));
+                }
+                Identifier guiSprite = resolveGuiSprite(key);
+                if (guiSprite != null) {
+                    return IconAssetValidator.guiSprite(minecraft, guiSprite);
+                }
+                TextureIcon texture = resolveTextureIcon(key);
+                if (texture != null) {
+                    return IconAssetValidator.texture(minecraft, texture.texture(), texture.textureWidth(), texture.textureHeight(),
+                            texture.u(), texture.v(), texture.srcWidth(), texture.srcHeight());
+                }
+                Identifier particle = resolveParticleId(key);
+                if (particle != null) {
+                    return !resolveParticleSprites(minecraft, particle).isEmpty();
+                }
+                return resolveSymbol(key) != null;
+            } catch (RuntimeException | LinkageError ignored) {
+                // A broken mod asset must not break the entire browser.
+                return false;
+            }
+        });
+    }
+
     public static boolean drawIcon(GuiGraphicsExtractor graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
+        if (!isUsableIcon(minecraft, icon)) {
+            return false;
+        }
+        if (CustomImageData.isImage(icon)) return CustomImageIcons.draw(graphics, icon, centerX, centerY, scale);
         ItemStack stack = resolveItemStack(icon);
         if (!stack.isEmpty()) {
             float iconSize = 16.0F * scale;
@@ -131,7 +185,7 @@ public final class EntryIconRenderer {
     }
 
     public static boolean isVisualIcon(String icon) {
-        return isItemIcon(icon) || isEffectIcon(icon) || isGuiSpriteIcon(icon) || isTextureIcon(icon) || isParticleIcon(icon) || isSymbolIcon(icon);
+        return CustomImageData.isImage(icon) || isItemIcon(icon) || isEffectIcon(icon) || isGuiSpriteIcon(icon) || isTextureIcon(icon) || isParticleIcon(icon) || isSymbolIcon(icon);
     }
 
     public static boolean isEffectIcon(String icon) {
@@ -163,6 +217,7 @@ public final class EntryIconRenderer {
     }
 
     private static ItemStack resolveItemStack(String icon) {
+        if (CustomItemIcons.isCustom(icon)) return CustomItemIcons.decode(icon);
         String trimmed = icon == null ? "" : icon.trim();
         if (trimmed.isEmpty()) {
             return ItemStack.EMPTY;
@@ -271,7 +326,7 @@ public final class EntryIconRenderer {
 
     private static List<TextureAtlasSprite> resolveParticleSprites(Minecraft minecraft, Identifier particleId) {
         List<TextureAtlasSprite> cached = PARTICLE_SPRITES.get(particleId);
-        if (cached != null && !cached.isEmpty()) {
+        if (cached != null) {
             return cached;
         }
 
@@ -279,9 +334,8 @@ public final class EntryIconRenderer {
         if (sprites.isEmpty()) {
             sprites = loadParticleAtlasSprites(minecraft, particleId);
         }
-        if (!sprites.isEmpty()) {
-            PARTICLE_SPRITES.put(particleId, sprites);
-        }
+        sprites = sprites.stream().filter(IconAssetValidator::sprite).distinct().toList();
+        PARTICLE_SPRITES.put(particleId, sprites);
         return sprites;
     }
 
@@ -300,7 +354,7 @@ public final class EntryIconRenderer {
         List<TextureAtlasSprite> sprites = new ArrayList<>(frames.size());
         for (Identifier frame : frames) {
             TextureAtlasSprite sprite = atlas.getSprite(frame);
-            if (sprite != null && sprite != missingSprite) {
+            if (sprite != null && sprite != missingSprite && IconAssetValidator.sprite(sprite)) {
                 sprites.add(sprite);
             }
         }
@@ -339,7 +393,7 @@ public final class EntryIconRenderer {
 
             List<TextureAtlasSprite> result = new ArrayList<>(sprites.size());
             for (Object sprite : sprites) {
-                if (sprite instanceof TextureAtlasSprite textureAtlasSprite) {
+                if (sprite instanceof TextureAtlasSprite textureAtlasSprite && IconAssetValidator.sprite(textureAtlasSprite)) {
                     result.add(textureAtlasSprite);
                 }
             }
@@ -517,7 +571,7 @@ public final class EntryIconRenderer {
                 }
             }
             return frames.isEmpty() ? List.of() : List.copyOf(frames);
-        } catch (IOException ignored) {
+        } catch (IOException | RuntimeException ignored) {
             return List.of();
         }
     }
