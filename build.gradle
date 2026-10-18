@@ -1,7 +1,15 @@
+import net.minecraftforge.srgutils.IMappingFile
+
+buildscript {
+    repositories { maven { url = 'https://maven.minecraftforge.net/' } }
+    dependencies { classpath 'net.minecraftforge:srgutils:0.6.2' }
+}
+
 plugins {
     id 'java-library'
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '7.0.40'
+    id 'net.minecraftforge.renamer' version '1.1.2'
     id 'idea'
 }
 
@@ -24,6 +32,9 @@ minecraft {
     mappings channel: 'official', version: project.minecraft_version
     runs {
         configureEach {
+            args '--mixin.config=omniwheel.mixins.json'
+            // Development classes use Mojang names; the release JAR uses its SRG refmap.
+            systemProperty 'mixin.env.disableRefMap', 'true'
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'info'
             workingDir.convention project.layout.projectDirectory.dir("run/${name}")
@@ -48,13 +59,51 @@ repositories {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
     implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+}
+
+tasks.named('jar', Jar) {
+    archiveClassifier = 'dev'
+    manifest.attributes('MixinConfigs': 'omniwheel.mixins.json')
+}
+
+// Forge 1.21.1 uses SRG names in installed clients. Build a mapped release JAR.
+renamer.mappings.from minecraft.dependency.toSrgFile
+def releaseJar = renamer.classes(tasks.named('jar', Jar))
+releaseJar.configure {
+    archiveClassifier = ''
+    output = layout.buildDirectory.file("libs/${mod_id}-${project.version}.jar")
+}
+tasks.named('assemble') { dependsOn releaseJar }
+
+def mixinMappings = layout.buildDirectory.file('mixin/mapped-to-srg.srg')
+def prepareMixinMappings = tasks.register('prepareMixinMappings') {
+    inputs.files(minecraft.dependency.toSrgFile)
+    outputs.file(mixinMappings)
+    doLast {
+        def target = mixinMappings.get().asFile
+        target.parentFile.mkdirs()
+        new java.util.zip.GZIPInputStream(minecraft.dependency.toSrgFile.get().newInputStream()).withCloseable { input ->
+            target.withOutputStream { output -> input.transferTo(output) }
+        }
+        IMappingFile.load(target).write(target.toPath(), IMappingFile.Format.SRG, false)
+    }
+}
+tasks.named('compileJava', JavaCompile) {
+    dependsOn prepareMixinMappings
+    options.compilerArgs += [
+            "-AreobfSrgFile=${mixinMappings.get().asFile}",
+            "-AoutRefMapFile=${layout.buildDirectory.file('classes/java/main/omniwheel.refmap.json').get().asFile}",
+            '-AdefaultObfuscationEnv=searge'
+    ]
 }
 
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            from components.java
+            artifact releaseJar
         }
     }
     repositories {

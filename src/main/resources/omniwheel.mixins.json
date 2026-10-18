@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "de.artemis.omniwheel.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "omniwheel.refmap.json",
+  "client": [
+    "CommandSuggestionsAccessor",
+    "MinecraftAccessor",
+    "GuiMixin",
+    "KeyMappingAccessor",
+    "ParticleEngineAccessor",
+    "KeyMappingMixin",
+    "KeyboardHandlerAccessor",
+    "KeyboardHandlerMixin",
+    "MouseHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

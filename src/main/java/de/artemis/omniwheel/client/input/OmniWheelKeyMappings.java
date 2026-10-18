@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import de.artemis.omniwheel.mixin.client.KeyMappingAccessor;
 import net.minecraft.client.KeyMapping;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
@@ -96,5 +97,9 @@ public final class OmniWheelKeyMappings {
         for (KeyMapping keyMapping : RADIAL_POSITION_KEYS) {
             event.register(keyMapping);
         }
+    }
+
+    public static InputConstants.Key currentKey(KeyMapping keyMapping) {
+        return ((KeyMappingAccessor) keyMapping).omniwheel$getKey();
     }
 }
