@@ -20,7 +20,6 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
@@ -136,7 +135,7 @@ public final class WheelAvailabilityResolver {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return false;
         }
-        if (!canPlayerChat(minecraft, "canSendCommands")) {
+        if (!canPlayerChat(minecraft)) {
             return false;
         }
 
@@ -157,7 +156,7 @@ public final class WheelAvailabilityResolver {
 
     private boolean isChatAvailable() {
         Minecraft minecraft = Minecraft.getInstance();
-        return minecraft.player != null && minecraft.player.connection != null && canPlayerChat(minecraft, "canSendMessages");
+        return minecraft.player != null && minecraft.player.connection != null && canPlayerChat(minecraft);
     }
 
     private boolean isOpenChatAvailable(OpenChatAction action) {
@@ -173,7 +172,7 @@ public final class WheelAvailabilityResolver {
         if (minecraft.player == null || minecraft.player.connection == null) {
             return false;
         }
-        if (!canPlayerChat(minecraft, "canSendCommands")) {
+        if (!canPlayerChat(minecraft)) {
             return false;
         }
 
@@ -199,24 +198,8 @@ public final class WheelAvailabilityResolver {
         return new java.util.ArrayDeque<>(values);
     }
 
-    private static boolean canPlayerChat(Minecraft minecraft, String abilityMethodName) {
-        if (minecraft.player == null) {
-            return false;
-        }
-
-        try {
-            Method chatAbilitiesMethod = minecraft.player.getClass().getMethod("chatAbilities");
-            Object chatAbilities = chatAbilitiesMethod.invoke(minecraft.player);
-            if (chatAbilities == null) {
-                return false;
-            }
-
-            Method abilityMethod = chatAbilities.getClass().getMethod(abilityMethodName);
-            Object value = abilityMethod.invoke(chatAbilities);
-            return value instanceof Boolean bool && bool;
-        } catch (ReflectiveOperationException ignored) {
-            return true;
-        }
+    private static boolean canPlayerChat(Minecraft minecraft) {
+        return minecraft.player != null && minecraft.getChatStatus().isChatAllowed(minecraft.isLocalServer());
     }
 
     private List<WheelEntry> profileEntries() {

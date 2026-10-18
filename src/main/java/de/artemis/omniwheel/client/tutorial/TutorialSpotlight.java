@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.tutorial;
 
 import de.artemis.omniwheel.client.navigation.ManagementNavigation.Bounds;
 import de.artemis.omniwheel.client.render.GeometryRenderer;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import java.util.List;
 
 /** Dims the existing rendered interface rather than hiding or reconstructing controls. */

@@ -3,7 +3,7 @@ package de.artemis.omniwheel.client.runtime;
 import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -42,7 +42,7 @@ public record LiveDataSnapshot(Map<String, String> values) {
             var state = level.getBlockState(hit.getBlockPos());
             putPosition(values, "target_block_", hit.getBlockPos());
             values.put("{target_block_position}", position(hit.getBlockPos()));
-            values.put("{target_block_id}", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
+            values.put("{target_block_id}", Registry.BLOCK.getKey(state.getBlock()).toString());
             values.put("{target_block_name}", state.getBlock().getName().getString());
         }
         if (minecraft.hitResult instanceof EntityHitResult hit) {
@@ -50,12 +50,12 @@ public record LiveDataSnapshot(Map<String, String> values) {
             putPosition(values, "target_entity_", entity.blockPosition());
             values.put("{target_entity_position}", position(entity.blockPosition()));
             values.put("{target_entity_uuid}", entity.getUUID().toString());
-            values.put("{target_entity_id}", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+            values.put("{target_entity_id}", Registry.ENTITY_TYPE.getKey(entity.getType()).toString());
             values.put("{target_entity_name}", entity.getName().getString());
         }
         var item = player.getMainHandItem();
         if (!item.isEmpty()) {
-            values.put("{held_item_id}", BuiltInRegistries.ITEM.getKey(item.getItem()).toString());
+            values.put("{held_item_id}", Registry.ITEM.getKey(item.getItem()).toString());
             values.put("{held_item_name}", item.getHoverName().getString());
             values.put("{held_item_count}", Integer.toString(item.getCount()));
             values.put("{held_item_durability}", item.isDamageableItem()

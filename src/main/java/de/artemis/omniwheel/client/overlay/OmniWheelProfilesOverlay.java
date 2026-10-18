@@ -37,26 +37,23 @@ import de.artemis.omniwheel.common.wheel.WheelEntryMover;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
+import de.artemis.omniwheel.client.screen.CommandEditBox;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -147,7 +144,7 @@ public final class OmniWheelProfilesOverlay {
     private final Map<Integer, Long> nextKeyRepeatAt = new HashMap<>();
     private final Set<String> expandedWheelIds = new HashSet<>();
     private NavigationList activeList = NavigationList.PROFILES;
-    private EditBox commandInput;
+    private CommandEditBox commandInput;
     private int commandInputOwner = -1;
     private CommandSuggestions commandSuggestions;
     private Screen commandSuggestionsScreen;
@@ -724,9 +721,9 @@ public final class OmniWheelProfilesOverlay {
             graphics.flush();
             graphics.pose().pushPose();
             graphics.pose().translate(0.0F, commandSuggestionsYOffset, 0.0F);
-            boolean suggestionsVisible = commandSuggestions.renderSuggestions(graphics,
+            boolean suggestionsVisible = commandSuggestions.renderSuggestions(graphics.pose(),
                     (int) currentMouseX(minecraft), (int) currentMouseY(minecraft) - commandSuggestionsYOffset);
-            if (!suggestionsVisible && !renderWrappedUsage) commandSuggestions.renderUsage(graphics);
+            if (!suggestionsVisible && !renderWrappedUsage) commandSuggestions.renderUsage(graphics.pose());
             graphics.pose().popPose();
             if (!suggestionsVisible && renderWrappedUsage) {
                 renderWrappedCommandUsage(graphics, minecraft);
@@ -2311,12 +2308,12 @@ public final class OmniWheelProfilesOverlay {
         if (normalized.isEmpty()) return "Choose Icon";
         ResourceLocation itemId = ResourceLocation.tryParse(normalized);
         if (itemId != null) {
-            Item item = BuiltInRegistries.ITEM.getOptional(itemId).orElse(null);
+            Item item = Registry.ITEM.getOptional(itemId).orElse(null);
             if (item != null && item != Items.AIR) return new ItemStack(item).getHoverName().getString();
         }
         if (normalized.startsWith("effect:")) {
             ResourceLocation effectId = ResourceLocation.tryParse(normalized.substring("effect:".length()));
-            MobEffect effect = effectId == null ? null : BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
+            MobEffect effect = effectId == null ? null : Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
             if (effect != null) return Component.translatable(effect.getDescriptionId()).getString();
         }
         String path = normalized.substring(normalized.lastIndexOf(':') + 1);
@@ -2809,35 +2806,8 @@ public final class OmniWheelProfilesOverlay {
 
     private void openControlsMenu() {
         Minecraft minecraft = Minecraft.getInstance();
-        Screen parent = hostScreen();
-        if (minecraft.screen == null || minecraft.options == null) {
-            return;
-        }
-
-        for (String className : List.of(
-                "net.minecraft.client.gui.screens.options.controls.ControlsScreen",
-                "net.minecraft.client.gui.screens.options.controls.KeyBindsScreen"
-        )) {
-            try {
-                Class<?> screenClass = Class.forName(className);
-                for (var constructor : screenClass.getConstructors()) {
-                    Class<?>[] parameterTypes = constructor.getParameterTypes();
-                    if (parameterTypes.length == 2
-                            && Screen.class.isAssignableFrom(parameterTypes[0])
-                            && parameterTypes[1].isInstance(minecraft.options)) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options));
-                        return;
-                    }
-                    if (parameterTypes.length == 3
-                            && Screen.class.isAssignableFrom(parameterTypes[0])
-                            && parameterTypes[1].isInstance(minecraft.options)
-                            && Component.class.isAssignableFrom(parameterTypes[2])) {
-                        minecraft.setScreen((Screen) constructor.newInstance(parent, minecraft.options, Component.translatable("controls.keybinds.title")));
-                        return;
-                    }
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
+        if (minecraft.screen != null && minecraft.options != null) {
+            minecraft.setScreen(new net.minecraft.client.gui.screens.controls.ControlsScreen(hostScreen(), minecraft.options));
         }
     }
 
@@ -3058,7 +3028,7 @@ public final class OmniWheelProfilesOverlay {
             commandInput.setVisible(true);
             commandInput.setFocused(true);
             commandSuggestionsYOffset = (y + 39) - 72;
-            commandInput.renderWidget(graphics, (int) currentMouseX(minecraft), (int) currentMouseY(minecraft), 0.0F);
+            commandInput.render(graphics.pose(), (int) currentMouseX(minecraft), (int) currentMouseY(minecraft), 0.0F);
         }
     }
 
@@ -3075,12 +3045,7 @@ public final class OmniWheelProfilesOverlay {
         if (commandSuggestions == null || commandInput == null) {
             return;
         }
-        try {
-            Field field = CommandSuggestions.class.getDeclaredField("commandUsagePosition");
-            field.setAccessible(true);
-            field.setInt(commandSuggestions, commandInput.getX());
-        } catch (ReflectiveOperationException ignored) {
-        }
+        ((de.artemis.omniwheel.mixin.client.CommandSuggestionsAccessor) commandSuggestions).omniwheel$setCommandUsagePosition(commandInput.getX());
     }
 
     private boolean shouldRenderWrappedCommandUsage() {
@@ -3127,38 +3092,13 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private List<FormattedCharSequence> commandUsageLines() {
-        if (commandSuggestions == null) {
-            return List.of();
-        }
-        try {
-            Field field = CommandSuggestions.class.getDeclaredField("commandUsage");
-            field.setAccessible(true);
-            Object value = field.get(commandSuggestions);
-            if (value instanceof List<?> list) {
-                List<FormattedCharSequence> lines = new ArrayList<>();
-                for (Object entry : list) {
-                    if (entry instanceof FormattedCharSequence sequence) {
-                        lines.add(sequence);
-                    }
-                }
-                return lines;
-            }
-        } catch (ReflectiveOperationException ignored) {
-        }
-        return List.of();
+        return commandSuggestions == null ? List.of()
+                : ((de.artemis.omniwheel.mixin.client.CommandSuggestionsAccessor) commandSuggestions).omniwheel$getCommandUsage();
     }
 
     private int commandUsageWidth() {
-        if (commandSuggestions == null) {
-            return 0;
-        }
-        try {
-            Field field = CommandSuggestions.class.getDeclaredField("commandUsageWidth");
-            field.setAccessible(true);
-            return field.getInt(commandSuggestions);
-        } catch (ReflectiveOperationException ignored) {
-            return 0;
-        }
+        return commandSuggestions == null ? 0
+                : ((de.artemis.omniwheel.mixin.client.CommandSuggestionsAccessor) commandSuggestions).omniwheel$getCommandUsageWidth();
     }
 
     private static String formattedSequenceToString(FormattedCharSequence sequence) {
@@ -4877,7 +4817,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static String customItemSearchText(ItemStack stack) {
-        return (stack.getHoverName().getString() + " " + BuiltInRegistries.ITEM.getKey(stack.getItem()) + " custom inventory equipment").toLowerCase(java.util.Locale.ROOT);
+        return (stack.getHoverName().getString() + " " + Registry.ITEM.getKey(stack.getItem()) + " custom inventory equipment").toLowerCase(java.util.Locale.ROOT);
     }
 
     private void startCustomItemPicker() {
@@ -5054,8 +4994,8 @@ public final class OmniWheelProfilesOverlay {
         }
         List<IconPickerOption> options = new ArrayList<>();
         options.addAll(loadParticleIconOptions());
-        for (ResourceLocation id : BuiltInRegistries.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            MobEffect effect = BuiltInRegistries.MOB_EFFECT.getOptional(id).orElse(null);
+        for (ResourceLocation id : Registry.MOB_EFFECT.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+            MobEffect effect = Registry.MOB_EFFECT.getOptional(id).orElse(null);
             if (effect == null) {
                 continue;
             }
@@ -5106,8 +5046,8 @@ public final class OmniWheelProfilesOverlay {
         addIconPickerOption(options, "gui:icon/ping_3", "ui icon ping network three");
         addIconPickerOption(options, "gui:icon/ping_4", "ui icon ping network four");
         addIconPickerOption(options, "gui:icon/ping_5", "ui icon ping network five");
-        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
-            Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
+        for (ResourceLocation id : Registry.ITEM.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+            Item item = Registry.ITEM.getOptional(id).orElse(null);
             if (item == null || item == Items.AIR) {
                 continue;
             }
@@ -5153,7 +5093,7 @@ public final class OmniWheelProfilesOverlay {
                 category = "mod:" + owner.map(mod -> mod.getMetadata().getId()).orElse(namespace);
                 names.put(category, owner.map(mod -> mod.getMetadata().getName()).orElse(namespace.replace('_', ' ')));
             } else if (extra) category = "extras";
-            else category = BuiltInRegistries.ITEM.getOptional(identifier).orElse(null) instanceof net.minecraft.world.item.BlockItem ? "blocks" : "items";
+            else category = Registry.ITEM.getOptional(identifier).orElse(null) instanceof net.minecraft.world.item.BlockItem ? "blocks" : "items";
             grouped.computeIfAbsent(category, ignored -> new ArrayList<>()).add(option);
         }
         List<IconCategory> categories = new ArrayList<>();
@@ -5168,7 +5108,7 @@ public final class OmniWheelProfilesOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         List<IconPickerOption> options = new ArrayList<>();
         Set<String> seenVisualSignatures = new HashSet<>();
-        for (ResourceLocation id : BuiltInRegistries.PARTICLE_TYPE.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
+        for (ResourceLocation id : Registry.PARTICLE_TYPE.keySet().stream().sorted(Comparator.comparing(ResourceLocation::toString)).toList()) {
             String iconId = "particle:" + id;
             String path = id.getPath();
             if (path.equals("ash")
@@ -5276,19 +5216,29 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private static Map<ResourceLocation, String> loadCreativeTabSearchTerms() {
-        ensureCreativeTabContentsBuilt();
         Map<ResourceLocation, LinkedHashSet<String>> termsByItem = new HashMap<>();
-        for (CreativeModeTab tab : BuiltInRegistries.CREATIVE_MODE_TAB) {
+        for (CreativeModeTab tab : CreativeModeTab.TABS) {
+            // Saved Hotbars is populated by the creative screen and throws here.
+            // Search and Inventory are not item categories either.
+            if (tab == null || tab == CreativeModeTab.TAB_HOTBAR
+                    || tab == CreativeModeTab.TAB_SEARCH || tab == CreativeModeTab.TAB_INVENTORY) continue;
             String tabName = tab.getDisplayName().getString();
             if (tabName.isBlank()) {
                 continue;
             }
             String normalized = tabName.toLowerCase(java.util.Locale.ROOT);
-            for (ItemStack stack : tab.getDisplayItems()) {
+            net.minecraft.core.NonNullList<ItemStack> contents = net.minecraft.core.NonNullList.create();
+            try {
+                tab.fillItemList(contents);
+            } catch (RuntimeException | LinkageError ignored) {
+                // Optional search terms from a broken mod tab must not hide item icons.
+                continue;
+            }
+            for (ItemStack stack : contents) {
                 if (stack.isEmpty()) {
                     continue;
                 }
-                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                ResourceLocation itemId = Registry.ITEM.getKey(stack.getItem());
                 if (itemId == null) {
                     continue;
                 }
@@ -5301,25 +5251,6 @@ public final class OmniWheelProfilesOverlay {
             result.put(entry.getKey(), String.join(" ", entry.getValue()));
         }
         return result;
-    }
-
-    private static void ensureCreativeTabContentsBuilt() {
-        try {
-            Field cachedParametersField = CreativeModeTabs.class.getDeclaredField("CACHED_PARAMETERS");
-            cachedParametersField.setAccessible(true);
-            Object cachedParameters = cachedParametersField.get(null);
-            if (cachedParameters == null) {
-                return;
-            }
-
-            Method buildAllTabContents = CreativeModeTabs.class.getDeclaredMethod(
-                    "buildAllTabContents",
-                    cachedParameters.getClass()
-            );
-            buildAllTabContents.setAccessible(true);
-            buildAllTabContents.invoke(null, cachedParameters);
-        } catch (ReflectiveOperationException ignored) {
-        }
     }
 
     private void toggleIconCategory(String id) {
@@ -5450,7 +5381,7 @@ public final class OmniWheelProfilesOverlay {
         if (id == null) {
             return "";
         }
-        Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
+        Item item = Registry.ITEM.getOptional(id).orElse(null);
         if (item == null || item == Items.AIR) {
             return "";
         }
@@ -6984,7 +6915,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         if (commandInput == null) {
-            commandInput = new EditBox(minecraft.font, 0, 0, 100, 12, OmniWheelText.component("omniwheel.action.command")) {
+            commandInput = new CommandEditBox(minecraft.font, 0, 0, 100, 12, OmniWheelText.component("omniwheel.action.command")) {
                 @Override
                 public void setFormatter(java.util.function.BiFunction<String, Integer, FormattedCharSequence> formatter) {
                     super.setFormatter((value, offset) -> LiveDataValues.contains(getValue())

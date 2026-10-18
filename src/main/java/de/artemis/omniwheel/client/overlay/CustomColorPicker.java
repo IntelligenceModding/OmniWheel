@@ -3,7 +3,7 @@ package de.artemis.omniwheel.client.overlay;
 import de.artemis.omniwheel.client.render.LiftedRowRenderer;
 import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import org.lwjgl.glfw.GLFW;
 
 import java.awt.Color;
@@ -62,7 +62,7 @@ final class CustomColorPicker {
         // Rotate the vertical gradient to interpolate white -> hue horizontally.
         graphics.pose().pushPose();
         graphics.pose().translate(left, top, 0.0F);
-        graphics.pose().mulPose(com.mojang.math.Axis.ZP.rotation((float) (-Math.PI / 2)));
+        graphics.pose().mulPose(com.mojang.math.Vector3f.ZP.rotation((float) (-Math.PI / 2)));
         graphics.fillGradient(-BOARD_HEIGHT, 0, 0, BOARD_WIDTH, 0xFFFFFFFF, Color.HSBtoRGB(hue, 1, 1));
         graphics.pose().popPose();
         graphics.fillGradient(left, top, left + BOARD_WIDTH, top + BOARD_HEIGHT, 0x00000000, 0xFF000000);

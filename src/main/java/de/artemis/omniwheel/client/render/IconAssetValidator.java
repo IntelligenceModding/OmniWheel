@@ -4,15 +4,14 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.client.renderer.block.model.ItemTransforms.TransformType;
 import net.minecraft.world.item.ItemStack;
-import org.joml.Vector3f;
+import com.mojang.math.Vector3f;
 
 import java.io.IOException;
 import java.util.IdentityHashMap;
@@ -44,21 +43,21 @@ public final class IconAssetValidator {
     }
 
     private static boolean checkSprite(TextureAtlasSprite sprite) {
-        SpriteContents contents = sprite.contents();
-        if (MissingTextureAtlasSprite.getLocation().equals(contents.name())
-                || contents.width() <= 0 || contents.height() <= 0
+        TextureAtlasSprite contents = sprite;
+        if (MissingTextureAtlasSprite.getLocation().equals(contents.getName())
+                || contents.getWidth() <= 0 || contents.getHeight() <= 0
                 || !validRange(sprite.getU0(), sprite.getU1())
                 || !validRange(sprite.getV0(), sprite.getV1())) {
             return false;
         }
-        return visiblePixels(contents, 0, 0, contents.width(), contents.height());
+        return visiblePixels(contents, 0, 0, contents.getWidth(), contents.getHeight());
     }
 
     private static boolean validRange(float start, float end) {
         return Float.isFinite(start) && Float.isFinite(end) && start >= 0 && end <= 1 && start < end;
     }
 
-    private static boolean visiblePixels(SpriteContents contents, int minX, int minY, int maxX, int maxY) {
+    private static boolean visiblePixels(TextureAtlasSprite contents, int minX, int minY, int maxX, int maxY) {
         for (int frame : contents.getUniqueFrames().toArray()) {
             for (int y = minY; y < maxY; y++) {
                 for (int x = minX; x < maxX; x++) {
@@ -75,8 +74,8 @@ public final class IconAssetValidator {
         if (stack.isEmpty()) return false;
         var model = minecraft.getItemRenderer().getModel(stack, minecraft.level, minecraft.player, 0);
         if (model == null) return false;
-        var transform = model.getTransforms().getTransform(ItemDisplayContext.GUI);
-        if (!transform.rotation.isFinite() || !transform.translation.isFinite() || !transform.scale.isFinite()) {
+        var transform = model.getTransforms().getTransform(TransformType.GUI);
+        if (!isFinite(transform.rotation) || !isFinite(transform.translation) || !isFinite(transform.scale)) {
             return false;
         }
         PoseStack pose = new PoseStack();
@@ -109,7 +108,7 @@ public final class IconAssetValidator {
     // -1: broken data; 0: valid but invisible geometry; 1: visible geometry.
     private static int checkQuad(BakedQuad quad) {
         TextureAtlasSprite sprite = quad.getSprite();
-        if (sprite == null || MissingTextureAtlasSprite.getLocation().equals(sprite.contents().name())) {
+        if (sprite == null || MissingTextureAtlasSprite.getLocation().equals(sprite.getName())) {
             return -1;
         }
         float minU = Float.POSITIVE_INFINITY, minV = Float.POSITIVE_INFINITY;
@@ -135,19 +134,28 @@ public final class IconAssetValidator {
             maxU = Math.max(maxU, u);
             maxV = Math.max(maxV, v);
         }
-        float area0 = new Vector3f(positions[1]).sub(positions[0])
-                .cross(new Vector3f(positions[2]).sub(positions[0])).lengthSquared();
-        float area1 = new Vector3f(positions[2]).sub(positions[0])
-                .cross(new Vector3f(positions[3]).sub(positions[0])).lengthSquared();
+        float area0 = triangleAreaSquared(positions[0], positions[1], positions[2]);
+        float area1 = triangleAreaSquared(positions[0], positions[2], positions[3]);
         if ((area0 <= 0.000000000001F && area1 <= 0.000000000001F) || !sprite(sprite)) {
             return 0;
         }
-        SpriteContents contents = sprite.contents();
-        int x0 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.floor((minU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.width()), 0, contents.width() - 1);
-        int y0 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.floor((minV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.height()), 0, contents.height() - 1);
-        int x1 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.ceil((maxU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.width()), x0 + 1, contents.width());
-        int y1 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.ceil((maxV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.height()), y0 + 1, contents.height());
+        TextureAtlasSprite contents = sprite;
+        int x0 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.floor((minU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.getWidth()), 0, contents.getWidth() - 1);
+        int y0 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.floor((minV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.getHeight()), 0, contents.getHeight() - 1);
+        int x1 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.ceil((maxU - sprite.getU0()) / (sprite.getU1() - sprite.getU0()) * contents.getWidth()), x0 + 1, contents.getWidth());
+        int y1 = de.artemis.omniwheel.common.Numbers.clamp((int) Math.ceil((maxV - sprite.getV0()) / (sprite.getV1() - sprite.getV0()) * contents.getHeight()), y0 + 1, contents.getHeight());
         return visiblePixels(contents, x0, y0, x1, y1) ? 1 : 0;
+    }
+
+    private static boolean isFinite(Vector3f value) {
+        return Float.isFinite(value.x()) && Float.isFinite(value.y()) && Float.isFinite(value.z());
+    }
+
+    private static float triangleAreaSquared(Vector3f a, Vector3f b, Vector3f c) {
+        Vector3f ab = b.copy(); ab.sub(a);
+        Vector3f ac = c.copy(); ac.sub(a);
+        ab.cross(ac);
+        return ab.dot(ab);
     }
 
     private static boolean hasVisibleExtents(PoseStack pose, List<BakedQuad> quads, boolean special) {
@@ -155,7 +163,9 @@ public final class IconAssetValidator {
                 Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY};
         boolean[] finite = {true};
         java.util.function.Consumer<Vector3f> visit = point -> {
-            point.mulPosition(pose.last().pose());
+            var transformed = new com.mojang.math.Vector4f(point.x(), point.y(), point.z(), 1);
+            transformed.transform(pose.last().pose());
+            point.set(transformed.x(), transformed.y(), transformed.z());
             finite[0] &= Float.isFinite(point.x()) && Float.isFinite(point.y()) && Float.isFinite(point.z());
             bounds[0] = Math.min(bounds[0], point.x());
             bounds[1] = Math.min(bounds[1], point.y());

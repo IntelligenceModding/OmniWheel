@@ -12,7 +12,7 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import de.artemis.omniwheel.common.wheel.WheelEntryMover;
 import de.artemis.omniwheel.common.wheel.WheelLayout;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

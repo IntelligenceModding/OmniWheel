@@ -2,7 +2,7 @@ package de.artemis.omniwheel.client.render;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 
@@ -64,7 +64,9 @@ public final class CustomImageIcons {
     }
 
     public static void clearCache() {
-        for (var image : TEXTURES.values()) image.ifPresent(texture -> Minecraft.getInstance().getTextureManager().release(texture.id()));
+        // TextureManager.release only deletes the GL name in 1.19.2. Close also resets
+        // the old object's handle, so replacing its registration cannot delete a reused name.
+        for (var image : TEXTURES.values()) image.ifPresent(texture -> texture.texture().close());
         TEXTURES.clear();
     }
 }

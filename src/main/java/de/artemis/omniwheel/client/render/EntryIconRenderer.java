@@ -1,9 +1,9 @@
 package de.artemis.omniwheel.client.render;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.core.Holder;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
@@ -20,7 +20,6 @@ import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,9 +33,6 @@ public final class EntryIconRenderer {
     private static final String PARTICLE_PREFIX = "particle:";
     private static final String SYMBOL_PREFIX = "symbol:";
     private static final String TEXTURE_PREFIX = "texture:";
-    private static final Field PARTICLE_RESOURCE_MANAGER_FIELD = findField(Minecraft.class, "particleEngine", "resourceManager");
-    private static final Field PARTICLE_SPRITE_SETS_FIELD = findField(PARTICLE_RESOURCE_MANAGER_FIELD == null ? null : PARTICLE_RESOURCE_MANAGER_FIELD.getType(), "spriteSets");
-    private static final Field PARTICLE_SPRITES_FIELD = findField(PARTICLE_RESOURCE_MANAGER_FIELD == null ? null : findMutableSpriteSetType(PARTICLE_RESOURCE_MANAGER_FIELD.getType()), "sprites");
     private static final Map<String, Boolean> VALID_ICONS = new LinkedHashMap<>();
     private static long resourceGeneration;
     private static final Map<String, ResourceLocation> GUI_SPRITES = new LinkedHashMap<>();
@@ -117,7 +113,7 @@ public final class EntryIconRenderer {
                 }
                 ResourceLocation effectId = resolveEffectId(key);
                 if (effectId != null) {
-                    var holder = BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
+                    var holder = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
                     return holder != null && IconAssetValidator.sprite(minecraft.getMobEffectTextures().get(holder));
                 }
                 ResourceLocation guiSprite = resolveGuiSprite(key);
@@ -233,12 +229,12 @@ public final class EntryIconRenderer {
             return ItemStack.EMPTY;
         }
 
-        Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
+        Item item = Registry.ITEM.getOptional(id).orElse(null);
         if (item != null && item != Items.AIR) {
             return new ItemStack(item);
         }
 
-        Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+        Block block = Registry.BLOCK.getOptional(id).orElse(null);
         if (block == null) {
             return ItemStack.EMPTY;
         }
@@ -253,7 +249,7 @@ public final class EntryIconRenderer {
             return false;
         }
 
-        MobEffect effectHolder = BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
+        MobEffect effectHolder = Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
         if (effectHolder == null) {
             return false;
         }
@@ -342,10 +338,7 @@ public final class EntryIconRenderer {
             return cached;
         }
 
-        List<TextureAtlasSprite> sprites = loadBoundParticleSprites(minecraft, particleId);
-        if (sprites.isEmpty()) {
-            sprites = loadParticleAtlasSprites(minecraft, particleId);
-        }
+        List<TextureAtlasSprite> sprites = loadParticleAtlasSprites(minecraft, particleId);
         sprites = sprites.stream().filter(IconAssetValidator::sprite).distinct().toList();
         PARTICLE_SPRITES.put(particleId, sprites);
         return sprites;
@@ -363,85 +356,13 @@ public final class EntryIconRenderer {
         TextureAtlasSprite missingSprite = atlas.getSprite(net.minecraft.client.renderer.texture.MissingTextureAtlasSprite.getLocation());
         List<TextureAtlasSprite> sprites = new ArrayList<>(frames.size());
         for (ResourceLocation frame : frames) {
-            TextureAtlasSprite sprite = atlas.getSprite(frame);
+            // Before 1.19.3 the particle atlas keeps the particle/ path prefix.
+            TextureAtlasSprite sprite = atlas.getSprite(new ResourceLocation(frame.getNamespace(), "particle/" + frame.getPath()));
             if (sprite != null && sprite != missingSprite && IconAssetValidator.sprite(sprite)) {
                 sprites.add(sprite);
             }
         }
         return sprites.isEmpty() ? List.of() : List.copyOf(sprites);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<TextureAtlasSprite> loadBoundParticleSprites(Minecraft minecraft, ResourceLocation particleId) {
-        if (minecraft.particleEngine == null
-                || PARTICLE_RESOURCE_MANAGER_FIELD == null
-                || PARTICLE_SPRITE_SETS_FIELD == null
-                || PARTICLE_SPRITES_FIELD == null) {
-            return List.of();
-        }
-
-        try {
-            Object resources = PARTICLE_RESOURCE_MANAGER_FIELD.get(minecraft.particleEngine);
-            if (resources == null) {
-                return List.of();
-            }
-
-            Object spriteSetsObject = PARTICLE_SPRITE_SETS_FIELD.get(resources);
-            if (!(spriteSetsObject instanceof Map<?, ?> spriteSets)) {
-                return List.of();
-            }
-
-            Object spriteSet = spriteSets.get(particleId);
-            if (spriteSet == null) {
-                return List.of();
-            }
-
-            Object spritesObject = PARTICLE_SPRITES_FIELD.get(spriteSet);
-            if (!(spritesObject instanceof List<?> sprites) || sprites.isEmpty()) {
-                return List.of();
-            }
-
-            List<TextureAtlasSprite> result = new ArrayList<>(sprites.size());
-            for (Object sprite : sprites) {
-                if (sprite instanceof TextureAtlasSprite textureAtlasSprite && IconAssetValidator.sprite(textureAtlasSprite)) {
-                    result.add(textureAtlasSprite);
-                }
-            }
-            return result.isEmpty() ? List.of() : List.copyOf(result);
-        } catch (IllegalAccessException ignored) {
-            return List.of();
-        }
-    }
-
-    private static Class<?> findMutableSpriteSetType(Class<?> ownerType) {
-        if (ownerType == null) {
-            return null;
-        }
-        for (Class<?> declaredClass : ownerType.getDeclaredClasses()) {
-            if (declaredClass.getSimpleName().equals("MutableSpriteSet")) {
-                return declaredClass;
-            }
-        }
-        return null;
-    }
-
-    private static Field findField(Class<?> ownerType, String... fieldPath) {
-        if (ownerType == null || fieldPath.length == 0) {
-            return null;
-        }
-
-        Class<?> currentType = ownerType;
-        Field resolved = null;
-        for (String fieldName : fieldPath) {
-            try {
-                resolved = currentType.getDeclaredField(fieldName);
-                resolved.setAccessible(true);
-                currentType = resolved.getType();
-            } catch (ReflectiveOperationException ignored) {
-                return null;
-            }
-        }
-        return resolved;
     }
 
     private static boolean drawSymbolIcon(GuiGraphics graphics, Minecraft minecraft, String icon, float centerX, float centerY, float scale) {
@@ -467,7 +388,7 @@ public final class EntryIconRenderer {
         if (effectId == null) {
             return null;
         }
-        return BuiltInRegistries.MOB_EFFECT.getOptional(effectId).orElse(null);
+        return Registry.MOB_EFFECT.getOptional(effectId).orElse(null);
     }
 
     private static ResourceLocation resolveEffectId(String icon) {
@@ -487,7 +408,7 @@ public final class EntryIconRenderer {
         if (effectId == null) {
             return null;
         }
-        return BuiltInRegistries.MOB_EFFECT.containsKey(effectId) ? effectId : null;
+        return Registry.MOB_EFFECT.containsKey(effectId) ? effectId : null;
     }
 
     private static ResourceLocation resolveGuiSprite(String icon) {
@@ -525,7 +446,7 @@ public final class EntryIconRenderer {
         if (particleId == null) {
             return null;
         }
-        return BuiltInRegistries.PARTICLE_TYPE.containsKey(particleId) ? particleId : null;
+        return Registry.PARTICLE_TYPE.containsKey(particleId) ? particleId : null;
     }
 
     private static List<ResourceLocation> resolveParticleFrames(Minecraft minecraft, ResourceLocation particleId) {
@@ -549,7 +470,7 @@ public final class EntryIconRenderer {
             if (!signature.isEmpty()) {
                 signature.append('|');
             }
-            signature.append(sprite.atlasLocation()).append('#').append(sprite.contents().name());
+            signature.append(sprite.atlas().location()).append('#').append(sprite.getName());
         }
         return signature.toString();
     }

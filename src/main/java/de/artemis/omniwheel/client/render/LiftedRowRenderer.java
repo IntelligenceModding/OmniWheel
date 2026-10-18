@@ -1,6 +1,6 @@
 package de.artemis.omniwheel.client.render;
 
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 
 /** Shared lift and layered shadow for management rows and wheel-preview drags. */
 public final class LiftedRowRenderer {

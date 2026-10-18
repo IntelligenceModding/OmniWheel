@@ -40,11 +40,12 @@ public final class ClientModEvents {
                 EntryIconRenderer.clearResourceCaches();
             }
         });
-        HudRenderCallback.EVENT.register((graphics, deltaTracker) -> {
+        HudRenderCallback.EVENT.register((pose, deltaTracker) -> {
+            var graphics = new de.artemis.omniwheel.client.render.GuiGraphics(Minecraft.getInstance(), pose);
             graphics.flush();
             graphics.pose().pushPose();
             // This callback follows the HUD but is outside vanilla's nested depth layers.
-            graphics.pose().translate(0, 0, 4000);
+            graphics.pose().translate(0, 0, 400);
             OmniWheelClientRuntime.getInstance().renderOverlay(graphics);
             graphics.flush();
             graphics.pose().popPose();

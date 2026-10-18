@@ -5,7 +5,7 @@ import de.artemis.omniwheel.common.action.OpenWheelAction;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import java.util.List;
 
 /** Shared segment rendering for the actual wheel and its interactive editor preview. */

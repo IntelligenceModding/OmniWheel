@@ -20,7 +20,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Method;
+import de.artemis.omniwheel.mixin.client.MinecraftAccessor;
 
 public final class GameplayFunctionController {
     private boolean sneakLock;
@@ -59,9 +59,9 @@ public final class GameplayFunctionController {
             case OPEN_COMMAND_CHAT -> minecraft.setScreen(new ChatScreen("/"));
             case OPEN_ADVANCEMENTS -> openAdvancements(minecraft);
             case OPEN_SOCIAL_INTERACTIONS -> openSocialInteractions(minecraft);
-            case ATTACK -> invokeMinecraftPrivate(minecraft, "startAttack");
-            case USE_ITEM -> invokeMinecraftPrivate(minecraft, "startUseItem");
-            case PICK_BLOCK -> invokeMinecraftPrivate(minecraft, "pickBlock");
+            case ATTACK -> ((MinecraftAccessor) minecraft).omniwheel$startAttack();
+            case USE_ITEM -> ((MinecraftAccessor) minecraft).omniwheel$startUseItem();
+            case PICK_BLOCK -> ((MinecraftAccessor) minecraft).omniwheel$pickBlock();
             case DROP_ITEM -> dropHeldItem(minecraft);
             case SWAP_OFFHAND -> swapOffhand(minecraft);
             case JUMP -> jump(minecraft);
@@ -214,7 +214,7 @@ public final class GameplayFunctionController {
     }
 
     private static void jump(Minecraft minecraft) {
-        if (!minecraft.player.onGround()) {
+        if (!minecraft.player.isOnGround()) {
             return;
         }
         minecraft.player.jumpFromGround();
@@ -268,56 +268,12 @@ public final class GameplayFunctionController {
         runtime.profileManager().setActiveProfile(profiles.get(nextIndex).id());
     }
 
-    private static void invokeMinecraftPrivate(Minecraft minecraft, String methodName) {
-        try {
-            Method method = Minecraft.class.getDeclaredMethod(methodName);
-            method.setAccessible(true);
-            method.invoke(minecraft);
-        } catch (ReflectiveOperationException ignored) {
-        }
-    }
-
     private static void setSelectedHotbarSlot(Inventory inventory, int slot) {
-        int clamped = Math.max(0, Math.min(8, slot));
-        for (String methodName : new String[]{"setSelectedSlot", "setSelected"}) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName, int.class);
-                method.invoke(inventory, clamped);
-                return;
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            field.setInt(inventory, clamped);
-        } catch (ReflectiveOperationException ignored) {
-        }
+        inventory.selected = Math.max(0, Math.min(8, slot));
     }
 
     private static void cycleHotbarSlot(Inventory inventory, int delta) {
-        int current = selectedHotbarSlot(inventory);
-        setSelectedHotbarSlot(inventory, Math.floorMod(current + delta, 9));
-    }
-
-    private static int selectedHotbarSlot(Inventory inventory) {
-        for (String methodName : new String[]{"getSelectedSlot", "getSelected"}) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName);
-                Object value = method.invoke(inventory);
-                if (value instanceof Number number) {
-                    return number.intValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            return field.getInt(inventory);
-        } catch (ReflectiveOperationException ignored) {
-        }
-        return 0;
+        setSelectedHotbarSlot(inventory, Math.floorMod(inventory.selected + delta, 9));
     }
 
     private static boolean isPhysicalBindingDown(Minecraft minecraft, KeyMapping keyMapping) {

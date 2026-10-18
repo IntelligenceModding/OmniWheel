@@ -3,7 +3,7 @@ package de.artemis.omniwheel.client.screen;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
 import de.artemis.omniwheel.common.OmniWheelText;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
 public final class OmniWheelProfilesScreen extends Screen {
@@ -21,9 +21,9 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public void added() {
-        super.added();
-        editor.openForScreen();
+    protected void init() {
+        super.init();
+        if (!editor.isOpen()) editor.openForScreen();
     }
 
     @Override
@@ -99,14 +99,14 @@ public final class OmniWheelProfilesScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics) {
+    public void renderBackground(com.mojang.blaze3d.vertex.PoseStack pose) {
         if (this.minecraft == null || this.minecraft.level == null) {
-            super.renderBackground(graphics);
+            super.renderBackground(pose);
         }
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        editor.render(graphics);
+    public void render(com.mojang.blaze3d.vertex.PoseStack pose, int mouseX, int mouseY, float partialTick) {
+        editor.render(new GuiGraphics(minecraft, pose));
     }
 }

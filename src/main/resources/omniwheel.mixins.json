@@ -3,7 +3,9 @@
   "package": "de.artemis.omniwheel.mixin.client",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "CommandSuggestionsAccessor",
     "GuiMixin",
+    "MinecraftAccessor",
     "KeyMappingAccessor",
     "ParticleEngineAccessor",
     "KeyMappingMixin",

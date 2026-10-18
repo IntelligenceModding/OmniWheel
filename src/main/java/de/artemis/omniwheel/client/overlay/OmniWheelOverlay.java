@@ -26,13 +26,12 @@ import de.artemis.omniwheel.common.wheel.WheelLayout;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -1081,40 +1080,11 @@ public final class OmniWheelOverlay {
     }
 
     private int selectedHotbarSlot(Inventory inventory) {
-        for (String methodName : List.of("getSelectedSlot", "getSelected")) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName);
-                Object value = method.invoke(inventory);
-                if (value instanceof Number number) {
-                    return number.intValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            return field.getInt(inventory);
-        } catch (ReflectiveOperationException ignored) {
-        }
-        return 0;
+        return inventory.selected;
     }
 
     private void setSelectedHotbarSlot(Inventory inventory, int selectedSlot) {
-        for (String methodName : List.of("setSelectedSlot", "setSelected")) {
-            try {
-                Method method = inventory.getClass().getMethod(methodName, int.class);
-                method.invoke(inventory, selectedSlot);
-                return;
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-
-        try {
-            var field = inventory.getClass().getField("selected");
-            field.setInt(inventory, selectedSlot);
-        } catch (ReflectiveOperationException ignored) {
-        }
+        inventory.selected = selectedSlot;
     }
 
     private boolean consumePageScroll(Minecraft minecraft) {

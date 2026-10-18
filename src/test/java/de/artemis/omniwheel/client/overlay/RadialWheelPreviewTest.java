@@ -7,7 +7,7 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import org.junit.Test;
 
 import java.util.ArrayList;

@@ -87,7 +87,7 @@ public final class ClientActionExecutor {
             if (resolved.startsWith("/")) {
                 resolved = resolved.substring(1);
             }
-            minecraft.player.connection.sendCommand(resolved);
+            minecraft.player.commandSigned(resolved, null);
         }
     }
 
@@ -103,7 +103,7 @@ public final class ClientActionExecutor {
             minecraft.setScreen(new ChatScreen(resolved));
             return;
         }
-        minecraft.player.connection.sendChat(resolved);
+        minecraft.player.chatSigned(resolved, null);
     }
 
     private void executeFunction(FunctionAction action) {

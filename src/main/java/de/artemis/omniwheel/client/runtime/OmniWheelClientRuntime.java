@@ -15,7 +15,7 @@ import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import de.artemis.omniwheel.client.render.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 
