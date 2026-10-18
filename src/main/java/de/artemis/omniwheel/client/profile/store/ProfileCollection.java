@@ -15,6 +15,9 @@ public record ProfileCollection(String activeProfileId, List<WheelProfile> profi
         if (profiles.isEmpty()) {
             throw new IllegalArgumentException("profiles must not be empty");
         }
+        if (profiles.stream().map(WheelProfile::id).distinct().count() != profiles.size()) {
+            throw new IllegalArgumentException("profiles must have unique IDs");
+        }
         if (profiles.stream().map(WheelProfile::id).noneMatch(activeProfileId::equals)) {
             throw new IllegalArgumentException("activeProfileId must refer to a known profile");
         }

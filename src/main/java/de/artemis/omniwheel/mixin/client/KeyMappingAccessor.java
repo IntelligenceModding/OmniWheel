@@ -9,4 +9,10 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface KeyMappingAccessor {
     @Accessor("key")
     InputConstants.Key omniwheel$getKey();
+
+    @Accessor("clickCount")
+    int omniwheel$getClickCount();
+
+    @Accessor("clickCount")
+    void omniwheel$setClickCount(int count);
 }
