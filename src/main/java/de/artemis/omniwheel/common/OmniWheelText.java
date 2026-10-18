@@ -1,8 +1,8 @@
 package de.artemis.omniwheel.common;
 
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 
 public final class OmniWheelText {
     private OmniWheelText() {
@@ -13,7 +13,7 @@ public final class OmniWheelText {
     }
 
     public static Component component(String key, Object... args) {
-        return new TranslatableComponent(key, args);
+        return new net.minecraft.network.chat.TranslatableComponent(key, args);
     }
 
     public static String resolve(String value) {
@@ -21,6 +21,6 @@ public final class OmniWheelText {
     }
 
     public static boolean isTranslationKey(String value) {
-        return value != null && I18n.exists(value);
+        return value != null && Language.getInstance().has(value);
     }
 }

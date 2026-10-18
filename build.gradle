@@ -1,3 +1,5 @@
+import net.minecraftforge.srgutils.IMappingFile
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -16,6 +18,7 @@ base {
     archivesName = mod_id
 }
 
+// Minecraft 1.18.2 and Forge 40 use Java 17 in both Gradle and the IDE.
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 sourceSets.main.output.resourcesDir = file("$buildDir/classes/java/main")
@@ -27,6 +30,8 @@ minecraft {
             workingDirectory project.file('run/client')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'info'
+            args '--mixin.config=omniwheel.mixins.json'
+            property 'mixin.env.disableRefMap', 'true'
 
             mods {
                 "${mod_id}" {
@@ -44,6 +49,35 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    testImplementation 'junit:junit:4.13.2'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+def mixinMappings = layout.buildDirectory.file('mixin/mapped-to-srg.srg')
+def prepareMixinMappings = tasks.register('prepareMixinMappings') {
+    dependsOn 'createMcpToSrg'
+    inputs.file(layout.buildDirectory.file('createMcpToSrg/output.tsrg'))
+    outputs.file(mixinMappings)
+    doLast {
+        def output = mixinMappings.get().asFile
+        output.parentFile.mkdirs()
+        IMappingFile.load(layout.buildDirectory.file('createMcpToSrg/output.tsrg').get().asFile)
+                .write(output.toPath(), IMappingFile.Format.SRG, false)
+    }
+}
+
+tasks.named('compileJava', JavaCompile) {
+    options.compilerArgs += [
+            "-AreobfSrgFile=${mixinMappings.get().asFile}",
+            "-AoutRefMapFile=${layout.buildDirectory.file('classes/java/main/omniwheel.refmap.json').get().asFile}",
+            '-AdefaultObfuscationEnv=searge'
+    ]
+    dependsOn prepareMixinMappings
+}
+
+tasks.named('jar', Jar) {
+    manifest.attributes('MixinConfigs': 'omniwheel.mixins.json')
+    finalizedBy 'reobfJar'
 }
 
 publishing {

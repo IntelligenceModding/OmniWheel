@@ -11,9 +11,8 @@ public final class OmniWheelClient {
     public OmniWheelClient() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventBus.addListener(ClientModEvents::onClientSetup);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onChatOverlay);
+        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onRenderGui);
         MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onClientTick);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
-        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onMouseButton);
+        MinecraftForge.EVENT_BUS.addListener(ClientModEvents::onClientTickStart);
     }
 }
