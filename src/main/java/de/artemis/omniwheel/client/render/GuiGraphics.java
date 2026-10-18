@@ -1,131 +1,119 @@
 package de.artemis.omniwheel.client.render;
 
-import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Vector4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
-import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.opengl.GL11;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
+/** The wheel's drawing operations backed by Minecraft 1.19.2's pose-based GUI. */
 public final class GuiGraphics {
-    private final PoseStack pose;
     private final Minecraft minecraft;
+    private final PoseStack pose;
+    private final Deque<Clip> clips = new ArrayDeque<>();
+    private record Clip(int left, int top, int right, int bottom) {}
 
-    public GuiGraphics(PoseStack pose) {
+    public GuiGraphics(Minecraft minecraft, PoseStack pose) {
+        this.minecraft = minecraft;
         this.pose = pose;
-        this.minecraft = Minecraft.getInstance();
     }
 
-    public PoseStack pose() {
-        return pose;
+    public PoseStack pose() { return pose; }
+    public void flush() { minecraft.renderBuffers().bufferSource().endBatch(); }
+
+    public void fill(int left, int top, int right, int bottom, int color) {
+        GuiComponent.fill(pose, left, top, right, bottom, color);
     }
 
-    public void fill(int minX, int minY, int maxX, int maxY, int color) {
-        GuiComponent.fill(pose, minX, minY, maxX, maxY, color);
+    public void fillGradient(int left, int top, int right, int bottom, int topColor, int bottomColor) {
+        Gradient.draw(pose, left, top, right, bottom, topColor, bottomColor);
     }
 
-    public void drawString(Font font, String text, int x, int y, int color, boolean shadow) {
-        if (shadow) {
-            font.drawShadow(pose, text, x, y, color);
-        } else {
-            font.draw(pose, text, x, y, color);
+    private static final class Gradient extends GuiComponent {
+        private static void draw(PoseStack pose, int left, int top, int right, int bottom, int a, int b) {
+            fillGradient(pose, left, top, right, bottom, a, b, 0);
         }
     }
 
-    public void drawString(Font font, Component text, int x, int y, int color, boolean shadow) {
-        if (shadow) {
-            font.drawShadow(pose, text, x, y, color);
-        } else {
-            font.draw(pose, text, x, y, color);
-        }
+    public int drawString(Font font, String text, int x, int y, int color, boolean shadow) {
+        return shadow ? font.drawShadow(pose, text, x, y, color) : font.draw(pose, text, x, y, color);
     }
 
-    public void drawString(Font font, FormattedCharSequence text, int x, int y, int color, boolean shadow) {
-        if (shadow) {
-            font.drawShadow(pose, text, x, y, color);
-        } else {
-            font.draw(pose, text, x, y, color);
-        }
+    public int drawString(Font font, Component text, int x, int y, int color, boolean shadow) {
+        return shadow ? font.drawShadow(pose, text, x, y, color) : font.draw(pose, text, x, y, color);
     }
 
-    public void drawCenteredString(Font font, String text, int x, int y, int color) {
-        font.drawShadow(pose, text, x - font.width(text) / 2.0F, y, color);
+    public int drawString(Font font, FormattedCharSequence text, int x, int y, int color, boolean shadow) {
+        return shadow ? font.drawShadow(pose, text, x, y, color) : font.draw(pose, text, x, y, color);
     }
 
-    public void drawCenteredString(Font font, FormattedCharSequence text, int x, int y, int color) {
-        font.drawShadow(pose, text, x - font.width(text) / 2.0F, y, color);
-    }
+    public int drawString(Font font, String text, int x, int y, int color) { return drawString(font, text, x, y, color, true); }
+    public int drawString(Font font, Component text, int x, int y, int color) { return drawString(font, text, x, y, color, true); }
+    public int drawString(Font font, FormattedCharSequence text, int x, int y, int color) { return drawString(font, text, x, y, color, true); }
+    public void drawCenteredString(Font font, String text, int x, int y, int color) { drawString(font, text, x - font.width(text) / 2, y, color); }
+    public void drawCenteredString(Font font, Component text, int x, int y, int color) { drawString(font, text, x - font.width(text) / 2, y, color); }
+    public void drawCenteredString(Font font, FormattedCharSequence text, int x, int y, int color) { drawString(font, text, x - font.width(text) / 2, y, color); }
 
     public void blit(ResourceLocation texture, int x, int y, float u, float v, int width, int height, int textureWidth, int textureHeight) {
         RenderSystem.setShaderTexture(0, texture);
         GuiComponent.blit(pose, x, y, u, v, width, height, textureWidth, textureHeight);
     }
 
-    public void blit(ResourceLocation texture, int x, int y, int z, float u, float v, int width, int height, int textureWidth, int textureHeight) {
-        RenderSystem.setShaderTexture(0, texture);
-        GuiComponent.blit(pose, x, y, z, u, v, width, height, textureWidth, textureHeight);
+    public void blit(int x, int y, int z, int width, int height, TextureAtlasSprite sprite) {
+        RenderSystem.setShaderTexture(0, sprite.atlas().location());
+        GuiComponent.blit(pose, x, y, z, width, height, sprite);
     }
 
     public void renderItem(ItemStack stack, int x, int y) {
-        ItemRenderer itemRenderer = minecraft.getItemRenderer();
-        itemRenderer.renderAndDecorateItem(stack, x, y);
-    }
-
-    public void renderItem(ItemStack stack, int x, int y, float scale) {
-        ItemRenderer itemRenderer = minecraft.getItemRenderer();
-        ItemRenderTransform transform = itemRenderTransform(x, y, scale);
-        if (Math.abs(transform.scale() - 1.0F) < 0.001F) {
-            itemRenderer.renderAndDecorateItem(stack, x, y);
-            return;
+        flush();
+        PoseStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushPose();
+        modelView.mulPoseMatrix(pose.last().pose());
+        RenderSystem.applyModelViewMatrix();
+        try {
+            minecraft.getItemRenderer().renderAndDecorateItem(stack, x, y);
+        } finally {
+            modelView.popPose();
+            RenderSystem.applyModelViewMatrix();
         }
-
-        com.mojang.blaze3d.vertex.PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
-        modelViewStack.translate(transform.x(), transform.y(), 0.0D);
-        modelViewStack.scale(transform.scale(), transform.scale(), 1.0F);
-        RenderSystem.applyModelViewMatrix();
-        itemRenderer.renderAndDecorateItem(stack, 0, 0);
-        modelViewStack.popPose();
-        RenderSystem.applyModelViewMatrix();
     }
 
-    public void enableScissor(int x1, int y1, int x2, int y2) {
-        Window window = minecraft.getWindow();
-        double scale = window.getGuiScale();
-        int minX = Math.min(x1, x2);
-        int minY = Math.min(y1, y2);
-        int maxX = Math.max(x1, x2);
-        int maxY = Math.max(y1, y2);
-        int scissorX = (int) Math.floor(minX * scale);
-        int scissorY = (int) Math.floor(window.getHeight() - (maxY * scale));
-        int scissorWidth = Math.max(0, (int) Math.ceil((maxX - minX) * scale));
-        int scissorHeight = Math.max(0, (int) Math.ceil((maxY - minY) * scale));
-        RenderSystem.enableScissor(scissorX, scissorY, scissorWidth, scissorHeight);
+    public void enableScissor(int left, int top, int right, int bottom) {
+        if (!clips.isEmpty()) {
+            Clip parent = clips.peek();
+            left = Math.max(left, parent.left()); top = Math.max(top, parent.top());
+            right = Math.min(right, parent.right()); bottom = Math.min(bottom, parent.bottom());
+        }
+        clips.push(new Clip(left, top, Math.max(left, right), Math.max(top, bottom)));
+        applyClip();
     }
 
-    public void disableScissor() {
-        RenderSystem.disableScissor();
+    public void disableScissor() { clips.pop(); applyClip(); }
+
+    private void applyClip() {
+        flush();
+        if (clips.isEmpty()) { RenderSystem.disableScissor(); return; }
+        Clip clip = clips.peek();
+        double scale = minecraft.getWindow().getGuiScale();
+        RenderSystem.enableScissor((int) (clip.left() * scale), (int) (minecraft.getWindow().getHeight() - clip.bottom() * scale),
+                (int) ((clip.right() - clip.left()) * scale), (int) ((clip.bottom() - clip.top()) * scale));
     }
 
-    private ItemRenderTransform itemRenderTransform(int x, int y, float iconScale) {
-        Vector4f topLeft = new Vector4f(x, y, 0.0F, 1.0F);
-        Vector4f bottomRight = new Vector4f(x + (16.0F * iconScale), y + (16.0F * iconScale), 0.0F, 1.0F);
-        topLeft.transform(pose.last().pose());
-        bottomRight.transform(pose.last().pose());
-        float transformedScale = Math.max(
-                Math.abs(bottomRight.x() - topLeft.x()) / 16.0F,
-                Math.abs(bottomRight.y() - topLeft.y()) / 16.0F
-        );
-        return new ItemRenderTransform(Math.round(topLeft.x()), Math.round(topLeft.y()), transformedScale);
+    public void renderTooltip(Font font, ItemStack stack, int x, int y) {
+        Screen screen = minecraft.screen;
+        if (screen != null) screen.renderTooltip(pose, screen.getTooltipFromItem(stack), stack.getTooltipImage(), x, y);
     }
 
-    private record ItemRenderTransform(int x, int y, float scale) {
+    public void renderTooltip(Font font, Component text, int x, int y) {
+        if (minecraft.screen != null) minecraft.screen.renderTooltip(pose, text, x, y);
     }
 }
