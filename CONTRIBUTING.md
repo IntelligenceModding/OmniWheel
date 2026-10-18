@@ -206,8 +206,6 @@ A successful build will normally produce the compiled mod file in:
 build/libs/
 ```
 
-For this branch, install `omniwheel-2.0.0-forge-mc1.21.1.jar`. The `-dev.jar` contains development mappings and is intended for development tooling.
-
 Before submitting a pull request, make sure the project builds successfully.
 
 ### Running the Minecraft Client

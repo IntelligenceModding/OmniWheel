@@ -65,6 +65,8 @@ dependencies {
 }
 
 tasks.named('jar', Jar) {
+    // Keep the unmapped input out of the installable mod output directory.
+    destinationDirectory = layout.buildDirectory.dir('intermediates/jar')
     archiveClassifier = 'dev'
     manifest.attributes('MixinConfigs': 'omniwheel.mixins.json')
 }
