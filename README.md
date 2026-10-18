@@ -42,16 +42,21 @@
 
 <p align="center">
   &bull; A hold-to-open radial wheel with mouse selection, click selection, and numpad position bindings<br>
-  &bull; Configurable wheel layouts with 1 to 16 segments per wheel<br>
+  &bull; Wheels with up to eight entries per page, with scrolling for additional pages<br>
   &bull; Nested submenus for organizing larger setups into specialized wheels<br>
   &bull; Multiple local profiles with in-wheel profile switching and a default starter profile<br>
   &bull; Command entries that can execute one or more commands in sequence when permitted by the current server<br>
   &bull; Chat, open-chat, local-message, and clipboard-copy actions for communication and utility workflows<br>
+  &bull; Send chat and commands immediately, or open a single message or command as an editable preset before sending<br>
   &bull; Client-side gameplay actions including hotbar selection, interaction inputs, view toggles, movement toggles, screenshots, screens, and Omni Wheel management functions<br>
-  &bull; Per-entry glyphs, colors, GUI colors, visibility settings, and optional custom keyboard shortcuts with conflict checking<br>
-  &bull; Placeholder support for values such as <code>{x}</code>, <code>{y}</code>, <code>{z}</code>, <code>{dimension}</code>, <code>{server}</code>, <code>{player}</code>, <code>{profile}</code>, and <code>{gamemode}</code><br>
+  &bull; Keybind actions selected from Minecraft's and installed mods' registered keybinds<br>
+  &bull; Per-entry icons, text and GUI colors with a custom color picker, visibility settings, and optional keyboard or mouse shortcuts with conflict checking<br>
+  &bull; An icon browser for items, blocks, effects, GUI sprites, particles, and symbols, plus custom item icons copied from your inventory or GUI and imported transparent PNG images<br>
+  &bull; A searchable Insert Data picker for live player, world, targeted block, targeted entity, and held-item values, with current values and examples<br>
+  &bull; Placeholders such as <code>{position}</code>, <code>{x}</code>, <code>{dimension}</code>, <code>{player}</code>, <code>{profile}</code>, <code>{target_block_position}</code>, and <code>{held_item_name}</code> that fill in when an action runs<br>
   &bull; A built-in profile manager for creating, renaming, reordering, editing, and deleting profiles and wheel entries<br>
-  &bull; Local JSON profile storage at <code>config/omniwheel/profiles.json</code><br>
+  &bull; An interactive wheel preview: drag wedges to reorder across pages and submenus, with live placement previews and lifted shadows<br>
+  &bull; Local JSON profile storage at <code>config/omniwheel/profiles.json</code>, automatic upgrades of older profiles, and backups before migration<br>
   &bull; Guided in-game tutorials for the radial wheel and profile manager
 </p>
 
