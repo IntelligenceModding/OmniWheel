@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.mixin.client;
 
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
+import de.artemis.omniwheel.client.input.ShortcutInputState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.input.MouseButtonInfo;
@@ -19,10 +20,16 @@ public abstract class MouseHandlerMixin {
 
     @Inject(method = "onButton", at = @At("HEAD"), cancellable = true)
     private void omniwheel$handleMouseButton(long windowPointer, MouseButtonInfo buttonInfo, int action, CallbackInfo callbackInfo) {
+        if (windowPointer == minecraft.getWindow().handle()) ShortcutInputState.mouse(buttonInfo.button(), action);
         if (windowPointer == minecraft.getWindow().handle()
                 && OmniWheelClientRuntime.getInstance().handleMouseButton(buttonInfo.button(), action)) {
             callbackInfo.cancel();
         }
+    }
+
+    @Inject(method = "onButton", at = @At("RETURN"))
+    private void omniwheel$dispatchShortcut(long windowPointer, MouseButtonInfo buttonInfo, int action, CallbackInfo ci) {
+        if (windowPointer == minecraft.getWindow().handle()) OmniWheelClientRuntime.getInstance().shortcutInputChanged(action);
     }
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)

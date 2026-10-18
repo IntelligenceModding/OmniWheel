@@ -21,8 +21,37 @@ public final class GeometryRenderer {
     private static final double FULL_CIRCLE_EPSILON = 1.0E-4D;
     private static final float BOUNDS_PADDING = 2.0F;
     private static final Map<ShapeKey, CachedMesh> CACHE = new LinkedHashMap<>(64, 0.75F, true);
+    private static final CachedMesh CHEVRON_RIGHT = new CachedMesh(new float[]{
+            -5, -12, 7, 0, 3, 0, -7, -10,
+            7, 0, -5, 12, -7, 10, 3, 0
+    });
+    private static final CachedMesh CHEVRON_LEFT = new CachedMesh(new float[]{
+            5, -12, -7, 0, -3, 0, 7, -10,
+            -7, 0, 5, 12, 7, 10, -3, 0
+    });
 
     private GeometryRenderer() {
+    }
+
+    public static void drawChevron(GuiGraphicsExtractor graphics, float x, float y, int direction, int color) {
+        Matrix3x2f pose = new Matrix3x2f(graphics.pose());
+        ScreenRectangle scissor = graphics.scissorStack.peek();
+        ScreenRectangle bounds = boundsFor(x, y, 14, pose, scissor);
+        if (bounds != null) graphics.guiRenderState.addGuiElement(new PolygonRenderState(
+                direction < 0 ? CHEVRON_LEFT : CHEVRON_RIGHT, pose, x, y, color, scissor, bounds));
+    }
+
+    public static void drawDisclosureChevron(GuiGraphicsExtractor graphics, float x, float y, boolean expanded, int color) {
+        drawDisclosureChevron(graphics, x, y, expanded ? 1F : 0F, color);
+    }
+
+    public static void drawDisclosureChevron(GuiGraphicsExtractor graphics, float x, float y, float expansion, int color) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
+        graphics.pose().rotate((float) (Math.PI * 0.5) * expansion);
+        graphics.pose().scale(0.32F, 0.32F);
+        drawChevron(graphics, 0, 0, 1, color);
+        graphics.pose().popMatrix();
     }
 
     public static void fillCircle(GuiGraphicsExtractor graphics, float centerX, float centerY, float radius, int color) {
