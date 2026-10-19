@@ -1,0 +1,778 @@
+{
+  "activeProfileId": "custom",
+  "profiles": [
+    {
+      "id": "default",
+      "displayName": "omniwheel.default.profile.default",
+      "rootWheelId": "main",
+      "wheels": [
+        {
+          "id": "communication",
+          "title": "omniwheel.default.wheel.communication",
+          "description": "omniwheel.default.wheel.communication.description",
+          "segmentCount": 8,
+          "active": true,
+          "entries": [
+            {
+              "id": "chat_omw",
+              "label": "omniwheel.default.entry.chat_omw",
+              "description": "omniwheel.default.entry.chat_omw.description",
+              "icon": "1",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "chat",
+                "value": "omniwheel.default.chat.on_my_way",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat_help",
+              "label": "omniwheel.default.entry.chat_help",
+              "description": "omniwheel.default.entry.chat_help.description",
+              "icon": "2",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "chat",
+                "value": "omniwheel.default.chat.need_help",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat_thanks",
+              "label": "omniwheel.default.entry.chat_thanks",
+              "description": "omniwheel.default.entry.chat_thanks.description",
+              "icon": "3",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "chat",
+                "value": "omniwheel.default.chat.thanks",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat_share",
+              "label": "omniwheel.default.entry.chat_share",
+              "description": "omniwheel.default.entry.chat_share.description",
+              "icon": "4",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "chat",
+                "value": "omniwheel.default.chat.share_position",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat_open",
+              "label": "omniwheel.default.entry.chat_open",
+              "description": "omniwheel.default.entry.chat_open.description",
+              "icon": "5",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "open_chat",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat_message",
+              "label": "omniwheel.default.entry.chat_message",
+              "description": "omniwheel.default.entry.chat_message.description",
+              "icon": "6",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "open_chat",
+                "value": "/msg ",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat_reply",
+              "label": "omniwheel.default.entry.chat_reply",
+              "description": "omniwheel.default.entry.chat_reply.description",
+              "icon": "7",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "open_chat",
+                "value": "/r ",
+                "requireConfirmation": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "main",
+          "title": "omniwheel.default.wheel.main",
+          "description": "omniwheel.default.wheel.main.description",
+          "segmentCount": 8,
+          "active": true,
+          "entries": [
+            {
+              "id": "spawn",
+              "label": "omniwheel.default.entry.spawn",
+              "description": "omniwheel.default.entry.spawn.description",
+              "icon": "S",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/spawn",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "home",
+              "label": "omniwheel.default.entry.home",
+              "description": "omniwheel.default.entry.home.description",
+              "icon": "H",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/home",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "chat",
+              "label": "omniwheel.default.entry.chat",
+              "description": "omniwheel.default.entry.chat.description",
+              "icon": "C",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "open_wheel",
+                "value": "communication",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "quick",
+              "label": "omniwheel.default.entry.quick",
+              "description": "omniwheel.default.entry.quick.description",
+              "icon": "Q",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "open_wheel",
+                "value": "quick",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "util",
+              "label": "omniwheel.default.entry.utility",
+              "description": "omniwheel.default.entry.utility.description",
+              "icon": "U",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "open_wheel",
+                "value": "utility",
+                "requireConfirmation": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "utility",
+          "title": "omniwheel.default.wheel.utility",
+          "description": "omniwheel.default.wheel.utility.description",
+          "segmentCount": 8,
+          "active": true,
+          "entries": [
+            {
+              "id": "util_profile",
+              "label": "omniwheel.default.entry.util_profile",
+              "description": "omniwheel.default.entry.util_profile.description",
+              "icon": "P",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "omni_open_profiles",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "util_manage",
+              "label": "omniwheel.default.entry.util_manage",
+              "description": "omniwheel.default.entry.util_manage.description",
+              "icon": "G",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "omni_open_manager",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "util_copy",
+              "label": "omniwheel.default.entry.util_copy",
+              "description": "omniwheel.default.entry.util_copy.description",
+              "icon": "C",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "copy_text",
+                "value": "{x} {y} {z}",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "util_server",
+              "label": "omniwheel.default.entry.util_server",
+              "description": "omniwheel.default.entry.util_server.description",
+              "icon": "S",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "local_message",
+                "value": "omniwheel.default.local.current_context",
+                "requireConfirmation": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "quick",
+          "title": "omniwheel.default.wheel.quick",
+          "description": "omniwheel.default.wheel.quick.description",
+          "segmentCount": 8,
+          "active": true,
+          "entries": [
+            {
+              "id": "quick_inventory",
+              "label": "omniwheel.default.entry.quick_inventory",
+              "description": "omniwheel.default.entry.quick_inventory.description",
+              "icon": "1",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "open_inventory",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "quick_command",
+              "label": "omniwheel.default.entry.quick_command",
+              "description": "omniwheel.default.entry.quick_command.description",
+              "icon": "2",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "open_command_chat",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "quick_view",
+              "label": "omniwheel.default.entry.quick_view",
+              "description": "omniwheel.default.entry.quick_view.description",
+              "icon": "3",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "toggle_perspective",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "quick_shot",
+              "label": "omniwheel.default.entry.quick_shot",
+              "description": "omniwheel.default.entry.quick_shot.description",
+              "icon": "4",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "function",
+                "value": "take_screenshot",
+                "requireConfirmation": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "custom",
+      "displayName": "My custom profile",
+      "rootWheelId": "root",
+      "wheels": [
+        {
+          "id": "nested",
+          "title": "Nested wheel",
+          "description": "",
+          "segmentCount": 8,
+          "active": false,
+          "entries": [
+            {
+              "id": "nested_entry",
+              "label": "Nested",
+              "description": "",
+              "icon": "N",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "copy_text",
+                "value": "keep me",
+                "requireConfirmation": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "root",
+          "title": "Custom wheel",
+          "description": "My layout",
+          "segmentCount": 8,
+          "active": true,
+          "entries": [
+            {
+              "id": "entry_0",
+              "label": "Custom 0",
+              "description": "Description 0",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "command",
+                "values": [
+                  "/say custom",
+                  "/help"
+                ],
+                "requireConfirmation": true
+              }
+            },
+            {
+              "id": "entry_1",
+              "label": "Custom 1",
+              "description": "Description 1",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": false,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "chat",
+                "value": "Hello ä 世界",
+                "requireConfirmation": true
+              }
+            },
+            {
+              "id": "entry_2",
+              "label": "Custom 2",
+              "description": "Description 2",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": true,
+              "showLabel": false,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "function",
+                "value": "omni_back",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_3",
+              "label": "Custom 3",
+              "description": "Description 3",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": false,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "local_message",
+                "value": "Saved message",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_4",
+              "label": "Custom 4",
+              "description": "Description 4",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": false,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "open_chat",
+                "value": "/tell Friend ",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_5",
+              "label": "Custom 5",
+              "description": "Description 5",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "copy_text",
+                "value": "Saved clipboard",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_6",
+              "label": "Custom 6",
+              "description": "Description 6",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "open_screen",
+                "value": "profile_manager",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_7",
+              "label": "Custom 7",
+              "description": "Description 7",
+              "icon": "minecraft:diamond",
+              "color": -15584170,
+              "guiColor": -865778911,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "key.keyboard.x",
+              "action": {
+                "type": "open_wheel",
+                "value": "nested",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_8",
+              "label": "Page 8",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 8",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_9",
+              "label": "Page 9",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 9",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_10",
+              "label": "Page 10",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 10",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_11",
+              "label": "Page 11",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 11",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_12",
+              "label": "Page 12",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 12",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_13",
+              "label": "Page 13",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 13",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_14",
+              "label": "Page 14",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 14",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_15",
+              "label": "Page 15",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 15",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_16",
+              "label": "Page 16",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 16",
+                "requireConfirmation": false
+              }
+            },
+            {
+              "id": "entry_17",
+              "label": "Page 17",
+              "description": "",
+              "icon": "X",
+              "color": -2498329,
+              "guiColor": -668915663,
+              "active": true,
+              "showIcon": true,
+              "showLabel": true,
+              "showShortcut": true,
+              "shortcut": "",
+              "action": {
+                "type": "command",
+                "value": "/say 17",
+                "requireConfirmation": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
