@@ -81,6 +81,7 @@ public final class TutorialProgressStore {
         }
         if (!Files.exists(storagePath)) {
             state = new StoreState();
+            state.guideRevision = TutorialGuide.REVISION;
             return state;
         }
         try {
@@ -100,6 +101,13 @@ public final class TutorialProgressStore {
                 legacy.radialStep = loaded.radialStep;
                 legacy.managerStep = loaded.managerStep;
                 loaded.contexts.put("legacy", legacy);
+            }
+            migrateSingleplayerContexts(loaded);
+            if (loaded.guideRevision != TutorialGuide.REVISION) {
+                loaded.contexts.clear();
+                loaded.radialCompleted = false; loaded.managerCompleted = false;
+                loaded.radialStep = 0; loaded.managerStep = 0;
+                loaded.guideRevision = TutorialGuide.REVISION;
             }
             state = loaded;
             return state;
@@ -128,7 +136,7 @@ public final class TutorialProgressStore {
             } catch (Exception ignored) {
                 worldKey = minecraft.getSingleplayerServer().getWorldData().getLevelName();
             }
-            return "sp:" + userKey + ":" + normalizeKey(worldKey);
+            return "sp:" + normalizeKey(worldKey);
         }
 
         ServerData server = minecraft.getCurrentServer();
@@ -153,6 +161,46 @@ public final class TutorialProgressStore {
         return normalizeKey(user.getName());
     }
 
+    private static void migrateSingleplayerContexts(StoreState storeState) {
+        Map<String, TutorialState> migrated = new LinkedHashMap<>();
+        for (Map.Entry<String, TutorialState> entry : storeState.contexts.entrySet()) {
+            String contextKey = entry.getKey();
+            if (contextKey == null || !contextKey.startsWith("sp:")) {
+                continue;
+            }
+
+            int worldSeparator = contextKey.indexOf(':', 3);
+            if (worldSeparator < 0 || worldSeparator >= contextKey.length() - 1) {
+                continue;
+            }
+
+            String worldScopedKey = "sp:" + contextKey.substring(worldSeparator + 1);
+            mergeState(migrated.computeIfAbsent(worldScopedKey, ignored -> new TutorialState()), entry.getValue());
+        }
+
+        for (Map.Entry<String, TutorialState> entry : migrated.entrySet()) {
+            mergeState(storeState.contexts.computeIfAbsent(entry.getKey(), ignored -> new TutorialState()), entry.getValue());
+        }
+    }
+
+    private static void mergeState(TutorialState target, TutorialState source) {
+        if (source == null) {
+            return;
+        }
+        target.radialCompleted = target.radialCompleted || source.radialCompleted;
+        target.managerCompleted = target.managerCompleted || source.managerCompleted;
+        if (!target.radialCompleted) {
+            target.radialStep = Math.max(target.radialStep, source.radialStep);
+        } else {
+            target.radialStep = 0;
+        }
+        if (!target.managerCompleted) {
+            target.managerStep = Math.max(target.managerStep, source.managerStep);
+        } else {
+            target.managerStep = 0;
+        }
+    }
+
     private static String normalizeKey(String value) {
         if (value == null || value.isBlank()) {
             return "unknown";
@@ -161,6 +209,7 @@ public final class TutorialProgressStore {
     }
 
     private static final class StoreState {
+        int guideRevision;
         Map<String, TutorialState> contexts = new LinkedHashMap<>();
 
         // Legacy root-level fields kept for backward compatibility while reading older files.

@@ -91,6 +91,10 @@ public final class OmniWheelKeyMappings {
     private OmniWheelKeyMappings() {
     }
 
+    public static InputConstants.Key currentKey(KeyMapping keyMapping) {
+        return keyMapping.getKey();
+    }
+
     public static void register(RegisterKeyMappingsEvent event) {
         event.registerCategory(CATEGORY);
         event.register(OPEN_WHEEL);
