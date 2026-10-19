@@ -58,6 +58,7 @@ public final class ContextValueFormatter {
         if (minecraft.player == null || minecraft.level == null) {
             return Component.literal(template);
         }
+        template = LiveDataSnapshot.capture(minecraft).omitUnavailableDurability(template);
 
         MutableComponent result = Component.empty();
         int cursor = 0;
