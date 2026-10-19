@@ -1,6 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.common.OmniWheelText;
 import de.artemis.omniwheel.common.action.GameplayFunction;
 import net.minecraft.client.CameraType;
@@ -321,7 +322,7 @@ public final class GameplayFunctionController {
     private static boolean isPhysicalBindingDown(Minecraft minecraft, KeyMapping keyMapping) {
         var window = minecraft.getWindow();
         long windowHandle = window.handle();
-        InputConstants.Key key = keyMapping.getKey();
+        InputConstants.Key key = OmniWheelKeyMappings.currentKey(keyMapping);
         return switch (key.getType()) {
             case KEYSYM -> InputConstants.isKeyDown(window, key.getValue());
             case SCANCODE -> GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
