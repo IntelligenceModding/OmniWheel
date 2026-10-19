@@ -51,6 +51,7 @@
   &bull; Per-entry glyphs, colors, GUI colors, visibility settings, and optional custom keyboard shortcuts with conflict checking<br>
   &bull; Placeholder support for values such as <code>{x}</code>, <code>{y}</code>, <code>{z}</code>, <code>{dimension}</code>, <code>{server}</code>, <code>{player}</code>, <code>{profile}</code>, and <code>{gamemode}</code><br>
   &bull; A built-in profile manager for creating, renaming, reordering, editing, and deleting profiles and wheel entries<br>
+  &bull; An interactive wheel preview: drag wedges to reorder across pages and submenus, with live placement previews and lifted shadows<br>
   &bull; Local JSON profile storage at <code>config/omniwheel/profiles.json</code><br>
   &bull; Guided in-game tutorials for the radial wheel and profile manager
 </p>
