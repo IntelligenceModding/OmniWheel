@@ -12,8 +12,8 @@ public final class OmniWheelClient {
     public OmniWheelClient(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(ClientModEvents::registerGuiLayers);
         modEventBus.addListener(ClientModEvents::registerKeyMappings);
+        modEventBus.addListener(ClientModEvents::registerReloadListeners);
+        NeoForge.EVENT_BUS.addListener(ClientModEvents::onClientTickPre);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onClientTick);
-        NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
-        NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseButton);
     }
 }
