@@ -1,7 +1,7 @@
 package de.artemis.omniwheel.client.runtime;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
+import de.artemis.omniwheel.client.input.ShortcutInputState;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TreeSet;
 
 public final class EntryShortcutMatcher {
     private EntryShortcutMatcher() {
@@ -23,10 +24,14 @@ public final class EntryShortcutMatcher {
         boolean ctrl = false;
         boolean shift = false;
         boolean alt = false;
+        boolean superKey = false;
         Set<Integer> keys = new LinkedHashSet<>();
+        Set<Integer> mouseButtons = new LinkedHashSet<>();
+        Set<Integer> scanCodes = new LinkedHashSet<>();
 
         for (String part : raw.split("\\+")) {
             String token = normalizeToken(part);
+            if ((token.startsWith("mouse") || token.startsWith("scan") || token.startsWith("key")) && part.contains("-")) return null;
             if (token.isEmpty()) {
                 continue;
             }
@@ -34,7 +39,15 @@ public final class EntryShortcutMatcher {
                 case "ctrl", "control", "strg" -> ctrl = true;
                 case "shift", "umschalt" -> shift = true;
                 case "alt", "option" -> alt = true;
+                case "super", "win", "windows", "cmd", "command" -> superKey = true;
                 default -> {
+                    if (token.startsWith("mouse") || token.startsWith("scan")) {
+                        boolean mouse = token.startsWith("mouse");
+                        Integer code = parseCode(token.substring(mouse ? 5 : 4));
+                        if (code == null || mouse && code == 0) return null;
+                        (mouse ? mouseButtons : scanCodes).add(mouse ? code - 1 : code);
+                        continue;
+                    }
                     Integer key = resolveKey(token);
                     if (key == null) {
                         return null;
@@ -44,10 +57,22 @@ public final class EntryShortcutMatcher {
             }
         }
 
-        return keys.isEmpty() ? null : new ShortcutSpec(ctrl, shift, alt, Set.copyOf(keys));
+        return keys.isEmpty() && mouseButtons.isEmpty() && scanCodes.isEmpty() ? null
+                : new ShortcutSpec(ctrl, shift, alt, superKey, Set.copyOf(keys), Set.copyOf(mouseButtons), Set.copyOf(scanCodes));
+    }
+
+    private static Integer parseCode(String token) {
+        try {
+            int code = Integer.parseInt(token);
+            return code >= 0 && code < Integer.MAX_VALUE ? code : null;
+        } catch (NumberFormatException ignored) { return null; }
     }
 
     public static String captureShortcutText(Window window, int keyCode, int modifiers) {
+        return captureShortcutText(window, keyCode, -1, modifiers);
+    }
+
+    public static String captureShortcutText(Window window, int keyCode, int scanCode, int modifiers) {
         if (isModifierOnlyKey(keyCode)
                 || keyCode == GLFW.GLFW_KEY_ESCAPE
                 || keyCode == GLFW.GLFW_KEY_ENTER
@@ -55,6 +80,34 @@ public final class EntryShortcutMatcher {
             return null;
         }
 
+        List<String> parts = modifierLabels(modifiers);
+        int modifierCount = parts.size();
+        Set<Integer> pressedKeys = collectPressedKeys(window, keyCode);
+        for (int pressedKey : pressedKeys) parts.add(labelForKey(pressedKey));
+        Set<Integer> scans = new TreeSet<>(ShortcutInputState.unknownScans());
+        if (keyCode == GLFW.GLFW_KEY_UNKNOWN && scanCode >= 0) scans.add(scanCode);
+        for (int scan : scans) parts.add("Scan" + scan);
+        for (int button : new TreeSet<>(ShortcutInputState.mouseButtons())) parts.add("Mouse" + (button + 1));
+        return parts.size() == modifierCount ? null : String.join("+", parts);
+    }
+
+    public static String captureMouseShortcutText(Window window, int button) {
+        if (button < 0 || button == Integer.MAX_VALUE) return null;
+        int modifiers = 0;
+        if (ShortcutSpec.isCtrlDown(window)) modifiers |= GLFW.GLFW_MOD_CONTROL;
+        if (ShortcutSpec.isShiftDown(window)) modifiers |= GLFW.GLFW_MOD_SHIFT;
+        if (ShortcutSpec.isAltDown(window)) modifiers |= GLFW.GLFW_MOD_ALT;
+        if (ShortcutSpec.isSuperDown(window)) modifiers |= GLFW.GLFW_MOD_SUPER;
+        List<String> parts = modifierLabels(modifiers);
+        for (int key : collectPressedKeys(window, -1)) parts.add(labelForKey(key));
+        for (int scan : new TreeSet<>(ShortcutInputState.unknownScans())) parts.add("Scan" + scan);
+        Set<Integer> buttons = new TreeSet<>(ShortcutInputState.mouseButtons());
+        buttons.add(button);
+        for (int pressed : buttons) parts.add("Mouse" + (pressed + 1));
+        return String.join("+", parts);
+    }
+
+    private static List<String> modifierLabels(int modifiers) {
         List<String> parts = new ArrayList<>();
         if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
             parts.add("Strg");
@@ -66,15 +119,8 @@ public final class EntryShortcutMatcher {
             parts.add("Alt");
         }
 
-        Set<Integer> pressedKeys = collectPressedKeys(window, keyCode);
-        if (pressedKeys.isEmpty()) {
-            return null;
-        }
-
-        for (int pressedKey : pressedKeys) {
-            parts.add(labelForKey(pressedKey));
-        }
-        return String.join("+", parts);
+        if ((modifiers & GLFW.GLFW_MOD_SUPER) != 0) parts.add("Super");
+        return parts;
     }
 
     private static String normalizeToken(String token) {
@@ -106,7 +152,8 @@ public final class EntryShortcutMatcher {
 
         if (token.startsWith("key")) {
             try {
-                return Integer.parseInt(token.substring(3));
+                int key = Integer.parseInt(token.substring(3));
+                return key >= GLFW.GLFW_KEY_SPACE && key <= GLFW.GLFW_KEY_LAST ? key : null;
             } catch (NumberFormatException ignored) {
                 return null;
             }
@@ -185,11 +232,11 @@ public final class EntryShortcutMatcher {
             if (isModifierOnlyKey(candidate)) {
                 continue;
             }
-            if (InputConstants.isKeyDown(window, candidate)) {
+            if (ShortcutInputState.keyDown(window, candidate)) {
                 keys.add(candidate);
             }
         }
-        keys.add(keyCode);
+        if (keyCode >= GLFW.GLFW_KEY_SPACE && keyCode <= GLFW.GLFW_KEY_LAST) keys.add(keyCode);
         return keys;
     }
 
@@ -258,36 +305,46 @@ public final class EntryShortcutMatcher {
         };
     }
 
-    public record ShortcutSpec(boolean ctrl, boolean shift, boolean alt, Set<Integer> keys) {
+    public record ShortcutSpec(boolean ctrl, boolean shift, boolean alt, boolean superKey,
+                               Set<Integer> keys, Set<Integer> mouseButtons, Set<Integer> scanCodes) {
         public boolean matches(Window window) {
-            if (ctrl != isCtrlDown(window) || shift != isShiftDown(window) || alt != isAltDown(window)) {
+            if (ctrl != isCtrlDown(window) || shift != isShiftDown(window) || alt != isAltDown(window)
+                    || superKey != isSuperDown(window)) {
                 return false;
             }
             for (int key : keys) {
-                if (!InputConstants.isKeyDown(window, key)) {
+                if (!ShortcutInputState.keyDown(window, key)) {
                     return false;
                 }
             }
+            for (int button : mouseButtons) if (!ShortcutInputState.mouseDown(button)) return false;
+            for (int scan : scanCodes) if (!ShortcutInputState.scanDown(scan)) return false;
             return true;
         }
 
         public int weight() {
-            return keys.size() + (ctrl ? 1 : 0) + (shift ? 1 : 0) + (alt ? 1 : 0);
+            return keys.size() + mouseButtons.size() + scanCodes.size()
+                    + (ctrl ? 1 : 0) + (shift ? 1 : 0) + (alt ? 1 : 0) + (superKey ? 1 : 0);
         }
 
         private static boolean isCtrlDown(Window window) {
-            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL)
-                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_CONTROL);
+            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL)
+                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_CONTROL);
         }
 
         private static boolean isShiftDown(Window window) {
-            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
-                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
+            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
+                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
         }
 
         private static boolean isAltDown(Window window) {
-            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_ALT)
-                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_ALT);
+            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_ALT)
+                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_ALT);
+        }
+
+        private static boolean isSuperDown(Window window) {
+            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_SUPER)
+                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_SUPER);
         }
     }
 }
