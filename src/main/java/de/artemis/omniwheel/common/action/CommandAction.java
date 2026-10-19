@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public record CommandAction(List<String> commands, boolean requireConfirmation) implements WheelAction {
+public record CommandAction(List<String> commands, boolean requireConfirmation, boolean preset) implements WheelAction {
+    public CommandAction(List<String> commands, boolean requireConfirmation) {
+        this(commands, requireConfirmation, false);
+    }
+
     public CommandAction {
         Objects.requireNonNull(commands, "commands");
         List<String> normalized = new ArrayList<>(commands.size());
