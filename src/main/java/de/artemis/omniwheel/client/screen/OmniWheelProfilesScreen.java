@@ -9,10 +9,14 @@ import net.minecraft.client.gui.screens.Screen;
 public final class OmniWheelProfilesScreen extends Screen {
     private final OmniWheelProfilesOverlay editor;
     private final Screen parent;
+    private long lastClickTime;
+    private double lastClickX, lastClickY;
+    private int lastClickButton = -1;
 
     public OmniWheelProfilesScreen(OmniWheelClientRuntime runtime, Screen parent) {
         super(OmniWheelText.component("omniwheel.screen.profile_manager"));
         this.editor = new OmniWheelProfilesOverlay(runtime);
+        this.editor.captureIconSources(parent);
         this.parent = parent;
     }
 
@@ -69,7 +73,14 @@ public final class OmniWheelProfilesScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return editor.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+        long now = net.minecraft.Util.getMillis();
+        boolean doubleClick = button == lastClickButton && now - lastClickTime < 250
+                && Math.abs(mouseX - lastClickX) < 4 && Math.abs(mouseY - lastClickY) < 4;
+        lastClickTime = now;
+        lastClickX = mouseX;
+        lastClickY = mouseY;
+        lastClickButton = doubleClick ? -1 : button;
+        return editor.mouseClicked(mouseX, mouseY, button, doubleClick) || super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -85,6 +96,13 @@ public final class OmniWheelProfilesScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         return editor.mouseScrolled(mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+        }
     }
 
     @Override
