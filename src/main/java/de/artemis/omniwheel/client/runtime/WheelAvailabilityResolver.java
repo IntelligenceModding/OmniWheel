@@ -2,6 +2,7 @@ package de.artemis.omniwheel.client.runtime;
 
 import com.mojang.brigadier.ParseResults;
 import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.KeybindAction;
 import de.artemis.omniwheel.common.action.CommandAction;
 import de.artemis.omniwheel.common.action.CopyTextAction;
 import de.artemis.omniwheel.common.action.FunctionAction;
@@ -27,6 +28,26 @@ import java.util.List;
 public final class WheelAvailabilityResolver {
     public static final String PROFILES_WHEEL_ID = "__profiles__";
 
+    /** Configured slots never collapse as permissions or context change. */
+    public List<WheelEntry> layoutEntries(WheelProfile profile, String wheelId) {
+        return PROFILES_WHEEL_ID.equals(wheelId) ? profileEntries() : profile.wheel(wheelId).radialEntries();
+    }
+
+    public boolean canActivate(WheelProfile profile, String wheelId, WheelEntry entry, Deque<String> path) {
+        if (!entry.active() || !PROFILES_WHEEL_ID.equals(wheelId) && !profile.wheel(wheelId).active()) return false;
+        if (entry.action() instanceof OpenWheelAction submenu) {
+            return PROFILES_WHEEL_ID.equals(submenu.wheelId()) || profile.wheels().containsKey(submenu.wheelId())
+                    && profile.wheel(submenu.wheelId()).active();
+        }
+        return isVisible(profile, entry, path);
+    }
+
+    public boolean[] enabledEntries(WheelProfile profile, String wheelId, List<WheelEntry> entries, Deque<String> path) {
+        boolean[] result = new boolean[entries.size()];
+        for (int index = 0; index < result.length; index++) result[index] = canActivate(profile, wheelId, entries.get(index), path);
+        return result;
+    }
+
     public List<WheelEntry> visibleEntries(WheelProfile profile, String wheelId, Deque<String> wheelPath) {
         if (PROFILES_WHEEL_ID.equals(wheelId)) {
             return profileEntries();
@@ -50,6 +71,7 @@ public final class WheelAvailabilityResolver {
         }
         return switch (entry.action()) {
             case CommandAction commandAction -> isCommandAvailable(commandAction);
+            case KeybindAction action -> KeybindActionController.find(Minecraft.getInstance(), action.keybindId()) != null;
             case ChatAction ignored -> isChatAvailable();
             case FunctionAction functionAction -> functionAction.function() != GameplayFunction.OMNI_BACK
                     && OmniWheelClientRuntime.getInstance().functionController().isAvailable(functionAction.function());

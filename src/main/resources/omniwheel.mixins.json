@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "de.artemis.omniwheel.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "KeyMappingAccessor",
+    "ParticleEngineAccessor",
+    "ItemStackRenderStateAccessor",
+    "ItemLayerRenderStateAccessor",
+    "KeyMappingMixin",
+    "KeyboardHandlerAccessor",
+    "KeyboardHandlerMixin",
+    "MouseHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
