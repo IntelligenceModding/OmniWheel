@@ -56,10 +56,10 @@ public final class OmniWheelProfilesScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (editor.keyPressed(event.key(), event.scancode(), event.modifiers())) {
+        if (editor.keyPressed(event.key(), event.keycode(), event.modifiers())) {
             return true;
         }
-        if (event.key() == 256) {
+        if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
             onClose();
             return true;
         }

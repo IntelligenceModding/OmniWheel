@@ -16,7 +16,7 @@ public abstract class KeyboardHandlerMixin {
     @Inject(method = "keyPress", at = @At("HEAD"), cancellable = true)
     private void omniwheel$trackShortcut(long window, int action, KeyEvent event, CallbackInfo ci) {
         if (window == Minecraft.getInstance().getWindow().handle() && SyntheticKeybindInput.current() == null) {
-            ShortcutInputState.keyboard(event.key(), event.scancode(), action);
+            ShortcutInputState.keyboard(event.key(), action);
             if (OmniWheelClientRuntime.getInstance().handleTutorialKey(event.key(), event.modifiers(), action)) ci.cancel();
         }
     }

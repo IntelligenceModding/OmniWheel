@@ -16,9 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
-import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Method;
 
@@ -199,9 +197,7 @@ public final class GameplayFunctionController {
     }
 
     private static void dropHeldItem(Minecraft minecraft) {
-        if (!minecraft.player.isSpectator() && minecraft.player.drop(false)) {
-            minecraft.player.swing(InteractionHand.MAIN_HAND);
-        }
+        minecraft.gameMode.dropItem(minecraft.player, false);
     }
 
     private static void swapOffhand(Minecraft minecraft) {
@@ -237,8 +233,7 @@ public final class GameplayFunctionController {
     }
 
     private static void toggleFullscreen(Minecraft minecraft) {
-        minecraft.getWindow().toggleFullScreen();
-        minecraft.options.fullscreen().set(minecraft.getWindow().isFullscreen());
+        minecraft.options.fullscreen().set(!minecraft.options.fullscreen().get());
     }
 
     private static void toggleSmoothCamera(Minecraft minecraft) {
@@ -319,13 +314,10 @@ public final class GameplayFunctionController {
     }
 
     private static boolean isPhysicalBindingDown(Minecraft minecraft, KeyMapping keyMapping) {
-        var window = minecraft.getWindow();
-        long windowHandle = window.handle();
         InputConstants.Key key = OmniWheelKeyMappings.currentKey(keyMapping);
         return switch (key.getType()) {
-            case KEYSYM -> InputConstants.isKeyDown(window, key.getValue());
-            case SCANCODE -> GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
-            case MOUSE -> GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+            case KEYBOARD -> InputConstants.isKeyDown(key.getValue());
+            case MOUSE -> (org.lwjgl.sdl.SDLMouse.SDL_GetMouseState(null, null) & (1 << (key.getValue() - 1))) != 0;
             default -> false;
         };
     }

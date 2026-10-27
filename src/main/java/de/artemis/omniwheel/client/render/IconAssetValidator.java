@@ -89,7 +89,7 @@ public final class IconAssetValidator {
                 // Special renderers (chests, shields and mod renderers) do not use baked quads.
                 visible = true;
             }
-            for (BakedQuad quad : layer.omniwheel$getQuads()) {
+            for (BakedQuad quad : layer.omniwheel$getQuads().all()) {
                 int result = checkQuad(quad);
                 if (result < 0) {
                     return false;

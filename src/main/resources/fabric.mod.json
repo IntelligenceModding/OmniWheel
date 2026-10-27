@@ -11,7 +11,7 @@
     "homepage": "https://www.curseforge.com/minecraft/mc-mods/omni-wheel",
     "sources": "https://github.com/IntelligenceModding/OmniWheel",
     "issues": "https://github.com/IntelligenceModding/OmniWheel/issues",
-    "discord": "https://discord.com/invite/JGWkTy6PG8",
+    "discord": "https://discord.intelligence-modding.de/",
     "github": "https://github.com/IntelligenceModding",
     "youtube": "https://www.youtube.com/@intelligencemodding4093"
   },
@@ -41,7 +41,7 @@
   "custom": {
     "modmenu": {
       "links": {
-        "omniwheel.link.discord": "https://discord.com/invite/JGWkTy6PG8",
+        "omniwheel.link.discord": "https://discord.intelligence-modding.de/",
         "omniwheel.link.github": "https://github.com/IntelligenceModding",
         "omniwheel.link.youtube": "https://www.youtube.com/@intelligencemodding4093"
       }

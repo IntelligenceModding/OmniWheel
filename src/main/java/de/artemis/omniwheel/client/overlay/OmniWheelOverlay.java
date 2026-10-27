@@ -1,5 +1,6 @@
 package de.artemis.omniwheel.client.overlay;
 
+import org.lwjgl.sdl.SDLMouse;
 import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
@@ -30,7 +31,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
-import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
@@ -406,15 +406,15 @@ public final class OmniWheelOverlay {
         if (!open || !isRadialTutorialActive()) {
             return false;
         }
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return true;
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) return true;
 
         Minecraft minecraft = Minecraft.getInstance();
-        if (action == GLFW.GLFW_PRESS) {
+        if (action == InputConstants.PRESS) {
             handleTutorialClick(tutorialMouseX(minecraft), tutorialMouseY(minecraft), minecraft);
             leftMouseDown = true;
             return true;
         }
-        if (action == GLFW.GLFW_RELEASE) {
+        if (action == InputConstants.RELEASE) {
             leftMouseDown = false;
             return true;
         }
@@ -517,7 +517,7 @@ public final class OmniWheelOverlay {
 
     private boolean isHotkeyDown(Minecraft minecraft, String hotkey) {
         for (int keyCode : hotkeyCodes(hotkey)) {
-            if (InputConstants.isKeyDown(minecraft.getWindow(), keyCode)) {
+            if (InputConstants.isKeyDown(keyCode)) {
                 return true;
             }
         }
@@ -525,8 +525,8 @@ public final class OmniWheelOverlay {
     }
 
     private boolean isShiftDown(Minecraft minecraft) {
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
     }
 
     private void activateEntry(int index, List<WheelEntry> visibleEntries) {
@@ -544,7 +544,7 @@ public final class OmniWheelOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputConstants.grabOrReleaseMouse(minecraft.getWindow(), 212993, rawX, rawY);
+        InputConstants.releaseMouse(minecraft.getWindow(), rawX, rawY);
     }
 
     private void drawCenterPanel(GuiGraphicsExtractor graphics, Minecraft minecraft, int width, int height, WheelVisual visual) {
@@ -761,16 +761,16 @@ public final class OmniWheelOverlay {
 
     public boolean handleTutorialKey(int key, int modifiers, int action) {
         if (!isRadialTutorialActive()) return false;
-        if (key != GLFW.GLFW_KEY_TAB && key != GLFW.GLFW_KEY_UP && key != GLFW.GLFW_KEY_DOWN
-                && key != GLFW.GLFW_KEY_LEFT && key != GLFW.GLFW_KEY_RIGHT && key != GLFW.GLFW_KEY_ENTER
-                && key != GLFW.GLFW_KEY_KP_ENTER && key != GLFW.GLFW_KEY_SPACE && key != GLFW.GLFW_KEY_ESCAPE) return true;
-        if (action != GLFW.GLFW_PRESS) return true;
+        if (key != InputConstants.KEY_TAB && key != InputConstants.KEY_UP && key != InputConstants.KEY_DOWN
+                && key != InputConstants.KEY_LEFT && key != InputConstants.KEY_RIGHT && key != InputConstants.KEY_RETURN
+                && key != InputConstants.KEY_NUMPADENTER && key != InputConstants.KEY_SPACE && key != InputConstants.KEY_ESCAPE) return true;
+        if (action != InputConstants.PRESS) return true;
         tutorialKeyboardFocus = true;
-        if (key == GLFW.GLFW_KEY_ESCAPE) completeRadialTutorial();
-        else if (key == GLFW.GLFW_KEY_LEFT) previousRadialTutorial();
-        else if (key == GLFW.GLFW_KEY_RIGHT) advanceRadialTutorial();
-        else if (key == GLFW.GLFW_KEY_TAB || key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN)
-            tutorialKeyboardButton = Math.floorMod(tutorialKeyboardButton + ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || key == GLFW.GLFW_KEY_UP ? -1 : 1), 3);
+        if (key == InputConstants.KEY_ESCAPE) completeRadialTutorial();
+        else if (key == InputConstants.KEY_LEFT) previousRadialTutorial();
+        else if (key == InputConstants.KEY_RIGHT) advanceRadialTutorial();
+        else if (key == InputConstants.KEY_TAB || key == InputConstants.KEY_UP || key == InputConstants.KEY_DOWN)
+            tutorialKeyboardButton = Math.floorMod(tutorialKeyboardButton + ((modifiers & InputConstants.MOD_SHIFT) != 0 || key == InputConstants.KEY_UP ? -1 : 1), 3);
         else if (tutorialKeyboardButton == 0) previousRadialTutorial();
         else if (tutorialKeyboardButton == 1) advanceRadialTutorial();
         else completeRadialTutorial();
@@ -1212,11 +1212,11 @@ public final class OmniWheelOverlay {
     }
 
     private static boolean isLeftMouseDown(Minecraft minecraft) {
-        return GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+        return (SDLMouse.SDL_GetMouseState(null, null) & SDLMouse.SDL_BUTTON_LMASK) != 0;
     }
 
     private static boolean isRightMouseDown(Minecraft minecraft) {
-        return GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+        return (SDLMouse.SDL_GetMouseState(null, null) & SDLMouse.SDL_BUTTON_RMASK) != 0;
     }
 
     private static String shorten(String text, int maxLength) {
@@ -1251,14 +1251,14 @@ public final class OmniWheelOverlay {
     private static int[] hotkeyCodes(String hotkey) {
         char character = hotkey.charAt(0);
         if (character >= 'A' && character <= 'Z') {
-            return new int[]{GLFW.GLFW_KEY_A + (character - 'A')};
+            return new int[]{InputConstants.KEY_A + (character - 'A')};
         }
         if (character >= '1' && character <= '9') {
             int offset = character - '1';
-            return new int[]{GLFW.GLFW_KEY_1 + offset, GLFW.GLFW_KEY_KP_1 + offset};
+            return new int[]{InputConstants.KEY_1 + offset, InputConstants.KEY_NUMPAD1 + offset};
         }
         if (character == '0') {
-            return new int[]{GLFW.GLFW_KEY_0, GLFW.GLFW_KEY_KP_0};
+            return new int[]{InputConstants.KEY_0, InputConstants.KEY_NUMPAD0};
         }
         return new int[0];
     }
@@ -1285,13 +1285,10 @@ public final class OmniWheelOverlay {
             return false;
         }
 
-        var window = minecraft.getWindow();
         InputConstants.Key key = OmniWheelKeyMappings.currentKey(OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position));
-        long windowHandle = window.handle();
         return switch (key.getType()) {
-            case KEYSYM -> InputConstants.isKeyDown(window, key.getValue());
-            case SCANCODE -> GLFW.glfwGetKey(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
-            case MOUSE -> GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+            case KEYBOARD -> InputConstants.isKeyDown(key.getValue());
+            case MOUSE -> (org.lwjgl.sdl.SDLMouse.SDL_GetMouseState(null, null) & (1 << (key.getValue() - 1))) != 0;
             default -> OmniWheelKeyMappings.RADIAL_POSITION_KEYS.get(position).isDown();
         };
     }
