@@ -5,7 +5,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.serialization.JsonOps;
 import de.artemis.omniwheel.OmniWheel;
-import net.fabricmc.loader.api.FabricLoader;
+import net.neoforged.fml.loading.FMLPaths;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 
@@ -60,7 +60,7 @@ public final class CustomItemIcons {
     public static void clearCache() { DECODED.clear(); registryContext = null; }
 
     private static Path path() {
-        return FabricLoader.getInstance().getConfigDir().resolve("omniwheel/custom-icons.json");
+        return FMLPaths.CONFIGDIR.get().resolve("omniwheel/custom-icons.json");
     }
 
     public static List<String> saved() {

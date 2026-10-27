@@ -1,6 +1,6 @@
 package de.artemis.omniwheel.client.render;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
@@ -35,9 +35,9 @@ public final class GeometryRenderer {
 
     public static void drawChevron(GuiGraphicsExtractor graphics, float x, float y, int direction, int color) {
         Matrix3x2f pose = new Matrix3x2f(graphics.pose());
-        ScreenRectangle scissor = graphics.scissorStack.peek();
+        ScreenRectangle scissor = graphics.peekScissorStack();
         ScreenRectangle bounds = boundsFor(x, y, 14, pose, scissor);
-        if (bounds != null) graphics.guiRenderState.addGuiElement(new PolygonRenderState(
+        if (bounds != null) graphics.submitGuiElementRenderState(new PolygonRenderState(
                 direction < 0 ? CHEVRON_LEFT : CHEVRON_RIGHT, pose, x, y, color, scissor, bounds));
     }
 
@@ -124,13 +124,13 @@ public final class GeometryRenderer {
         }
 
         Matrix3x2f pose = new Matrix3x2f(graphics.pose());
-        ScreenRectangle scissor = graphics.scissorStack.peek();
+        ScreenRectangle scissor = graphics.peekScissorStack();
         ScreenRectangle bounds = boundsFor(centerX, centerY, outerRadius, pose, scissor);
         if (bounds == null) {
             return;
         }
 
-        graphics.guiRenderState.addGuiElement(new PolygonRenderState(mesh, pose, centerX, centerY, color, scissor, bounds));
+        graphics.submitGuiElementRenderState(new PolygonRenderState(mesh, pose, centerX, centerY, color, scissor, bounds));
     }
 
     private static CachedMesh getOrCreateMesh(ShapeKey key) {

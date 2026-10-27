@@ -3,8 +3,6 @@
   "package": "de.artemis.omniwheel.mixin.client",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "GuiMixin",
-    "KeyMappingAccessor",
     "ItemStackRenderStateAccessor",
     "ItemLayerRenderStateAccessor",
     "KeyMappingMixin",

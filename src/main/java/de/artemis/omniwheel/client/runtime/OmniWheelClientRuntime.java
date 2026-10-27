@@ -1,5 +1,6 @@
 package de.artemis.omniwheel.client.runtime;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.client.overlay.OmniWheelOverlay;
 import de.artemis.omniwheel.client.input.ShortcutInputState;
 import de.artemis.omniwheel.client.overlay.OmniWheelProfilesOverlay;
@@ -17,7 +18,6 @@ import de.artemis.omniwheel.common.wheel.WheelEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -190,7 +190,7 @@ public final class OmniWheelClientRuntime {
 
     /** Process edges as well as ticks, so a quick macro tap cannot disappear between ticks. */
     public void shortcutInputChanged(int action) {
-        if (action != GLFW.GLFW_REPEAT) processEntryShortcuts(Minecraft.getInstance());
+        if (action != InputConstants.REPEAT) processEntryShortcuts(Minecraft.getInstance());
     }
 
     private List<ShortcutCandidate> collectShortcutCandidates(WheelProfile profile) {

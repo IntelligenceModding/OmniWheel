@@ -56,7 +56,6 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
@@ -543,6 +542,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     public void closeForScreen() {
+        Minecraft.getInstance().textInputManager().onTextInputFocusChange(this, false);
         customColorPicker.close();
         restoreTutorialSelection();
         persistPendingEdits();
@@ -579,6 +579,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     public void tick() {
+        syncTextInputFocus();
         if (!open) {
             return;
         }
@@ -616,7 +617,7 @@ public final class OmniWheelProfilesOverlay {
         boolean escapePressed = isEscapeDown(minecraft);
 
         if (escapePressed && !escapeDown) {
-            if (!keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0)) close();
+            if (!keyPressed(InputConstants.KEY_ESCAPE, 0, 0)) close();
             escapeDown = true;
             return;
         }
@@ -637,6 +638,7 @@ public final class OmniWheelProfilesOverlay {
     }
 
     public void render(GuiGraphicsExtractor graphics) {
+        syncTextInputFocus();
         if (!open) {
             return;
         }
@@ -758,9 +760,9 @@ public final class OmniWheelProfilesOverlay {
         if (open && customColorPicker.isOpen() && !isManagerTutorialActive()) return customColorPicker.mouseClicked(toUiX(mouseX), toUiY(mouseY), button);
         keyboardButtonFocus = false;
         if (open && iconPickerClosingAt != 0) return true;
-        if (open && isManagerTutorialActive() && button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return true;
+        if (open && isManagerTutorialActive() && button != InputConstants.MOUSE_BUTTON_LEFT) return true;
         if (open && !isManagerTutorialActive() && textEntryActive && focusedField == EditorField.ENTRY_SHORTCUT
-                && (button != GLFW.GLFW_MOUSE_BUTTON_LEFT
+                && (button != InputConstants.MOUSE_BUTTON_LEFT
                 || textFields.get(EditorField.ENTRY_SHORTCUT).contains(toUiX(mouseX), toUiY(mouseY)))) {
             String shortcut = EntryShortcutMatcher.captureMouseShortcutText(Minecraft.getInstance().getWindow(), button);
             if (shortcut != null) {
@@ -770,7 +772,7 @@ public final class OmniWheelProfilesOverlay {
             }
             return true;
         }
-        if (!open || button != 0) {
+        if (!open || button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         mouseX = toUiX(mouseX);
@@ -802,8 +804,8 @@ public final class OmniWheelProfilesOverlay {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (open && customColorPicker.isOpen() && !isManagerTutorialActive()) { leftMouseDown = false; return customColorPicker.mouseReleased(); }
         if (open && iconPickerClosingAt != 0) { leftMouseDown = false; return true; }
-        if (open && isManagerTutorialActive() && button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return true;
-        if (!open || button != 0) {
+        if (open && isManagerTutorialActive() && button != InputConstants.MOUSE_BUTTON_LEFT) return true;
+        if (!open || button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         if (isManagerTutorialActive()) {
@@ -856,8 +858,8 @@ public final class OmniWheelProfilesOverlay {
     public boolean mouseDragged(double mouseX, double mouseY, int button) {
         if (open && customColorPicker.isOpen() && !isManagerTutorialActive()) return customColorPicker.mouseDragged(toUiX(mouseX), toUiY(mouseY));
         if (open && iconPickerClosingAt != 0) return true;
-        if (open && isManagerTutorialActive() && button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return true;
-        if (!open || button != 0) {
+        if (open && isManagerTutorialActive() && button != InputConstants.MOUSE_BUTTON_LEFT) return true;
+        if (!open || button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         if (isManagerTutorialActive()) {
@@ -927,7 +929,7 @@ public final class OmniWheelProfilesOverlay {
 
     private boolean handleMouseClick(float mouseX, float mouseY, boolean doubleClick) {
         if (handleManagerTutorialClick(mouseX, mouseY)) return true;
-        if (customColorPicker.isOpen()) return customColorPicker.mouseClicked(mouseX, mouseY, 0);
+        if (customColorPicker.isOpen()) return customColorPicker.mouseClicked(mouseX, mouseY, InputConstants.MOUSE_BUTTON_LEFT);
         if (iconPickerOpen) {
             if (tryStartIconPickerScrollbarDrag(mouseX, mouseY)) {
                 return true;
@@ -1213,7 +1215,7 @@ public final class OmniWheelProfilesOverlay {
         NavigationControl current = currentNavigationControl(controls);
         List<Node> nodes = controls.stream().map(NavigationControl::node).toList();
         Node next;
-        if (keyCode == GLFW.GLFW_KEY_TAB) {
+        if (keyCode == InputConstants.KEY_TAB) {
             next = ManagementNavigation.tab(nodes, current == null ? null : current.node(), reverseTab);
         } else if (current == null) {
             next = ManagementNavigation.readingOrder(nodes).stream().filter(node -> node.panel() == activeList.ordinal() && node.visible()).findFirst().orElse(null);
@@ -1221,10 +1223,10 @@ public final class OmniWheelProfilesOverlay {
             String group = current.node().group();
             List<Node> scope = ManagementNavigation.readingOrder(nodes).stream()
                     .filter(node -> node.panel() == current.node().panel() && (group.isEmpty() || group.equals(node.group()))).toList();
-            if (keyCode == GLFW.GLFW_KEY_HOME) next = scope.getFirst();
-            else if (keyCode == GLFW.GLFW_KEY_END) next = scope.getLast();
+            if (keyCode == InputConstants.KEY_HOME) next = scope.getFirst();
+            else if (keyCode == InputConstants.KEY_END) next = scope.getLast();
             else {
-                boolean down = keyCode == GLFW.GLFW_KEY_PAGE_DOWN;
+                boolean down = keyCode == InputConstants.KEY_PAGEDOWN;
                 Bounds viewport = navigationViewport(group);
                 int distance = viewport == null ? 160 : Math.max(1, viewport.height() - current.node().bounds().height());
                 double targetY = current.node().bounds().centerY() + (down ? distance : -distance);
@@ -1235,9 +1237,9 @@ public final class OmniWheelProfilesOverlay {
         } else {
             if (navigateEntryTree(current, keyCode)) return true;
             ManagementNavigation.Direction direction = switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT -> ManagementNavigation.Direction.LEFT;
-                case GLFW.GLFW_KEY_RIGHT -> ManagementNavigation.Direction.RIGHT;
-                case GLFW.GLFW_KEY_UP -> ManagementNavigation.Direction.UP;
+                case InputConstants.KEY_LEFT -> ManagementNavigation.Direction.LEFT;
+                case InputConstants.KEY_RIGHT -> ManagementNavigation.Direction.RIGHT;
+                case InputConstants.KEY_UP -> ManagementNavigation.Direction.UP;
                 default -> ManagementNavigation.Direction.DOWN;
             };
             next = ManagementNavigation.move(nodes, current.node(), direction);
@@ -1260,13 +1262,13 @@ public final class OmniWheelProfilesOverlay {
         List<EntryListRow> rows = visibleEntryRows();
         if (current.rowIndex() < 0 || current.rowIndex() >= rows.size()) return false;
         EntryListRow row = rows.get(current.rowIndex());
-        if (keyCode == GLFW.GLFW_KEY_RIGHT && row.expandable()) {
+        if (keyCode == InputConstants.KEY_RIGHT && row.expandable()) {
             if (!row.expanded()) toggleExpandedSubmenu(row.ownerWheelId(), row.entry(), ((OpenWheelAction) row.entry().action()).wheelId());
             else if (current.rowIndex() + 1 < rows.size() && rows.get(current.rowIndex() + 1).depth() > row.depth()) selectEntryRowByIndex(current.rowIndex() + 1);
             else return false;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+        if (keyCode == InputConstants.KEY_LEFT) {
             if (row.expandable() && row.expanded()) {
                 toggleExpandedSubmenu(row.ownerWheelId(), row.entry(), ((OpenWheelAction) row.entry().action()).wheelId());
                 return true;
@@ -1282,24 +1284,24 @@ public final class OmniWheelProfilesOverlay {
         if (!open) return false;
         if (customColorPicker.isOpen() && !isManagerTutorialActive()) return customColorPicker.keyPressed(keyCode, modifiers);
         if (iconPickerClosingAt != 0) return true;
-        if (keyCode == GLFW.GLFW_KEY_TAB || keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN
-                || keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT
-                || keyCode == GLFW.GLFW_KEY_HOME || keyCode == GLFW.GLFW_KEY_END
-                || keyCode == GLFW.GLFW_KEY_PAGE_UP || keyCode == GLFW.GLFW_KEY_PAGE_DOWN) keyboardButtonFocus = true;
+        if (keyCode == InputConstants.KEY_TAB || keyCode == InputConstants.KEY_UP || keyCode == InputConstants.KEY_DOWN
+                || keyCode == InputConstants.KEY_LEFT || keyCode == InputConstants.KEY_RIGHT
+                || keyCode == InputConstants.KEY_HOME || keyCode == InputConstants.KEY_END
+                || keyCode == InputConstants.KEY_PAGEUP || keyCode == InputConstants.KEY_PAGEDOWN) keyboardButtonFocus = true;
         if (isManagerTutorialActive()) {
             tutorialKeyboardFocus = true;
-            if (keyCode == GLFW.GLFW_KEY_TAB || keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN) {
-                tutorialKeyboardButton = Math.floorMod(tutorialKeyboardButton + ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || keyCode == GLFW.GLFW_KEY_UP ? -1 : 1), 3);
-            } else if (keyCode == GLFW.GLFW_KEY_LEFT) previousManagerTutorial();
-            else if (keyCode == GLFW.GLFW_KEY_RIGHT) advanceManagerTutorial();
-            else if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_SPACE) {
+            if (keyCode == InputConstants.KEY_TAB || keyCode == InputConstants.KEY_UP || keyCode == InputConstants.KEY_DOWN) {
+                tutorialKeyboardButton = Math.floorMod(tutorialKeyboardButton + ((modifiers & InputConstants.MOD_SHIFT) != 0 || keyCode == InputConstants.KEY_UP ? -1 : 1), 3);
+            } else if (keyCode == InputConstants.KEY_LEFT) previousManagerTutorial();
+            else if (keyCode == InputConstants.KEY_RIGHT) advanceManagerTutorial();
+            else if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER || keyCode == InputConstants.KEY_SPACE) {
                 if (tutorialKeyboardButton == 0) previousManagerTutorial();
                 else if (tutorialKeyboardButton == 1) advanceManagerTutorial();
                 else completeManagerTutorial();
-            } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) completeManagerTutorial();
+            } else if (keyCode == InputConstants.KEY_ESCAPE) completeManagerTutorial();
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == InputConstants.KEY_ESCAPE) {
             if (draggedProfileId != null || draggedWheelId != null || draggedCommandIndex >= 0 || radialPreview.hasDrag()) {
                 clearProfileDrag();
                 clearWheelDrag();
@@ -1325,14 +1327,14 @@ public final class OmniWheelProfilesOverlay {
             return false;
         }
         if (isReordering()) return true;
-        if (keyCode == GLFW.GLFW_KEY_TAB && textEntryActive && focusedCommandFieldIndex >= 0 && ensureCommandInput()
+        if (keyCode == InputConstants.KEY_TAB && textEntryActive && focusedCommandFieldIndex >= 0 && ensureCommandInput()
                 && commandSuggestions.keyPressed(keyEvent(keyCode, scanCode, modifiers))) return true;
-        if (keyCode == GLFW.GLFW_KEY_TAB) {
+        if (keyCode == InputConstants.KEY_TAB) {
             if (textEntryActive) deactivateTextEntry();
-            return navigateManagement(keyCode, (modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
+            return navigateManagement(keyCode, (modifiers & InputConstants.MOD_SHIFT) != 0);
         }
         if (textEntryActive && focusedField == EditorField.ENTRY_SHORTCUT) {
-            if (keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE) {
+            if (keyCode == InputConstants.KEY_BACKSPACE || keyCode == InputConstants.KEY_DELETE) {
                 textFields.get(EditorField.ENTRY_SHORTCUT).setValue("");
                 entryShortcutDraft = "";
             } else {
@@ -1348,11 +1350,11 @@ public final class OmniWheelProfilesOverlay {
         if (textEntryActive && focusedCommandFieldIndex >= 0 && ensureCommandInput()) {
             KeyEvent event = keyEvent(keyCode, scanCode, modifiers);
             if (commandSuggestions.keyPressed(event) || commandInput.keyPressed(event)) return true;
-            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
                 deactivateTextEntry();
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN || isPagingNavigationKey(keyCode)) {
+            if (keyCode == InputConstants.KEY_UP || keyCode == InputConstants.KEY_DOWN || isPagingNavigationKey(keyCode)) {
                 deactivateTextEntry();
                 return navigateManagement(keyCode, false);
             }
@@ -1360,23 +1362,23 @@ public final class OmniWheelProfilesOverlay {
         }
         TextFieldState field = currentFocusedField();
         if (textEntryActive && field != null) {
-            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
                 deactivateTextEntry();
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN
-                    || keyCode == GLFW.GLFW_KEY_PAGE_UP || keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {
+            if (keyCode == InputConstants.KEY_UP || keyCode == InputConstants.KEY_DOWN
+                    || keyCode == InputConstants.KEY_PAGEUP || keyCode == InputConstants.KEY_PAGEDOWN) {
                 deactivateTextEntry();
                 return navigateManagement(keyCode, false);
             }
-            boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
-            boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
+            boolean shift = (modifiers & InputConstants.MOD_SHIFT) != 0;
+            boolean control = (modifiers & InputConstants.MOD_CONTROL) != 0;
             if (control) {
                 switch (keyCode) {
-                    case GLFW.GLFW_KEY_A -> field.selectAll();
-                    case GLFW.GLFW_KEY_C -> Minecraft.getInstance().keyboardHandler.setClipboard(field.copyText());
-                    case GLFW.GLFW_KEY_V -> { field.insertText(clipboardValue()); applyFocusedFieldDraft(); }
-                    case GLFW.GLFW_KEY_X -> {
+                    case InputConstants.KEY_A -> field.selectAll();
+                    case InputConstants.KEY_C -> Minecraft.getInstance().keyboardHandler.setClipboard(field.copyText());
+                    case InputConstants.KEY_V -> { field.insertText(clipboardValue()); applyFocusedFieldDraft(); }
+                    case InputConstants.KEY_X -> {
                         String copied = field.copyText();
                         if (!copied.isEmpty()) {
                             Minecraft.getInstance().keyboardHandler.setClipboard(copied);
@@ -1384,28 +1386,28 @@ public final class OmniWheelProfilesOverlay {
                             applyFocusedFieldDraft();
                         }
                     }
-                    case GLFW.GLFW_KEY_LEFT -> field.moveCursorByWord(-1, shift);
-                    case GLFW.GLFW_KEY_RIGHT -> field.moveCursorByWord(1, shift);
-                    case GLFW.GLFW_KEY_BACKSPACE -> { field.deleteWordBackward(); applyFocusedFieldDraft(); }
-                    case GLFW.GLFW_KEY_DELETE -> { field.deleteWordForward(); applyFocusedFieldDraft(); }
+                    case InputConstants.KEY_LEFT -> field.moveCursorByWord(-1, shift);
+                    case InputConstants.KEY_RIGHT -> field.moveCursorByWord(1, shift);
+                    case InputConstants.KEY_BACKSPACE -> { field.deleteWordBackward(); applyFocusedFieldDraft(); }
+                    case InputConstants.KEY_DELETE -> { field.deleteWordForward(); applyFocusedFieldDraft(); }
                     default -> { return false; }
                 }
                 return true;
             }
             switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT -> field.moveCursor(-1, shift);
-                case GLFW.GLFW_KEY_RIGHT -> field.moveCursor(1, shift);
-                case GLFW.GLFW_KEY_HOME -> field.moveToStart(shift);
-                case GLFW.GLFW_KEY_END -> field.moveToEnd(shift);
-                case GLFW.GLFW_KEY_BACKSPACE -> { field.backspace(); applyFocusedFieldDraft(); }
-                case GLFW.GLFW_KEY_DELETE -> { field.deleteForward(); applyFocusedFieldDraft(); }
+                case InputConstants.KEY_LEFT -> field.moveCursor(-1, shift);
+                case InputConstants.KEY_RIGHT -> field.moveCursor(1, shift);
+                case InputConstants.KEY_HOME -> field.moveToStart(shift);
+                case InputConstants.KEY_END -> field.moveToEnd(shift);
+                case InputConstants.KEY_BACKSPACE -> { field.backspace(); applyFocusedFieldDraft(); }
+                case InputConstants.KEY_DELETE -> { field.deleteForward(); applyFocusedFieldDraft(); }
                 default -> { return false; }
             }
             return true;
         }
         restoreActionFocus();
-        if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && (keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN)) {
-            int delta = keyCode == GLFW.GLFW_KEY_UP ? -1 : 1;
+        if ((modifiers & InputConstants.MOD_CONTROL) != 0 && (keyCode == InputConstants.KEY_UP || keyCode == InputConstants.KEY_DOWN)) {
+            int delta = keyCode == InputConstants.KEY_UP ? -1 : 1;
             if (focusedCommandFieldIndex >= 0) {
                 int source = focusedCommandFieldIndex;
                 int target = clamp(source + delta, 0, commandValueDrafts.size() - 1);
@@ -1421,22 +1423,22 @@ public final class OmniWheelProfilesOverlay {
             return handleMoveShortcut(keyCode);
         }
         if (isDirectionalNavigationKey(keyCode) || isPagingNavigationKey(keyCode)) return navigateManagement(keyCode, false);
-        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_SPACE) {
+        if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER || keyCode == InputConstants.KEY_SPACE) {
             if (field != null) {
                 activateTextEntry();
-                suppressActivationSpace = keyCode == GLFW.GLFW_KEY_SPACE;
+                suppressActivationSpace = keyCode == InputConstants.KEY_SPACE;
                 return true;
             }
             if (focusedActionIndex >= 0) return runFocusedAction();
             return activateCurrentSelection();
         }
-        if ((keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE) && clearHighlightedShortcutField()) return true;
-        if (keyCode == GLFW.GLFW_KEY_DELETE && currentFocusTarget() == null && activeList != NavigationList.EDITOR) return handleDeleteShortcut();
+        if ((keyCode == InputConstants.KEY_BACKSPACE || keyCode == InputConstants.KEY_DELETE) && clearHighlightedShortcutField()) return true;
+        if (keyCode == InputConstants.KEY_DELETE && currentFocusTarget() == null && activeList != NavigationList.EDITOR) return handleDeleteShortcut();
         return false;
     }
 
     private boolean handleMoveShortcut(int keyCode) {
-        int delta = keyCode == GLFW.GLFW_KEY_UP ? -1 : 1;
+        int delta = keyCode == InputConstants.KEY_UP ? -1 : 1;
         return switch (activeList) {
             case PROFILES -> moveSelectedProfileBy(delta);
             case WHEELS -> moveSelectedEntryBy(delta);
@@ -2775,7 +2777,7 @@ public final class OmniWheelProfilesOverlay {
         for (KeyMapping keyMapping : minecraft.options.keyMappings) {
             InputConstants.Key bound = OmniWheelKeyMappings.currentKey(keyMapping);
             if (bound.getType() == InputConstants.Type.MOUSE && spec.mouseButtons().contains(bound.getValue())
-                    || bound.getType() == InputConstants.Type.SCANCODE && spec.scanCodes().contains(bound.getValue())) {
+                    || bound.getType() == InputConstants.Type.KEYBOARD && spec.scanCodes().contains(bound.getValue())) {
                 conflicts.add(Component.translatable(keyMapping.getName()).getString());
                 continue;
             }
@@ -4840,12 +4842,9 @@ public final class OmniWheelProfilesOverlay {
         if (importingCustomImage) return;
         importingCustomImage = true;
         customIconError = "";
-        java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-            try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
-                var filters = stack.mallocPointer(1);
-                filters.put(stack.UTF8("*.png")).flip();
-                String path = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Import PNG Icon", "", filters, "PNG images", false);
-                return path == null ? null : CustomImageData.read(java.nio.file.Path.of(path)).icon();
+        de.artemis.omniwheel.client.input.PngFileDialog.open().thenApplyAsync(path -> {
+            try {
+                return path == null ? null : CustomImageData.read(path).icon();
             } catch (Exception exception) {
                 throw new java.util.concurrent.CompletionException(exception);
             }
@@ -5152,12 +5151,9 @@ public final class OmniWheelProfilesOverlay {
             String namespace = identifier == null ? "minecraft" : identifier.getNamespace();
             String category;
             if (!namespace.equals("minecraft")) {
-                var loader = net.fabricmc.loader.api.FabricLoader.getInstance();
-                var owner = loader.getModContainer(namespace);
-                if (owner.isEmpty()) owner = loader.getAllMods().stream()
-                        .filter(mod -> mod.getMetadata().getProvides().contains(namespace)).findFirst();
-                category = "mod:" + owner.map(mod -> mod.getMetadata().getId()).orElse(namespace);
-                names.put(category, owner.map(mod -> mod.getMetadata().getName()).orElse(namespace.replace('_', ' ')));
+                var owner = net.neoforged.fml.ModList.get().getModContainerById(namespace);
+                category = "mod:" + owner.map(mod -> mod.getModId()).orElse(namespace);
+                names.put(category, owner.map(mod -> mod.getModInfo().getDisplayName()).orElse(namespace.replace('_', ' ')));
             } else if (extra) category = "extras";
             else category = BuiltInRegistries.ITEM.getOptional(identifier).orElse(null) instanceof net.minecraft.world.item.BlockItem ? "blocks" : "items";
             grouped.computeIfAbsent(category, ignored -> new ArrayList<>()).add(option);
@@ -5702,11 +5698,11 @@ public final class OmniWheelProfilesOverlay {
 
     private void releaseMouseAt(Minecraft minecraft, double rawX, double rawY) {
         minecraft.mouseHandler.releaseMouse();
-        InputConstants.grabOrReleaseMouse(minecraft.getWindow(), 212993, rawX, rawY);
+        InputConstants.releaseMouse(minecraft.getWindow(), rawX, rawY);
     }
 
     private static boolean isEscapeDown(Minecraft minecraft) {
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_ESCAPE);
+        return InputConstants.isKeyDown(InputConstants.KEY_ESCAPE);
     }
 
     private static long windowHandle(Minecraft minecraft) {
@@ -5728,17 +5724,17 @@ public final class OmniWheelProfilesOverlay {
 
     private static int currentModifierFlags(Minecraft minecraft) {
         int modifiers = 0;
-        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
-            modifiers |= GLFW.GLFW_MOD_SHIFT;
+        if (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT)) {
+            modifiers |= InputConstants.MOD_SHIFT;
         }
-        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL)) {
-            modifiers |= GLFW.GLFW_MOD_CONTROL;
+        if (InputConstants.isKeyDown(InputConstants.KEY_LCONTROL)
+                || InputConstants.isKeyDown(InputConstants.KEY_RCONTROL)) {
+            modifiers |= InputConstants.MOD_CONTROL;
         }
-        if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT)) {
-            modifiers |= GLFW.GLFW_MOD_ALT;
+        if (InputConstants.isKeyDown(InputConstants.KEY_LALT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RALT)) {
+            modifiers |= InputConstants.MOD_ALT;
         }
         return modifiers;
     }
@@ -6672,7 +6668,7 @@ public final class OmniWheelProfilesOverlay {
     private void handleKeyboardInput(Minecraft minecraft) {
         long now = System.currentTimeMillis();
         for (int key : POLLED_KEYS) {
-            boolean down = InputConstants.isKeyDown(minecraft.getWindow(), key);
+            boolean down = InputConstants.isKeyDown(key);
             if (down) {
                 if (pressedKeys.add(key)) {
                     handleKeyPress(key);
@@ -6689,10 +6685,10 @@ public final class OmniWheelProfilesOverlay {
     }
 
     private void handleKeyPress(int key) {
-        int modifiers = (isShiftModifierDown() ? GLFW.GLFW_MOD_SHIFT : 0)
-                | (isControlModifierDown() ? GLFW.GLFW_MOD_CONTROL : 0);
+        int modifiers = (isShiftModifierDown() ? InputConstants.MOD_SHIFT : 0)
+                | (isControlModifierDown() ? InputConstants.MOD_CONTROL : 0);
         keyPressed(key, 0, modifiers);
-        if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0 && textEntryActive && focusedField != EditorField.ENTRY_SHORTCUT) {
+        if ((modifiers & InputConstants.MOD_CONTROL) == 0 && textEntryActive && focusedField != EditorField.ENTRY_SHORTCUT) {
             Character typed = typedCharacterForKey(key, isShiftModifierDown());
             if (typed != null) charTyped(typed, modifiers);
         }
@@ -6762,6 +6758,7 @@ public final class OmniWheelProfilesOverlay {
 
     private void activateTextEntry() {
         textEntryActive = true;
+        syncTextInputFocus();
         if (focusedCommandFieldIndex >= 0 && ensureCommandInput()) {
             commandInput.setVisible(true);
             commandInput.setFocused(true);
@@ -6778,6 +6775,7 @@ public final class OmniWheelProfilesOverlay {
             persistFocusedEntryDraft();
         }
         textEntryActive = false;
+        syncTextInputFocus();
         if (commandInput != null) {
             commandInput.setFocused(false);
             commandInput.setVisible(false);
@@ -6823,6 +6821,13 @@ public final class OmniWheelProfilesOverlay {
             return commandValueFields.get(focusedCommandFieldIndex);
         }
         return focusedField == null ? null : textFields.get(focusedField);
+    }
+
+    private void syncTextInputFocus() {
+        if (screenHosted) {
+            Minecraft.getInstance().textInputManager().onTextInputFocusChange(this,
+                    open && (customColorPicker.isOpen() || textEntryActive && focusedField != EditorField.ENTRY_SHORTCUT));
+        }
     }
 
     private List<EditorField> visibleEditableFields() {
@@ -7003,17 +7008,17 @@ public final class OmniWheelProfilesOverlay {
         return NavigationList.EDITOR;
     }
     private static boolean isDirectionalNavigationKey(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_LEFT
-                || keyCode == GLFW.GLFW_KEY_RIGHT
-                || keyCode == GLFW.GLFW_KEY_UP
-                || keyCode == GLFW.GLFW_KEY_DOWN;
+        return keyCode == InputConstants.KEY_LEFT
+                || keyCode == InputConstants.KEY_RIGHT
+                || keyCode == InputConstants.KEY_UP
+                || keyCode == InputConstants.KEY_DOWN;
     }
 
     private static boolean isPagingNavigationKey(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_PAGE_UP
-                || keyCode == GLFW.GLFW_KEY_PAGE_DOWN
-                || keyCode == GLFW.GLFW_KEY_HOME
-                || keyCode == GLFW.GLFW_KEY_END;
+        return keyCode == InputConstants.KEY_PAGEUP
+                || keyCode == InputConstants.KEY_PAGEDOWN
+                || keyCode == InputConstants.KEY_HOME
+                || keyCode == InputConstants.KEY_END;
     }
 
     private boolean ensureCommandInput() {
@@ -7113,8 +7118,8 @@ public final class OmniWheelProfilesOverlay {
     private void restoreGameplayInput(Minecraft minecraft) {
         for (KeyMapping keyMapping : gameplayKeyMappings(minecraft)) {
             InputConstants.Key key = OmniWheelKeyMappings.currentKey(keyMapping);
-            if (key.getType() == InputConstants.Type.KEYSYM) {
-                keyMapping.setDown(InputConstants.isKeyDown(minecraft.getWindow(), key.getValue()));
+            if (key.getType() == InputConstants.Type.KEYBOARD) {
+                keyMapping.setDown(InputConstants.isKeyDown(key.getValue()));
             }
         }
     }
@@ -7148,49 +7153,49 @@ public final class OmniWheelProfilesOverlay {
 
     private boolean isShiftModifierDown() {
         Minecraft minecraft = Minecraft.getInstance();
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
     }
 
     private boolean isControlModifierDown() {
         Minecraft minecraft = Minecraft.getInstance();
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
+        return InputConstants.isKeyDown(InputConstants.KEY_LCONTROL)
+                || InputConstants.isKeyDown(InputConstants.KEY_RCONTROL);
     }
 
     private static Character typedCharacterForKey(int key, boolean shiftDown) {
-        if (key >= GLFW.GLFW_KEY_A && key <= GLFW.GLFW_KEY_Z) {
-            char base = (char) ('a' + (key - GLFW.GLFW_KEY_A));
+        if (key >= InputConstants.KEY_A && key <= InputConstants.KEY_Z) {
+            char base = (char) ('a' + (key - InputConstants.KEY_A));
             return shiftDown ? Character.toUpperCase(base) : base;
         }
-        if (key >= GLFW.GLFW_KEY_0 && key <= GLFW.GLFW_KEY_9) {
+        if (key >= InputConstants.KEY_1 && key <= InputConstants.KEY_0) {
             return switch (key) {
-                case GLFW.GLFW_KEY_0 -> shiftDown ? ')' : '0';
-                case GLFW.GLFW_KEY_1 -> shiftDown ? '!' : '1';
-                case GLFW.GLFW_KEY_2 -> shiftDown ? '@' : '2';
-                case GLFW.GLFW_KEY_3 -> shiftDown ? '#' : '3';
-                case GLFW.GLFW_KEY_4 -> shiftDown ? '$' : '4';
-                case GLFW.GLFW_KEY_5 -> shiftDown ? '%' : '5';
-                case GLFW.GLFW_KEY_6 -> shiftDown ? '^' : '6';
-                case GLFW.GLFW_KEY_7 -> shiftDown ? '&' : '7';
-                case GLFW.GLFW_KEY_8 -> shiftDown ? '*' : '8';
-                case GLFW.GLFW_KEY_9 -> shiftDown ? '(' : '9';
+                case InputConstants.KEY_0 -> shiftDown ? ')' : '0';
+                case InputConstants.KEY_1 -> shiftDown ? '!' : '1';
+                case InputConstants.KEY_2 -> shiftDown ? '@' : '2';
+                case InputConstants.KEY_3 -> shiftDown ? '#' : '3';
+                case InputConstants.KEY_4 -> shiftDown ? '$' : '4';
+                case InputConstants.KEY_5 -> shiftDown ? '%' : '5';
+                case InputConstants.KEY_6 -> shiftDown ? '^' : '6';
+                case InputConstants.KEY_7 -> shiftDown ? '&' : '7';
+                case InputConstants.KEY_8 -> shiftDown ? '*' : '8';
+                case InputConstants.KEY_9 -> shiftDown ? '(' : '9';
                 default -> null;
             };
         }
         return switch (key) {
-            case GLFW.GLFW_KEY_SPACE -> ' ';
-            case GLFW.GLFW_KEY_APOSTROPHE -> shiftDown ? '"' : '\'';
-            case GLFW.GLFW_KEY_COMMA -> shiftDown ? '<' : ',';
-            case GLFW.GLFW_KEY_MINUS -> shiftDown ? '_' : '-';
-            case GLFW.GLFW_KEY_PERIOD -> shiftDown ? '>' : '.';
-            case GLFW.GLFW_KEY_SLASH -> shiftDown ? '?' : '/';
-            case GLFW.GLFW_KEY_SEMICOLON -> shiftDown ? ':' : ';';
-            case GLFW.GLFW_KEY_EQUAL -> shiftDown ? '+' : '=';
-            case GLFW.GLFW_KEY_LEFT_BRACKET -> shiftDown ? '{' : '[';
-            case GLFW.GLFW_KEY_BACKSLASH -> shiftDown ? '|' : '\\';
-            case GLFW.GLFW_KEY_RIGHT_BRACKET -> shiftDown ? '}' : ']';
-            case GLFW.GLFW_KEY_GRAVE_ACCENT -> shiftDown ? '~' : '`';
+            case InputConstants.KEY_SPACE -> ' ';
+            case InputConstants.KEY_APOSTROPHE -> shiftDown ? '"' : '\'';
+            case InputConstants.KEY_COMMA -> shiftDown ? '<' : ',';
+            case InputConstants.KEY_MINUS -> shiftDown ? '_' : '-';
+            case InputConstants.KEY_PERIOD -> shiftDown ? '>' : '.';
+            case InputConstants.KEY_SLASH -> shiftDown ? '?' : '/';
+            case InputConstants.KEY_SEMICOLON -> shiftDown ? ':' : ';';
+            case InputConstants.KEY_EQUALS -> shiftDown ? '+' : '=';
+            case InputConstants.KEY_LBRACKET -> shiftDown ? '{' : '[';
+            case InputConstants.KEY_BACKSLASH -> shiftDown ? '|' : '\\';
+            case InputConstants.KEY_RBRACKET -> shiftDown ? '}' : ']';
+            case InputConstants.KEY_GRAVE -> shiftDown ? '~' : '`';
             default -> null;
         };
     }
@@ -7210,33 +7215,33 @@ public final class OmniWheelProfilesOverlay {
 
     private static int[] createPolledKeys() {
         List<Integer> keys = new ArrayList<>();
-        for (int key = GLFW.GLFW_KEY_A; key <= GLFW.GLFW_KEY_Z; key++) {
+        for (int key = InputConstants.KEY_A; key <= InputConstants.KEY_Z; key++) {
             keys.add(key);
         }
-        for (int key = GLFW.GLFW_KEY_0; key <= GLFW.GLFW_KEY_9; key++) {
+        for (int key = InputConstants.KEY_1; key <= InputConstants.KEY_0; key++) {
             keys.add(key);
         }
-        keys.add(GLFW.GLFW_KEY_SPACE);
-        keys.add(GLFW.GLFW_KEY_APOSTROPHE);
-        keys.add(GLFW.GLFW_KEY_COMMA);
-        keys.add(GLFW.GLFW_KEY_MINUS);
-        keys.add(GLFW.GLFW_KEY_PERIOD);
-        keys.add(GLFW.GLFW_KEY_SLASH);
-        keys.add(GLFW.GLFW_KEY_SEMICOLON);
-        keys.add(GLFW.GLFW_KEY_EQUAL);
-        keys.add(GLFW.GLFW_KEY_LEFT_BRACKET);
-        keys.add(GLFW.GLFW_KEY_BACKSLASH);
-        keys.add(GLFW.GLFW_KEY_RIGHT_BRACKET);
-        keys.add(GLFW.GLFW_KEY_GRAVE_ACCENT);
-        keys.add(GLFW.GLFW_KEY_BACKSPACE);
-        keys.add(GLFW.GLFW_KEY_DELETE);
-        keys.add(GLFW.GLFW_KEY_LEFT);
-        keys.add(GLFW.GLFW_KEY_RIGHT);
-        keys.add(GLFW.GLFW_KEY_HOME);
-        keys.add(GLFW.GLFW_KEY_END);
-        keys.add(GLFW.GLFW_KEY_TAB);
-        keys.add(GLFW.GLFW_KEY_ENTER);
-        keys.add(GLFW.GLFW_KEY_KP_ENTER);
+        keys.add(InputConstants.KEY_SPACE);
+        keys.add(InputConstants.KEY_APOSTROPHE);
+        keys.add(InputConstants.KEY_COMMA);
+        keys.add(InputConstants.KEY_MINUS);
+        keys.add(InputConstants.KEY_PERIOD);
+        keys.add(InputConstants.KEY_SLASH);
+        keys.add(InputConstants.KEY_SEMICOLON);
+        keys.add(InputConstants.KEY_EQUALS);
+        keys.add(InputConstants.KEY_LBRACKET);
+        keys.add(InputConstants.KEY_BACKSLASH);
+        keys.add(InputConstants.KEY_RBRACKET);
+        keys.add(InputConstants.KEY_GRAVE);
+        keys.add(InputConstants.KEY_BACKSPACE);
+        keys.add(InputConstants.KEY_DELETE);
+        keys.add(InputConstants.KEY_LEFT);
+        keys.add(InputConstants.KEY_RIGHT);
+        keys.add(InputConstants.KEY_HOME);
+        keys.add(InputConstants.KEY_END);
+        keys.add(InputConstants.KEY_TAB);
+        keys.add(InputConstants.KEY_RETURN);
+        keys.add(InputConstants.KEY_NUMPADENTER);
         return keys.stream().mapToInt(Integer::intValue).toArray();
     }
 

@@ -38,8 +38,8 @@ public abstract class KeyMappingMixin {
 
     // Route the virtual event directly to its target, even when it is unbound.
     // Never broadcast to other mappings sharing a key (including the unbound key).
-    @Inject(method = "forAllKeyMappings", at = @At("HEAD"), cancellable = true)
-    private static void omniwheel$routeSyntheticInput(InputConstants.Key key, Consumer<KeyMapping> consumer, CallbackInfo ci) {
+    @Inject(method = "forAllKeyMappings(Lcom/mojang/blaze3d/platform/InputConstants$Key;Ljava/util/function/Consumer;Z)V", at = @At("HEAD"), cancellable = true)
+    private static void omniwheel$routeSyntheticInput(InputConstants.Key key, Consumer<KeyMapping> consumer, boolean releasing, CallbackInfo ci) {
         SyntheticKeybindInput input = SyntheticKeybindInput.current();
         if (input != null && input.routes(key)) {
             consumer.accept(input.target());

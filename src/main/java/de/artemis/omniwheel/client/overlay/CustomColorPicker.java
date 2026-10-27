@@ -1,10 +1,10 @@
 package de.artemis.omniwheel.client.overlay;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.client.render.LiftedRowRenderer;
 import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import org.lwjgl.glfw.GLFW;
 
 import java.awt.Color;
 import java.util.Locale;
@@ -107,7 +107,7 @@ final class CustomColorPicker {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
     boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) return true;
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) return true;
         if (inside(mouseX, mouseY, x + 12, y + 32, BOARD_WIDTH, BOARD_HEIGHT)) focus = dragging = 0;
         else if (inside(mouseX, mouseY, x + 214, y + 32, 22, BOARD_HEIGHT)) focus = dragging = 1;
         else if (inside(mouseX, mouseY, x + 12, y + 155, 138, 22)) { focus = 2; replaceHex = true; }
@@ -126,22 +126,22 @@ final class CustomColorPicker {
     }
     boolean mouseReleased() { dragging = -1; return true; }
     boolean keyPressed(int key, int modifiers) {
-        if (key == GLFW.GLFW_KEY_ESCAPE) close();
-        else if (key == GLFW.GLFW_KEY_TAB) focus = Math.floorMod(focus + ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 ? -1 : 1), 5);
-        else if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER || key == GLFW.GLFW_KEY_SPACE && focus >= 3) {
+        if (key == InputConstants.KEY_ESCAPE) close();
+        else if (key == InputConstants.KEY_TAB) focus = Math.floorMod(focus + ((modifiers & InputConstants.MOD_SHIFT) != 0 ? -1 : 1), 5);
+        else if (key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER || key == InputConstants.KEY_SPACE && focus >= 3) {
             if (focus == 3) close(); else apply();
         } else if (focus == 2) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && key == GLFW.GLFW_KEY_V) {
+            if ((modifiers & InputConstants.MOD_CONTROL) != 0 && key == InputConstants.KEY_V) {
                 String pasted = Minecraft.getInstance().keyboardHandler.getClipboard().trim().replaceFirst("^#", "");
                 if (pasted.matches("(?i)[0-9a-f]{6}")) { hex = pasted.toUpperCase(Locale.ROOT); setColor(Integer.parseInt(hex, 16)); replaceHex = true; }
-            } else if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && key == GLFW.GLFW_KEY_A) replaceHex = true;
-            else if (key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE) {
+            } else if ((modifiers & InputConstants.MOD_CONTROL) != 0 && key == InputConstants.KEY_A) replaceHex = true;
+            else if (key == InputConstants.KEY_BACKSPACE || key == InputConstants.KEY_DELETE) {
                 hex = replaceHex ? "" : hex.isEmpty() ? "" : hex.substring(0, hex.length() - 1); replaceHex = false;
             }
         } else if (focus <= 1) {
-            float direction = key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_DOWN ? -1 : key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_UP ? 1 : 0;
+            float direction = key == InputConstants.KEY_LEFT || key == InputConstants.KEY_DOWN ? -1 : key == InputConstants.KEY_RIGHT || key == InputConstants.KEY_UP ? 1 : 0;
             if (focus == 1) hue = (hue + direction / 100 + 1) % 1;
-            else if (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT) saturation = Math.clamp(saturation + direction / 100, 0, 1);
+            else if (key == InputConstants.KEY_LEFT || key == InputConstants.KEY_RIGHT) saturation = Math.clamp(saturation + direction / 100, 0, 1);
             else brightness = Math.clamp(brightness + direction / 100, 0, 1);
             if (direction != 0) syncHex();
         }

@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Minecraft-26.2-3C8527?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 26.2">
+  <img src="https://img.shields.io/badge/Minecraft-26.3-3C8527?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 26.3">
   &nbsp;&nbsp;&nbsp;
-  <img src="https://img.shields.io/badge/Loader-Fabric-DBD0B4?style=for-the-badge" alt="Fabric">
+  <img src="https://img.shields.io/badge/Loader-NeoForge-6C47FF?style=for-the-badge" alt="NeoForge">
 </p>
 
 <p align="center">
@@ -97,7 +97,7 @@
 </p>
 
 <p align="center">
-  Follow the project, browse the source, or join the community for updates, previews, and modding help.
+  Follow the project, browse releases, or join the community for updates, previews, and modding help.
 </p>
 
 <p align="center">
@@ -129,7 +129,7 @@
 </p>
 
 <p align="center">
-  &bull; The FabricMC team for Fabric and its documentation<br>
+  &bull; The NeoForged team for NeoForge and its documentation<br>
   &bull; The Minecraft modding community for examples, tools, and support<br>
   &bull; The Intelligence Modding community for feedback, testing, and ideas<br>
   &bull; Everyone who reports issues, suggests improvements, or uses Omni Wheel in their worlds, servers, or modpacks

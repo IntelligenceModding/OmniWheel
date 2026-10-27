@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'net.neoforged.moddev' version '2.0.148'
     id 'idea'
 }
 
@@ -9,72 +9,61 @@ tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-version = "${mod_version}-fabric-mc${minecraft_version}"
+version = "${mod_version}-neoforge-mc${minecraft_version}"
 group = mod_group_id
 
 base {
     archivesName = mod_id
 }
 
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.INFO
+            gameDirectory = project.layout.projectDirectory.dir("run/${name}")
+        }
+
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        gameTestServer {
+            type = 'gameTestServer'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
 }
 
 repositories {
     mavenCentral()
-    maven {
-        name = 'Terraformers'
-        url = 'https://maven.terraformersmc.com/'
-    }
-    maven {
-        name = 'Modrinth'
-        url = 'https://api.modrinth.com/maven'
-    }
-    maven {
-        name = 'Nucleoid'
-        url = 'https://maven.nucleoid.xyz/'
-    }
-}
-
-loom {
-    runs {
-        client {
-            client()
-            runDir "run/client"
-        }
-        server {
-            server()
-            runDir "run/server"
-        }
-    }
 }
 
 dependencies {
-    testImplementation "junit:junit:4.13.2"
-    minecraft "com.mojang:minecraft:${minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
-    localRuntime "com.terraformersmc:modmenu:${modmenu_version}"
-    localRuntime "maven.modrinth:${placeholder_api_project}:${placeholder_api_version}"
+    testImplementation 'junit:junit:4.13.2'
 }
 
-tasks.named('processResources', ProcessResources).configure {
-    inputs.properties([
-            mod_id            : mod_id,
-            mod_name          : mod_name,
-            mod_license       : mod_license,
-            mod_version       : mod_version,
-            mod_authors       : mod_authors,
-            mod_description   : mod_description,
-            minecraft_version : minecraft_version,
-            loader_version    : loader_version,
-            fabric_api_version: fabric_api_version,
-            placeholder_api_min_version: placeholder_api_min_version
-    ])
-
-    filesMatching('fabric.mod.json') {
-        expand inputs.properties
-    }
+sourceSets.test {
+    compileClasspath += sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.runtimeClasspath
 }
 
 publishing {
@@ -93,6 +82,28 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 25
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+
+    inputs.properties replaceProperties
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand replaceProperties
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 idea {

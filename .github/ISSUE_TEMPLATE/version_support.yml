@@ -18,7 +18,7 @@ body:
     id: minecraft-version
     attributes:
       label: Requested Minecraft Version
-      placeholder: "Example: 26.2"
+      placeholder: "Example: 26.3"
     validations:
       required: true
 
@@ -26,7 +26,7 @@ body:
     id: loader
     attributes:
       label: Requested Mod Loader
-      placeholder: "Example: Fabric"
+      placeholder: "Example: NeoForge"
     validations:
       required: true
 

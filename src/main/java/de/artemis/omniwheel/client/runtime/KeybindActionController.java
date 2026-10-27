@@ -5,7 +5,6 @@ import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.input.SyntheticKeybindInput;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -32,7 +31,7 @@ public final class KeybindActionController {
     public void startTick(Minecraft minecraft) {
         for (KeyMapping mapping : pressed) {
             if (minecraft.player != null && minecraft.level != null) {
-                SyntheticKeybindInput.dispatch(minecraft, mapping, GLFW.GLFW_RELEASE);
+                SyntheticKeybindInput.dispatch(minecraft, mapping, InputConstants.RELEASE);
             }
             mapping.setDown(isPhysicallyDown(minecraft, mapping));
         }
@@ -47,7 +46,7 @@ public final class KeybindActionController {
             if (mapping == null) {
                 continue;
             }
-            SyntheticKeybindInput.dispatch(minecraft, mapping, GLFW.GLFW_PRESS);
+            SyntheticKeybindInput.dispatch(minecraft, mapping, InputConstants.PRESS);
             pressed.add(mapping);
         }
         pending.clear();
@@ -58,11 +57,9 @@ public final class KeybindActionController {
         if (key.getValue() < 0) {
             return false;
         }
-        var window = minecraft.getWindow();
         return switch (key.getType()) {
-            case KEYSYM -> InputConstants.isKeyDown(window, key.getValue());
-            case SCANCODE -> GLFW.glfwGetKey(window.handle(), key.getValue()) == GLFW.GLFW_PRESS;
-            case MOUSE -> GLFW.glfwGetMouseButton(window.handle(), key.getValue()) == GLFW.GLFW_PRESS;
+            case KEYBOARD -> InputConstants.isKeyDown(key.getValue());
+            case MOUSE -> (org.lwjgl.sdl.SDLMouse.SDL_GetMouseState(null, null) & (1 << (key.getValue() - 1))) != 0;
             default -> false;
         };
     }

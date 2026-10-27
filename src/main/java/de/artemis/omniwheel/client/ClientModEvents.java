@@ -3,48 +3,53 @@ package de.artemis.omniwheel.client;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.runtime.OmniWheelClientRuntime;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
-import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
-import net.fabricmc.fabric.api.resource.v1.reloader.SimpleReloadListener;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 
 import static de.artemis.omniwheel.OmniWheel.MOD_ID;
 
 public final class ClientModEvents {
+    private static final Identifier OVERLAY_ID = Identifier.fromNamespaceAndPath(MOD_ID, "wheel");
+
     private ClientModEvents() {
     }
 
-    public static void register() {
-        OmniWheelKeyMappings.register();
-        ResourceLoader resources = ResourceLoader.get(PackType.CLIENT_RESOURCES);
-        Identifier iconValidation = Identifier.fromNamespaceAndPath(MOD_ID, "icon_validation");
-        resources.registerReloadListener(iconValidation, new SimpleReloadListener<Void>() {
-            @Override
-            protected Void prepare(PreparableReloadListener.SharedState state) {
-                return null;
-            }
-
-            @Override
-            protected void apply(Void unused, PreparableReloadListener.SharedState state) {
-                EntryIconRenderer.clearResourceCaches();
-            }
-        });
-        resources.addListenerOrdering(ResourceReloaderKeys.Client.ATLAS, iconValidation);
-        resources.addListenerOrdering(ResourceReloaderKeys.Client.MODELS, iconValidation);
-        resources.addListenerOrdering(ResourceReloaderKeys.Client.PARTICLES, iconValidation);
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "wheel"), (graphics, deltaTracker) ->
-                OmniWheelClientRuntime.getInstance().renderOverlay(graphics));
-        ClientTickEvents.START_CLIENT_TICK.register(minecraft ->
-                OmniWheelClientRuntime.getInstance().keybindController().startTick(minecraft));
-        ClientTickEvents.END_CLIENT_TICK.register(ignored -> onClientTick());
+    public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
+        OmniWheelKeyMappings.register(event);
     }
 
-    private static void onClientTick() {
+    public static void registerReloadListeners(AddClientReloadListenersEvent event) {
+        Identifier iconValidation = Identifier.fromNamespaceAndPath(MOD_ID, "icon_validation");
+        event.addListener(iconValidation, (ResourceManagerReloadListener) resources -> EntryIconRenderer.clearResourceCaches());
+        event.addDependency(VanillaClientListeners.ATLASES, iconValidation);
+        event.addDependency(VanillaClientListeners.MODELS, iconValidation);
+        event.addDependency(VanillaClientListeners.PARTICLE_RESOURCES, iconValidation);
+    }
+
+    public static void onClientTickPre(ClientTickEvent.Pre event) {
+        OmniWheelClientRuntime.getInstance().keybindController().startTick(Minecraft.getInstance());
+    }
+
+    public static void registerGuiLayers(RegisterGuiLayersEvent event) {
+        event.registerAbove(VanillaGuiLayers.EXPERIENCE_LEVEL, OVERLAY_ID, (graphics, deltaTracker) ->
+                OmniWheelClientRuntime.getInstance().renderOverlay(graphics));
+    }
+
+    public static void onRenderGuiLayerPre(RenderGuiLayerEvent.Pre event) {
+        if (VanillaGuiLayers.CROSSHAIR.equals(event.getName()) && OmniWheelClientRuntime.getInstance().isOverlayUiOpen()) {
+            event.setCanceled(true);
+        }
+    }
+
+    public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         while (OmniWheelKeyMappings.OPEN_MANAGER.consumeClick()) {
             OmniWheelClientRuntime.getInstance().openProfileManagerShortcut();
@@ -56,4 +61,5 @@ public final class ClientModEvents {
 
         OmniWheelClientRuntime.getInstance().tick();
     }
+
 }

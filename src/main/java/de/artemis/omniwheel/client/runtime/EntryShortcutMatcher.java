@@ -1,8 +1,9 @@
 package de.artemis.omniwheel.client.runtime;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.sdl.SDLScancode;
 import com.mojang.blaze3d.platform.Window;
 import de.artemis.omniwheel.client.input.ShortcutInputState;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -45,7 +46,7 @@ public final class EntryShortcutMatcher {
                         boolean mouse = token.startsWith("mouse");
                         Integer code = parseCode(token.substring(mouse ? 5 : 4));
                         if (code == null || mouse && code == 0) return null;
-                        (mouse ? mouseButtons : scanCodes).add(mouse ? code - 1 : code);
+                        (mouse ? mouseButtons : scanCodes).add(mouse ? mouseButton(code) : code);
                         continue;
                     }
                     Integer key = resolveKey(token);
@@ -74,9 +75,9 @@ public final class EntryShortcutMatcher {
 
     public static String captureShortcutText(Window window, int keyCode, int scanCode, int modifiers) {
         if (isModifierOnlyKey(keyCode)
-                || keyCode == GLFW.GLFW_KEY_ESCAPE
-                || keyCode == GLFW.GLFW_KEY_ENTER
-                || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                || keyCode == InputConstants.KEY_ESCAPE
+                || keyCode == InputConstants.KEY_RETURN
+                || keyCode == InputConstants.KEY_NUMPADENTER) {
             return null;
         }
 
@@ -84,42 +85,52 @@ public final class EntryShortcutMatcher {
         int modifierCount = parts.size();
         Set<Integer> pressedKeys = collectPressedKeys(window, keyCode);
         for (int pressedKey : pressedKeys) parts.add(labelForKey(pressedKey));
-        Set<Integer> scans = new TreeSet<>(ShortcutInputState.unknownScans());
-        if (keyCode == GLFW.GLFW_KEY_UNKNOWN && scanCode >= 0) scans.add(scanCode);
-        for (int scan : scans) parts.add("Scan" + scan);
-        for (int button : new TreeSet<>(ShortcutInputState.mouseButtons())) parts.add("Mouse" + (button + 1));
+        for (int button : new TreeSet<>(ShortcutInputState.mouseButtons())) parts.add("Mouse" + mouseLabel(button));
         return parts.size() == modifierCount ? null : String.join("+", parts);
     }
 
     public static String captureMouseShortcutText(Window window, int button) {
-        if (button < 0 || button == Integer.MAX_VALUE) return null;
+        if (button <= 0 || button == Integer.MAX_VALUE) return null;
         int modifiers = 0;
-        if (ShortcutSpec.isCtrlDown(window)) modifiers |= GLFW.GLFW_MOD_CONTROL;
-        if (ShortcutSpec.isShiftDown(window)) modifiers |= GLFW.GLFW_MOD_SHIFT;
-        if (ShortcutSpec.isAltDown(window)) modifiers |= GLFW.GLFW_MOD_ALT;
-        if (ShortcutSpec.isSuperDown(window)) modifiers |= GLFW.GLFW_MOD_SUPER;
+        if (ShortcutSpec.isCtrlDown(window)) modifiers |= InputConstants.MOD_CONTROL;
+        if (ShortcutSpec.isShiftDown(window)) modifiers |= InputConstants.MOD_SHIFT;
+        if (ShortcutSpec.isAltDown(window)) modifiers |= InputConstants.MOD_ALT;
+        if (ShortcutSpec.isSuperDown(window)) modifiers |= InputConstants.MOD_SUPER;
         List<String> parts = modifierLabels(modifiers);
         for (int key : collectPressedKeys(window, -1)) parts.add(labelForKey(key));
-        for (int scan : new TreeSet<>(ShortcutInputState.unknownScans())) parts.add("Scan" + scan);
         Set<Integer> buttons = new TreeSet<>(ShortcutInputState.mouseButtons());
         buttons.add(button);
-        for (int pressed : buttons) parts.add("Mouse" + (pressed + 1));
+        for (int pressed : buttons) parts.add("Mouse" + mouseLabel(pressed));
         return String.join("+", parts);
+    }
+
+    // Keep saved Mouse2 (right) and Mouse3 (middle) shortcuts compatible with older profiles.
+    private static int mouseButton(int label) {
+        return switch (label) {
+            case 2 -> InputConstants.MOUSE_BUTTON_RIGHT;
+            case 3 -> InputConstants.MOUSE_BUTTON_MIDDLE;
+            default -> label;
+        };
+    }
+
+    private static int mouseLabel(int button) {
+        return button == InputConstants.MOUSE_BUTTON_RIGHT ? 2
+                : button == InputConstants.MOUSE_BUTTON_MIDDLE ? 3 : button;
     }
 
     private static List<String> modifierLabels(int modifiers) {
         List<String> parts = new ArrayList<>();
-        if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+        if ((modifiers & InputConstants.MOD_CONTROL) != 0) {
             parts.add("Strg");
         }
-        if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
+        if ((modifiers & InputConstants.MOD_SHIFT) != 0) {
             parts.add("Shift");
         }
-        if ((modifiers & GLFW.GLFW_MOD_ALT) != 0) {
+        if ((modifiers & InputConstants.MOD_ALT) != 0) {
             parts.add("Alt");
         }
 
-        if ((modifiers & GLFW.GLFW_MOD_SUPER) != 0) parts.add("Super");
+        if ((modifiers & InputConstants.MOD_SUPER) != 0) parts.add("Super");
         return parts;
     }
 
@@ -133,18 +144,18 @@ public final class EntryShortcutMatcher {
         if (token.length() == 1) {
             char character = token.charAt(0);
             if (character >= 'a' && character <= 'z') {
-                return GLFW.GLFW_KEY_A + (character - 'a');
+                return InputConstants.KEY_A + (character - 'a');
             }
             if (character >= '0' && character <= '9') {
-                return GLFW.GLFW_KEY_0 + (character - '0');
+                return character == '0' ? InputConstants.KEY_0 : InputConstants.KEY_1 + (character - '1');
             }
         }
 
         if (token.startsWith("f")) {
             try {
                 int functionIndex = Integer.parseInt(token.substring(1));
-                if (functionIndex >= 1 && functionIndex <= 25) {
-                    return GLFW.GLFW_KEY_F1 + (functionIndex - 1);
+                if (functionIndex >= 1 && functionIndex <= 24) {
+                    return functionIndex <= 12 ? InputConstants.KEY_F1 + functionIndex - 1 : InputConstants.KEY_F13 + functionIndex - 13;
                 }
             } catch (NumberFormatException ignored) {
             }
@@ -153,82 +164,82 @@ public final class EntryShortcutMatcher {
         if (token.startsWith("key")) {
             try {
                 int key = Integer.parseInt(token.substring(3));
-                return key >= GLFW.GLFW_KEY_SPACE && key <= GLFW.GLFW_KEY_LAST ? key : null;
+                return key > SDLScancode.SDL_SCANCODE_UNKNOWN && key <= (SDLScancode.SDL_SCANCODE_COUNT - 1) ? key : null;
             } catch (NumberFormatException ignored) {
                 return null;
             }
         }
 
         return switch (token) {
-            case "space" -> GLFW.GLFW_KEY_SPACE;
-            case "tab" -> GLFW.GLFW_KEY_TAB;
-            case "enter", "return" -> GLFW.GLFW_KEY_ENTER;
-            case "esc", "escape" -> GLFW.GLFW_KEY_ESCAPE;
-            case "del", "delete" -> GLFW.GLFW_KEY_DELETE;
-            case "backspace" -> GLFW.GLFW_KEY_BACKSPACE;
-            case "insert", "ins" -> GLFW.GLFW_KEY_INSERT;
-            case "home" -> GLFW.GLFW_KEY_HOME;
-            case "end" -> GLFW.GLFW_KEY_END;
-            case "pageup", "pgup" -> GLFW.GLFW_KEY_PAGE_UP;
-            case "pagedown", "pgdn" -> GLFW.GLFW_KEY_PAGE_DOWN;
-            case "left" -> GLFW.GLFW_KEY_LEFT;
-            case "right" -> GLFW.GLFW_KEY_RIGHT;
-            case "up" -> GLFW.GLFW_KEY_UP;
-            case "down" -> GLFW.GLFW_KEY_DOWN;
-            case "capslock" -> GLFW.GLFW_KEY_CAPS_LOCK;
-            case "scrolllock" -> GLFW.GLFW_KEY_SCROLL_LOCK;
-            case "numlock" -> GLFW.GLFW_KEY_NUM_LOCK;
-            case "printscreen" -> GLFW.GLFW_KEY_PRINT_SCREEN;
-            case "pause" -> GLFW.GLFW_KEY_PAUSE;
-            case "menu", "application" -> GLFW.GLFW_KEY_MENU;
-            case "world1" -> GLFW.GLFW_KEY_WORLD_1;
-            case "world2" -> GLFW.GLFW_KEY_WORLD_2;
-            case "comma" -> GLFW.GLFW_KEY_COMMA;
-            case "period", "dot" -> GLFW.GLFW_KEY_PERIOD;
-            case "slash" -> GLFW.GLFW_KEY_SLASH;
-            case "semicolon" -> GLFW.GLFW_KEY_SEMICOLON;
-            case "apostrophe", "quote" -> GLFW.GLFW_KEY_APOSTROPHE;
-            case "equal", "equals" -> GLFW.GLFW_KEY_EQUAL;
-            case "minus" -> GLFW.GLFW_KEY_MINUS;
-            case "leftbracket", "lbracket" -> GLFW.GLFW_KEY_LEFT_BRACKET;
-            case "rightbracket", "rbracket" -> GLFW.GLFW_KEY_RIGHT_BRACKET;
-            case "backslash" -> GLFW.GLFW_KEY_BACKSLASH;
-            case "grave", "backtick" -> GLFW.GLFW_KEY_GRAVE_ACCENT;
-            case "numpad0", "num0", "kp0" -> GLFW.GLFW_KEY_KP_0;
-            case "numpad1", "num1", "kp1" -> GLFW.GLFW_KEY_KP_1;
-            case "numpad2", "num2", "kp2" -> GLFW.GLFW_KEY_KP_2;
-            case "numpad3", "num3", "kp3" -> GLFW.GLFW_KEY_KP_3;
-            case "numpad4", "num4", "kp4" -> GLFW.GLFW_KEY_KP_4;
-            case "numpad5", "num5", "kp5" -> GLFW.GLFW_KEY_KP_5;
-            case "numpad6", "num6", "kp6" -> GLFW.GLFW_KEY_KP_6;
-            case "numpad7", "num7", "kp7" -> GLFW.GLFW_KEY_KP_7;
-            case "numpad8", "num8", "kp8" -> GLFW.GLFW_KEY_KP_8;
-            case "numpad9", "num9", "kp9" -> GLFW.GLFW_KEY_KP_9;
-            case "numpaddecimal", "numdecimal", "kpdecimal" -> GLFW.GLFW_KEY_KP_DECIMAL;
-            case "numpaddivide", "numdivide", "kpdivide" -> GLFW.GLFW_KEY_KP_DIVIDE;
-            case "numpadmultiply", "nummultiply", "kpmultiply" -> GLFW.GLFW_KEY_KP_MULTIPLY;
-            case "numpadsubtract", "numsubtract", "kpsubtract" -> GLFW.GLFW_KEY_KP_SUBTRACT;
-            case "numpadadd", "numadd", "kpadd", "plus" -> GLFW.GLFW_KEY_KP_ADD;
-            case "numpadenter", "numenter", "kpenter" -> GLFW.GLFW_KEY_KP_ENTER;
-            case "numpadequal", "numequal", "kpequal" -> GLFW.GLFW_KEY_KP_EQUAL;
+            case "space" -> InputConstants.KEY_SPACE;
+            case "tab" -> InputConstants.KEY_TAB;
+            case "enter", "return" -> InputConstants.KEY_RETURN;
+            case "esc", "escape" -> InputConstants.KEY_ESCAPE;
+            case "del", "delete" -> InputConstants.KEY_DELETE;
+            case "backspace" -> InputConstants.KEY_BACKSPACE;
+            case "insert", "ins" -> InputConstants.KEY_INSERT;
+            case "home" -> InputConstants.KEY_HOME;
+            case "end" -> InputConstants.KEY_END;
+            case "pageup", "pgup" -> InputConstants.KEY_PAGEUP;
+            case "pagedown", "pgdn" -> InputConstants.KEY_PAGEDOWN;
+            case "left" -> InputConstants.KEY_LEFT;
+            case "right" -> InputConstants.KEY_RIGHT;
+            case "up" -> InputConstants.KEY_UP;
+            case "down" -> InputConstants.KEY_DOWN;
+            case "capslock" -> InputConstants.KEY_CAPSLOCK;
+            case "scrolllock" -> InputConstants.KEY_SCROLLLOCK;
+            case "numlock" -> InputConstants.KEY_NUMLOCK;
+            case "printscreen" -> InputConstants.KEY_PRINTSCREEN;
+            case "pause" -> InputConstants.KEY_PAUSE;
+            case "menu", "application" -> SDLScancode.SDL_SCANCODE_APPLICATION;
+            case "world1" -> SDLScancode.SDL_SCANCODE_INTERNATIONAL1;
+            case "world2" -> SDLScancode.SDL_SCANCODE_INTERNATIONAL2;
+            case "comma" -> InputConstants.KEY_COMMA;
+            case "period", "dot" -> InputConstants.KEY_PERIOD;
+            case "slash" -> InputConstants.KEY_SLASH;
+            case "semicolon" -> InputConstants.KEY_SEMICOLON;
+            case "apostrophe", "quote" -> InputConstants.KEY_APOSTROPHE;
+            case "equal", "equals" -> InputConstants.KEY_EQUALS;
+            case "minus" -> InputConstants.KEY_MINUS;
+            case "leftbracket", "lbracket" -> InputConstants.KEY_LBRACKET;
+            case "rightbracket", "rbracket" -> InputConstants.KEY_RBRACKET;
+            case "backslash" -> InputConstants.KEY_BACKSLASH;
+            case "grave", "backtick" -> InputConstants.KEY_GRAVE;
+            case "numpad0", "num0", "kp0" -> InputConstants.KEY_NUMPAD0;
+            case "numpad1", "num1", "kp1" -> InputConstants.KEY_NUMPAD1;
+            case "numpad2", "num2", "kp2" -> InputConstants.KEY_NUMPAD2;
+            case "numpad3", "num3", "kp3" -> InputConstants.KEY_NUMPAD3;
+            case "numpad4", "num4", "kp4" -> InputConstants.KEY_NUMPAD4;
+            case "numpad5", "num5", "kp5" -> InputConstants.KEY_NUMPAD5;
+            case "numpad6", "num6", "kp6" -> InputConstants.KEY_NUMPAD6;
+            case "numpad7", "num7", "kp7" -> InputConstants.KEY_NUMPAD7;
+            case "numpad8", "num8", "kp8" -> InputConstants.KEY_NUMPAD8;
+            case "numpad9", "num9", "kp9" -> InputConstants.KEY_NUMPAD9;
+            case "numpaddecimal", "numdecimal", "kpdecimal" -> SDLScancode.SDL_SCANCODE_KP_PERIOD;
+            case "numpaddivide", "numdivide", "kpdivide" -> SDLScancode.SDL_SCANCODE_KP_DIVIDE;
+            case "numpadmultiply", "nummultiply", "kpmultiply" -> InputConstants.KEY_MULTIPLY;
+            case "numpadsubtract", "numsubtract", "kpsubtract" -> SDLScancode.SDL_SCANCODE_KP_MINUS;
+            case "numpadadd", "numadd", "kpadd", "plus" -> InputConstants.KEY_ADD;
+            case "numpadenter", "numenter", "kpenter" -> InputConstants.KEY_NUMPADENTER;
+            case "numpadequal", "numequal", "kpequal" -> InputConstants.KEY_NUMPADEQUALS;
             default -> null;
         };
     }
 
     private static boolean isModifierOnlyKey(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT
-                || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT
-                || keyCode == GLFW.GLFW_KEY_LEFT_CONTROL
-                || keyCode == GLFW.GLFW_KEY_RIGHT_CONTROL
-                || keyCode == GLFW.GLFW_KEY_LEFT_ALT
-                || keyCode == GLFW.GLFW_KEY_RIGHT_ALT
-                || keyCode == GLFW.GLFW_KEY_LEFT_SUPER
-                || keyCode == GLFW.GLFW_KEY_RIGHT_SUPER;
+        return keyCode == InputConstants.KEY_LSHIFT
+                || keyCode == InputConstants.KEY_RSHIFT
+                || keyCode == InputConstants.KEY_LCONTROL
+                || keyCode == InputConstants.KEY_RCONTROL
+                || keyCode == InputConstants.KEY_LALT
+                || keyCode == InputConstants.KEY_RALT
+                || keyCode == InputConstants.KEY_LGUI
+                || keyCode == InputConstants.KEY_RGUI;
     }
 
     private static Set<Integer> collectPressedKeys(Window window, int keyCode) {
         Set<Integer> keys = new LinkedHashSet<>();
-        for (int candidate = GLFW.GLFW_KEY_SPACE; candidate <= GLFW.GLFW_KEY_LAST; candidate++) {
+        for (int candidate = 1; candidate <= (SDLScancode.SDL_SCANCODE_COUNT - 1); candidate++) {
             if (isModifierOnlyKey(candidate)) {
                 continue;
             }
@@ -236,71 +247,73 @@ public final class EntryShortcutMatcher {
                 keys.add(candidate);
             }
         }
-        if (keyCode >= GLFW.GLFW_KEY_SPACE && keyCode <= GLFW.GLFW_KEY_LAST) keys.add(keyCode);
+        if (keyCode > SDLScancode.SDL_SCANCODE_UNKNOWN && keyCode <= (SDLScancode.SDL_SCANCODE_COUNT - 1)) keys.add(keyCode);
         return keys;
     }
 
     private static String labelForKey(int keyCode) {
-        if (keyCode >= GLFW.GLFW_KEY_A && keyCode <= GLFW.GLFW_KEY_Z) {
-            return Character.toString((char) ('A' + (keyCode - GLFW.GLFW_KEY_A)));
+        if (keyCode >= InputConstants.KEY_A && keyCode <= InputConstants.KEY_Z) {
+            return Character.toString((char) ('A' + (keyCode - InputConstants.KEY_A)));
         }
-        if (keyCode >= GLFW.GLFW_KEY_0 && keyCode <= GLFW.GLFW_KEY_9) {
-            return Character.toString((char) ('0' + (keyCode - GLFW.GLFW_KEY_0)));
+        if (keyCode == InputConstants.KEY_0 || keyCode >= InputConstants.KEY_1 && keyCode <= InputConstants.KEY_9) {
+            return keyCode == InputConstants.KEY_0 ? "0" : Character.toString((char) ('1' + keyCode - InputConstants.KEY_1));
         }
-        if (keyCode >= GLFW.GLFW_KEY_F1 && keyCode <= GLFW.GLFW_KEY_F25) {
-            return "F" + (keyCode - GLFW.GLFW_KEY_F1 + 1);
+        if (keyCode >= InputConstants.KEY_F1 && keyCode <= InputConstants.KEY_F12) {
+            return "F" + (keyCode - InputConstants.KEY_F1 + 1);
         }
 
+        if (keyCode >= InputConstants.KEY_F13 && keyCode <= InputConstants.KEY_F24) return "F" + (keyCode - InputConstants.KEY_F13 + 13);
+
         return switch (keyCode) {
-            case GLFW.GLFW_KEY_SPACE -> "Space";
-            case GLFW.GLFW_KEY_TAB -> "Tab";
-            case GLFW.GLFW_KEY_HOME -> "Home";
-            case GLFW.GLFW_KEY_END -> "End";
-            case GLFW.GLFW_KEY_PAGE_UP -> "PageUp";
-            case GLFW.GLFW_KEY_PAGE_DOWN -> "PageDown";
-            case GLFW.GLFW_KEY_UP -> "Up";
-            case GLFW.GLFW_KEY_DOWN -> "Down";
-            case GLFW.GLFW_KEY_LEFT -> "Left";
-            case GLFW.GLFW_KEY_RIGHT -> "Right";
-            case GLFW.GLFW_KEY_INSERT -> "Insert";
-            case GLFW.GLFW_KEY_DELETE -> "Delete";
-            case GLFW.GLFW_KEY_BACKSPACE -> "Backspace";
-            case GLFW.GLFW_KEY_CAPS_LOCK -> "CapsLock";
-            case GLFW.GLFW_KEY_SCROLL_LOCK -> "ScrollLock";
-            case GLFW.GLFW_KEY_NUM_LOCK -> "NumLock";
-            case GLFW.GLFW_KEY_PRINT_SCREEN -> "PrintScreen";
-            case GLFW.GLFW_KEY_PAUSE -> "Pause";
-            case GLFW.GLFW_KEY_MENU -> "Menu";
-            case GLFW.GLFW_KEY_WORLD_1 -> "World1";
-            case GLFW.GLFW_KEY_WORLD_2 -> "World2";
-            case GLFW.GLFW_KEY_COMMA -> "Comma";
-            case GLFW.GLFW_KEY_PERIOD -> "Period";
-            case GLFW.GLFW_KEY_SLASH -> "Slash";
-            case GLFW.GLFW_KEY_SEMICOLON -> "Semicolon";
-            case GLFW.GLFW_KEY_APOSTROPHE -> "Apostrophe";
-            case GLFW.GLFW_KEY_EQUAL -> "Equal";
-            case GLFW.GLFW_KEY_MINUS -> "Minus";
-            case GLFW.GLFW_KEY_LEFT_BRACKET -> "LeftBracket";
-            case GLFW.GLFW_KEY_RIGHT_BRACKET -> "RightBracket";
-            case GLFW.GLFW_KEY_BACKSLASH -> "Backslash";
-            case GLFW.GLFW_KEY_GRAVE_ACCENT -> "Grave";
-            case GLFW.GLFW_KEY_KP_0 -> "Numpad0";
-            case GLFW.GLFW_KEY_KP_1 -> "Numpad1";
-            case GLFW.GLFW_KEY_KP_2 -> "Numpad2";
-            case GLFW.GLFW_KEY_KP_3 -> "Numpad3";
-            case GLFW.GLFW_KEY_KP_4 -> "Numpad4";
-            case GLFW.GLFW_KEY_KP_5 -> "Numpad5";
-            case GLFW.GLFW_KEY_KP_6 -> "Numpad6";
-            case GLFW.GLFW_KEY_KP_7 -> "Numpad7";
-            case GLFW.GLFW_KEY_KP_8 -> "Numpad8";
-            case GLFW.GLFW_KEY_KP_9 -> "Numpad9";
-            case GLFW.GLFW_KEY_KP_DECIMAL -> "NumpadDecimal";
-            case GLFW.GLFW_KEY_KP_DIVIDE -> "NumpadDivide";
-            case GLFW.GLFW_KEY_KP_MULTIPLY -> "NumpadMultiply";
-            case GLFW.GLFW_KEY_KP_SUBTRACT -> "NumpadSubtract";
-            case GLFW.GLFW_KEY_KP_ADD -> "NumpadAdd";
-            case GLFW.GLFW_KEY_KP_ENTER -> "NumpadEnter";
-            case GLFW.GLFW_KEY_KP_EQUAL -> "NumpadEqual";
+            case InputConstants.KEY_SPACE -> "Space";
+            case InputConstants.KEY_TAB -> "Tab";
+            case InputConstants.KEY_HOME -> "Home";
+            case InputConstants.KEY_END -> "End";
+            case InputConstants.KEY_PAGEUP -> "PageUp";
+            case InputConstants.KEY_PAGEDOWN -> "PageDown";
+            case InputConstants.KEY_UP -> "Up";
+            case InputConstants.KEY_DOWN -> "Down";
+            case InputConstants.KEY_LEFT -> "Left";
+            case InputConstants.KEY_RIGHT -> "Right";
+            case InputConstants.KEY_INSERT -> "Insert";
+            case InputConstants.KEY_DELETE -> "Delete";
+            case InputConstants.KEY_BACKSPACE -> "Backspace";
+            case InputConstants.KEY_CAPSLOCK -> "CapsLock";
+            case InputConstants.KEY_SCROLLLOCK -> "ScrollLock";
+            case InputConstants.KEY_NUMLOCK -> "NumLock";
+            case InputConstants.KEY_PRINTSCREEN -> "PrintScreen";
+            case InputConstants.KEY_PAUSE -> "Pause";
+            case SDLScancode.SDL_SCANCODE_APPLICATION -> "Menu";
+            case SDLScancode.SDL_SCANCODE_INTERNATIONAL1 -> "World1";
+            case SDLScancode.SDL_SCANCODE_INTERNATIONAL2 -> "World2";
+            case InputConstants.KEY_COMMA -> "Comma";
+            case InputConstants.KEY_PERIOD -> "Period";
+            case InputConstants.KEY_SLASH -> "Slash";
+            case InputConstants.KEY_SEMICOLON -> "Semicolon";
+            case InputConstants.KEY_APOSTROPHE -> "Apostrophe";
+            case InputConstants.KEY_EQUALS -> "Equal";
+            case InputConstants.KEY_MINUS -> "Minus";
+            case InputConstants.KEY_LBRACKET -> "LeftBracket";
+            case InputConstants.KEY_RBRACKET -> "RightBracket";
+            case InputConstants.KEY_BACKSLASH -> "Backslash";
+            case InputConstants.KEY_GRAVE -> "Grave";
+            case InputConstants.KEY_NUMPAD0 -> "Numpad0";
+            case InputConstants.KEY_NUMPAD1 -> "Numpad1";
+            case InputConstants.KEY_NUMPAD2 -> "Numpad2";
+            case InputConstants.KEY_NUMPAD3 -> "Numpad3";
+            case InputConstants.KEY_NUMPAD4 -> "Numpad4";
+            case InputConstants.KEY_NUMPAD5 -> "Numpad5";
+            case InputConstants.KEY_NUMPAD6 -> "Numpad6";
+            case InputConstants.KEY_NUMPAD7 -> "Numpad7";
+            case InputConstants.KEY_NUMPAD8 -> "Numpad8";
+            case InputConstants.KEY_NUMPAD9 -> "Numpad9";
+            case SDLScancode.SDL_SCANCODE_KP_PERIOD -> "NumpadDecimal";
+            case SDLScancode.SDL_SCANCODE_KP_DIVIDE -> "NumpadDivide";
+            case InputConstants.KEY_MULTIPLY -> "NumpadMultiply";
+            case SDLScancode.SDL_SCANCODE_KP_MINUS -> "NumpadSubtract";
+            case InputConstants.KEY_ADD -> "NumpadAdd";
+            case InputConstants.KEY_NUMPADENTER -> "NumpadEnter";
+            case InputConstants.KEY_NUMPADEQUALS -> "NumpadEqual";
             default -> "Key" + keyCode;
         };
     }
@@ -328,23 +341,23 @@ public final class EntryShortcutMatcher {
         }
 
         private static boolean isCtrlDown(Window window) {
-            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL)
-                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_CONTROL);
+            return ShortcutInputState.keyDown(window, InputConstants.KEY_LCONTROL)
+                    || ShortcutInputState.keyDown(window, InputConstants.KEY_RCONTROL);
         }
 
         private static boolean isShiftDown(Window window) {
-            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
-                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
+            return ShortcutInputState.keyDown(window, InputConstants.KEY_LSHIFT)
+                    || ShortcutInputState.keyDown(window, InputConstants.KEY_RSHIFT);
         }
 
         private static boolean isAltDown(Window window) {
-            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_ALT)
-                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_ALT);
+            return ShortcutInputState.keyDown(window, InputConstants.KEY_LALT)
+                    || ShortcutInputState.keyDown(window, InputConstants.KEY_RALT);
         }
 
         private static boolean isSuperDown(Window window) {
-            return ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_LEFT_SUPER)
-                    || ShortcutInputState.keyDown(window, GLFW.GLFW_KEY_RIGHT_SUPER);
+            return ShortcutInputState.keyDown(window, InputConstants.KEY_LGUI)
+                    || ShortcutInputState.keyDown(window, InputConstants.KEY_RGUI);
         }
     }
 }
