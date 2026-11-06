@@ -338,8 +338,14 @@ public final class OmniWheelOverlay {
         leftMouseDown = isLeftMouseDown(minecraft);
         rightMouseDown = isRightMouseDown(minecraft);
         pressedHotkeys.clear();
-        lastFreeRawMouseX = minecraft.mouseHandler.xpos();
-        lastFreeRawMouseY = minecraft.mouseHandler.ypos();
+        if (!wasOpen && minecraft.mouseHandler.isMouseGrabbed()) {
+            // Grabbed mouse coordinates track camera movement, not a free cursor position.
+            lastFreeRawMouseX = minecraft.getWindow().getScreenWidth() / 2;
+            lastFreeRawMouseY = minecraft.getWindow().getScreenHeight() / 2;
+        } else {
+            lastFreeRawMouseX = minecraft.mouseHandler.xpos();
+            lastFreeRawMouseY = minecraft.mouseHandler.ypos();
+        }
         lockedHotbarSlot = selectedHotbarSlot(minecraft.player.getInventory());
         accumulatedScrollX = 0.0D;
         accumulatedScrollY = 0.0D;
