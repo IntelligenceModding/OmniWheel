@@ -165,9 +165,6 @@ public final class OmniWheelProfileManager {
         if (!byId.containsKey(profileId)) {
             throw new IllegalArgumentException("Unknown profile: " + profileId);
         }
-        if ("default".equals(profileId)) {
-            throw new IllegalStateException("Cannot delete the default profile");
-        }
         if (profiles.profiles().size() <= 1) {
             throw new IllegalStateException("Cannot delete the last remaining profile");
         }
@@ -181,12 +178,7 @@ public final class OmniWheelProfileManager {
 
         String nextActiveProfileId = profiles.activeProfileId();
         if (nextActiveProfileId.equals(profileId)) {
-            nextActiveProfileId = updatedProfiles.stream()
-                    .filter(profile -> profile.id().equals("default"))
-                    .findFirst()
-                    .or(() -> updatedProfiles.stream().findFirst())
-                    .orElseThrow()
-                    .id();
+            nextActiveProfileId = updatedProfiles.get(0).id();
         }
 
         replaceProfiles(new ProfileCollection(nextActiveProfileId, updatedProfiles));
