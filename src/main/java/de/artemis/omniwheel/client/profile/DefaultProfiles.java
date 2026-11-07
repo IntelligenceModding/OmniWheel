@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** A vanilla survival starter: ordinary controls and client-visible information, with no operator commands. */
+/** A starter assembled solely from actions and settings available in the profile editor. */
 public final class DefaultProfiles {
     // Also identifies the replacement generation, so upgrades never rebuild an already customized new default.
     public static final String ROOT_WHEEL_ID = "vanilla_main";
@@ -30,7 +30,7 @@ public final class DefaultProfiles {
         return entry(id, icon, new ChatAction(key("text." + id), false, true));
     }
     private static void wheel(Map<String, WheelDefinition> wheels, String id, String title, WheelEntry... entries) {
-        wheels.put(id, new WheelDefinition(id, key("wheel." + title), key("wheel." + title + ".description"), 8, List.of(entries)));
+        wheels.put(id, new WheelDefinition(id, key("wheel." + title), "", de.artemis.omniwheel.common.Numbers.clamp(entries.length, 1, 8), List.of(entries)));
     }
 
     public static WheelProfile createDefaultProfile() {
@@ -51,7 +51,7 @@ public final class DefaultProfiles {
                 chat("share_item", "item_frame"),
                 chat("need_help", "bell"),
                 chat("thanks", "sunflower"),
-                entry("whisper", "name_tag", new OpenChatAction("/tell ")),
+                entry("whisper", "name_tag", new CommandAction(List.of("/tell"), false, true)),
                 entry("command_help", "book", new CommandAction(List.of("/help"), false, true)));
         wheel(wheels, "location", "location",
                 entry("copy_position", "map", new CopyTextAction("{position}")),
