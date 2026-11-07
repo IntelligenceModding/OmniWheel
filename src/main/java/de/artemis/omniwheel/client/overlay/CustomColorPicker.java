@@ -1,6 +1,8 @@
 package de.artemis.omniwheel.client.overlay;
 
 import de.artemis.omniwheel.client.render.LiftedRowRenderer;
+import de.artemis.omniwheel.client.render.HighlightAnimation;
+import de.artemis.omniwheel.client.render.RadialAnimation;
 import de.artemis.omniwheel.common.OmniWheelText;
 import net.minecraft.client.Minecraft;
 import de.artemis.omniwheel.client.render.GuiGraphics;
@@ -18,6 +20,8 @@ final class CustomColorPicker {
     private int original, x, y, focus, dragging = -1;
     private int panelY, panelHeight = HEIGHT;
     private boolean replaceHex;
+    private final HighlightAnimation highlights = new HighlightAnimation();
+    private long animationFrame;
     private static final int WIDTH = 248, HEIGHT = 232, BOARD_WIDTH = 190, BOARD_HEIGHT = 100;
 
     boolean isOpen() { return apply != null; }
@@ -26,6 +30,7 @@ final class CustomColorPicker {
     }
     void close() { apply = null; dragging = -1; }
     void open(String title, int color, IntConsumer apply) {
+        highlights.clear();
         this.title = title; this.apply = apply; original = color;
         setColor(color); focus = 0; dragging = -1; replaceHex = true;
     }
@@ -46,6 +51,7 @@ final class CustomColorPicker {
         render(graphics, minecraft, width, height, mouseX, mouseY, true);
     }
     void render(GuiGraphics graphics, Minecraft minecraft, int width, int height, float mouseX, float mouseY, boolean shadeBackground) {
+        animationFrame = System.nanoTime();
         int titleSpace = title.isBlank() ? -16 : 0;
         panelHeight = HEIGHT + titleSpace;
         x = (width - WIDTH) / 2; panelY = (height - panelHeight) / 2;
@@ -72,8 +78,8 @@ final class CustomColorPicker {
                     x + 236, top + BOARD_HEIGHT * (band + 1) / 6,
                     Color.HSBtoRGB(band / 6F, 1, 1), Color.HSBtoRGB((band + 1) / 6F, 1, 1));
         }
-        border(graphics, left - 1, top - 1, BOARD_WIDTH + 2, BOARD_HEIGHT + 2, focus == 0 ? 0xFF8BDAF8 : 0xFF526575);
-        border(graphics, x + 213, top - 1, 24, BOARD_HEIGHT + 2, focus == 1 ? 0xFF8BDAF8 : 0xFF526575);
+        border(graphics, left - 1, top - 1, BOARD_WIDTH + 2, BOARD_HEIGHT + 2, focusColor(0, focus == 0));
+        border(graphics, x + 213, top - 1, 24, BOARD_HEIGHT + 2, focusColor(1, focus == 1));
         int pointX = left + Math.round(saturation * (BOARD_WIDTH - 1)), pointY = top + Math.round((1 - brightness) * (BOARD_HEIGHT - 1));
         border(graphics, pointX - 3, pointY - 3, 7, 7, 0xFF000000);
         border(graphics, pointX - 2, pointY - 2, 5, 5, 0xFFFFFFFF);
@@ -83,7 +89,8 @@ final class CustomColorPicker {
         graphics.drawCenteredString(minecraft.font, text("omniwheel.color.before"), x + 181, y + 143, 0xFF9CAAB8);
         graphics.drawCenteredString(minecraft.font, text("omniwheel.color.after"), x + 219, y + 143, 0xFF9CAAB8);
         graphics.fill(x + 12, y + 155, x + 150, y + 177, 0xFF111820);
-        border(graphics, x + 12, y + 155, 138, 22, hex.length() != 6 ? 0xFFE4B96F : focus == 2 ? 0xFF8BDAF8 : 0xFF526575);
+        int hexEdge = focusColor(2, focus == 2);
+        border(graphics, x + 12, y + 155, 138, 22, hex.length() != 6 ? 0xFFE4B96F : hexEdge);
         if (focus == 2 && replaceHex) graphics.fill(x + 29, y + 161, x + 29 + minecraft.font.width(hex), y + 171, 0x80506B84);
         graphics.drawString(minecraft.font, "#" + hex, x + 20, y + 162, 0xFFF2F5F8, false);
         graphics.fill(x + 164, y + 155, x + 198, y + 177, original | 0xFF000000);
@@ -95,9 +102,13 @@ final class CustomColorPicker {
     }
     private void button(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, String label, int index, boolean enabled, float mouseX, float mouseY) {
         boolean highlighted = enabled && (focus == index || inside(mouseX, mouseY, x, y, width, 22));
-        graphics.fill(x, y, x + width, y + 22, highlighted ? 0xFF344657 : 0xFF222D39);
-        border(graphics, x, y, width, 22, highlighted ? 0xFF8BDAF8 : 0xFF526575);
+        float amount = highlights.amount(index, highlighted, animationFrame);
+        graphics.fill(x, y, x + width, y + 22, RadialAnimation.blendColor(0xFF222D39, 0xFF344657, amount));
+        border(graphics, x, y, width, 22, RadialAnimation.blendColor(0xFF526575, 0xFF8BDAF8, amount));
         graphics.drawCenteredString(minecraft.font, label, x + width / 2, y + 7, enabled ? 0xFFF2F5F8 : 0xFF53606C);
+    }
+    private int focusColor(int control, boolean focused) {
+        return RadialAnimation.blendColor(0xFF526575, 0xFF8BDAF8, highlights.amount(control, focused, animationFrame));
     }
     private static void border(GuiGraphics graphics, int x, int y, int width, int height, int color) {
         graphics.fill(x, y, x + width, y + 1, color); graphics.fill(x, y + height - 1, x + width, y + height, color);
