@@ -3,6 +3,9 @@ package de.artemis.omniwheel.client.profile.store;
 import com.google.gson.JsonParser;
 import de.artemis.omniwheel.client.profile.DefaultProfiles;
 import de.artemis.omniwheel.common.action.CommandAction;
+import de.artemis.omniwheel.common.action.CopyTextAction;
+import de.artemis.omniwheel.common.action.ChatAction;
+import de.artemis.omniwheel.common.action.LocalMessageAction;
 import de.artemis.omniwheel.common.profile.WheelProfile;
 import de.artemis.omniwheel.common.wheel.WheelDefinition;
 import de.artemis.omniwheel.common.wheel.WheelEntry;
@@ -21,6 +24,39 @@ public class ProfileUpdateTest {
     public TemporaryFolder temporary = new TemporaryFolder();
 
     private final ProfileJsonCodec codec = new ProfileJsonCodec();
+    @Test public void localAndGlobalChatKeepTheirDestinationsAndTemplatesAcrossReload() throws Exception {
+        String message = "Coordinates: {x}, {y}, {z} | Dimension: {dimension}";
+        List<WheelEntry> entries = de.artemis.omniwheel.common.Java8.list(
+                new WheelEntry("local", "Private location", "", "minecraft:compass", new LocalMessageAction(message)),
+                new WheelEntry("send", "Share location", "", "minecraft:paper", new ChatAction(message, false, false)),
+                new WheelEntry("preset", "Prepare location", "", "minecraft:paper", new ChatAction(message, false, true)));
+        WheelDefinition wheel = new WheelDefinition("main", "Chat tools", "", 8, entries);
+        WheelProfile profile = new WheelProfile("custom", "Custom", wheel.id(), de.artemis.omniwheel.common.Java8.map(wheel.id(), wheel));
+        ProfileCollection collection = new ProfileCollection(profile.id(), de.artemis.omniwheel.common.Java8.list(profile));
+        OmniWheelProfileRepository repository = new OmniWheelProfileRepository(temporary.getRoot().toPath().resolve("profiles.json"));
+
+        repository.save(collection);
+
+        assertEquals(entries, repository.loadOrCreate().activeProfile().wheel("main").entries());
+        assertEquals(collection, repository.loadOrCreate());
+    }
+
+    @Test public void customClipboardEntryPreservesLiveDataAndSettingsAcrossReload() throws Exception {
+        WheelEntry entry = new WheelEntry("copy", "Copy target", "Copy a block and its location", "minecraft:map",
+                0xFF8EE1FF, 0xD8212831, new CopyTextAction("{target_block_id} at {target_block_position}"),
+                true, true, false, true, "Ctrl+G");
+        WheelDefinition wheel = new WheelDefinition("main", "Custom", "", 8, de.artemis.omniwheel.common.Java8.list(entry));
+        WheelProfile profile = new WheelProfile("custom", "Clipboard tools", wheel.id(), de.artemis.omniwheel.common.Java8.map(wheel.id(), wheel));
+        ProfileCollection collection = new ProfileCollection(profile.id(), de.artemis.omniwheel.common.Java8.list(profile));
+        OmniWheelProfileRepository repository = new OmniWheelProfileRepository(temporary.getRoot().toPath().resolve("profiles.json"));
+
+        repository.save(collection);
+
+        ProfileCollection loaded = repository.loadOrCreate();
+        assertEquals(collection, loaded);
+        assertEquals(entry, loaded.activeProfile().wheel("main").entries().get(0));
+    }
+
 
     private WheelProfile legacy(String id) {
         de.artemis.omniwheel.common.wheel.WheelDefinition root = new WheelDefinition("main", "Old wheel", "", 8, de.artemis.omniwheel.common.Java8.list(new WheelEntry("home", "Home", "", "H", new CommandAction("/home", false))));

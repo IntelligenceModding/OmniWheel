@@ -24,10 +24,18 @@ public class VanillaDefaultProfileTest {
         assertEquals(6, reached.size());
         for (de.artemis.omniwheel.common.wheel.WheelDefinition wheel : profile.wheels().values()) {
             assertTrue(wheel.entries().size() > 0 && wheel.entries().size() <= WheelLayout.PAGE_SIZE);
+            assertEquals("", wheel.description());
+            assertEquals(de.artemis.omniwheel.common.Numbers.clamp(wheel.entries().size(), 1, 8), wheel.segmentCount());
+            assertTrue(wheel.active());
+            assertEquals(wheel.entries().stream().map(WheelEntry::id).collect(java.util.stream.Collectors.toList()), wheel.radialOrder());
             for (de.artemis.omniwheel.common.wheel.WheelEntry entry : wheel.entries()) {
                 assertTrue(entry.glyph().matches("minecraft:[a-z0-9_]+"));
                 assertTrue(entry.active());
                 assertTrue(de.artemis.omniwheel.common.Java8.isBlank(entry.shortcut()));
+                assertTrue(entry.showIcon()); assertTrue(entry.showLabel()); assertTrue(entry.showShortcut());
+                assertEquals(WheelEntry.DEFAULT_COLOR, entry.color()); assertEquals(WheelEntry.DEFAULT_GUI_COLOR, entry.guiColor());
+                assertFalse(entry.glyph().equals("minecraft:spyglass"));
+                assertFalse(entry.glyph().equals("minecraft:recovery_compass"));
             }
         }
     }
@@ -48,10 +56,8 @@ public class VanillaDefaultProfileTest {
         } else if (entry.action() instanceof KeybindAction) {
             assertTrue(allowedBindings.contains(((KeybindAction) (entry.action())).keybindId()));
         } else if (entry.action() instanceof CommandAction) {
-            assertEquals(de.artemis.omniwheel.common.Java8.list("/help"), ((CommandAction) (entry.action())).commands());
+            assertEquals(de.artemis.omniwheel.common.Java8.list(entry.id().equals("whisper") ? "/tell" : "/help"), ((CommandAction) entry.action()).commands());
             assertTrue(((CommandAction) (entry.action())).preset());
-        } else if (entry.action() instanceof OpenChatAction) {
-            assertEquals("/tell ", ((OpenChatAction) (entry.action())).initialText());
         } else if (entry.action() instanceof ChatAction) {
             assertTrue("Chat examples must be editable before sending", ((ChatAction) (entry.action())).preset());
         } else if (entry.action() instanceof CopyTextAction) {
@@ -70,8 +76,7 @@ public class VanillaDefaultProfileTest {
         for (de.artemis.omniwheel.client.runtime.LiveDataValues.Value value : LiveDataValues.ALL) tokens.add(value.token());
         assertTrue(language.has(profile.displayName()));
         for (de.artemis.omniwheel.common.wheel.WheelDefinition wheel : profile.wheels().values()) {
-            assertTrue(language.has(wheel.title()));
-            assertTrue(language.has(wheel.description()));
+                        assertTrue(language.has(wheel.title())); assertEquals("", wheel.description());
             for (de.artemis.omniwheel.common.wheel.WheelEntry entry : wheel.entries()) {
                 assertTrue(language.has(entry.label()));
                 assertTrue(language.has(entry.description()));
@@ -108,5 +113,64 @@ public class VanillaDefaultProfileTest {
         de.artemis.omniwheel.common.profile.WheelProfile edited = new WheelProfile(profile.id(), "My Default", root.id(), wheels);
         de.artemis.omniwheel.client.profile.store.ProfileCollection collection = new ProfileCollection(edited.id(), de.artemis.omniwheel.common.Java8.list(edited));
         assertSame(collection, ProfileUpgrader.upgrade(collection));
+    }
+    @Test public void upgradesPreviousStockSettingsWithoutReplacingCustomizations() {
+        WheelProfile current = DefaultProfiles.createDefaultProfile();
+        LinkedHashMap<String, WheelDefinition> oldWheels = new LinkedHashMap<String, WheelDefinition>();
+        for (WheelDefinition wheel : current.wheels().values()) {
+            List<WheelEntry> entries = new ArrayList<WheelEntry>();
+            for (WheelEntry entry : wheel.entries()) {
+                if (entry.id().equals("whisper")) {
+                    entry = new WheelEntry(entry.id(), "My whisper", "My description", "minecraft:paper",
+                            0xFF123456, 0xD8654321, new OpenChatAction("/tell "), false, false, true, false, "Ctrl+G");
+                }
+                entries.add(entry);
+            }
+            String title = wheel.id().equals(current.rootWheelId()) ? "main" : wheel.id();
+            oldWheels.put(wheel.id(), new WheelDefinition(wheel.id(), wheel.title(),
+                    "omniwheel.default.wheel." + title + ".description", 8, entries, wheel.active(), wheel.radialOrder()));
+        }
+        WheelProfile previous = new WheelProfile(current.id(), "My renamed default", current.rootWheelId(), oldWheels);
+        previous = WheelEntryMover.move(previous, current.rootWheelId(), "inventory", current.rootWheelId(), 5).profile();
+        previous = WheelEntryMover.moveRadial(previous, current.rootWheelId(), "view", current.rootWheelId(), 0).profile();
+        WheelProfile custom = new WheelProfile("custom", "Keep me", previous.rootWheelId(), previous.wheels());
+        ProfileCollection result = ProfileUpgrader.upgrade(new ProfileCollection("default", de.artemis.omniwheel.common.Java8.list(previous, custom)));
+        WheelProfile updated = result.activeProfile();
+
+        assertSame(custom, result.profiles().get(1));
+        assertEquals(previous.displayName(), updated.displayName());
+        for (WheelDefinition wheel : previous.wheels().values()) {
+            WheelDefinition upgraded = updated.wheel(wheel.id());
+            assertEquals("", upgraded.description());
+            assertEquals(de.artemis.omniwheel.common.Numbers.clamp(wheel.entries().size(), 1, 8), upgraded.segmentCount());
+            assertEquals(wheel.radialOrder(), upgraded.radialOrder());
+            assertEquals(wheel.entries().stream().map(WheelEntry::id).collect(java.util.stream.Collectors.toList()), upgraded.entries().stream().map(WheelEntry::id).collect(java.util.stream.Collectors.toList()));
+            for (int i = 0; i < wheel.entries().size(); i++) {
+                WheelEntry before = wheel.entries().get(i);
+                WheelEntry after = upgraded.entries().get(i);
+                if (before.id().equals("whisper")) {
+                    assertEquals(new WheelEntry(before.id(), before.label(), before.description(), before.glyph(),
+                            before.color(), before.guiColor(), new CommandAction(de.artemis.omniwheel.common.Java8.list("/tell"), false, true),
+                            before.active(), before.showIcon(), before.showLabel(), before.showShortcut(), before.shortcut()), after);
+                } else assertEquals(before, after);
+            }
+        }
+        assertSame(result, ProfileUpgrader.upgrade(result));
+    }
+    @Test public void preservesCustomWheelDescriptionsAndWhisperDrafts() {
+        WheelEntry entry = new WheelEntry("whisper", "Custom draft", "", "minecraft:paper", new OpenChatAction("/msg Alex "));
+        WheelDefinition wheel = new WheelDefinition(DefaultProfiles.ROOT_WHEEL_ID, "Mine", "Custom JSON description", 4, de.artemis.omniwheel.common.Java8.list(entry));
+        WheelProfile profile = new WheelProfile("default", "Mine", wheel.id(), de.artemis.omniwheel.common.Java8.map(wheel.id(), wheel));
+        ProfileCollection collection = new ProfileCollection(profile.id(), de.artemis.omniwheel.common.Java8.list(profile));
+        assertSame(collection, ProfileUpgrader.upgrade(collection));
+    }
+    @Test public void upgradesWhisperPreviouslyTrimmedByTheEditor() {
+        WheelEntry entry = new WheelEntry("whisper", "Whisper", "", "minecraft:name_tag", new OpenChatAction("/tell"));
+        WheelDefinition wheel = new WheelDefinition(DefaultProfiles.ROOT_WHEEL_ID, "Main", "", 1, de.artemis.omniwheel.common.Java8.list(entry));
+        WheelProfile profile = new WheelProfile("default", "Default", wheel.id(), de.artemis.omniwheel.common.Java8.map(wheel.id(), wheel));
+        ProfileCollection updated = ProfileUpgrader.upgrade(new ProfileCollection(profile.id(), de.artemis.omniwheel.common.Java8.list(profile)));
+        assertEquals(new CommandAction(de.artemis.omniwheel.common.Java8.list("/tell"), false, true),
+                updated.activeProfile().wheel(wheel.id()).entries().get(0).action());
+        assertSame(updated, ProfileUpgrader.upgrade(updated));
     }
 }

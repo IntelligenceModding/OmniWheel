@@ -6,13 +6,11 @@ import static org.junit.Assert.*;
 import static de.artemis.omniwheel.client.navigation.ManagementNavigation.*;
 
 public final class ManagementNavigationTest {
-
     private static Node node(String id, int panel, String group, int x, int y, int width, boolean visible, double order) {
         return new Node(id, panel, group, new Bounds(x, y, width, 22), visible, order);
     }
 
-    @Test
-    public void fieldsAndButtonsShareOneSpatialGraph() {
+    @Test public void fieldsAndButtonsShareOneSpatialGraph() {
         Node field = node("field", 2, "", 0, 0, 160, true, 0);
         Node toggle = node("toggle", 2, "", 170, 0, 22, true, 1);
         Node next = node("next", 2, "", 0, 38, 160, true, 2);
@@ -23,16 +21,33 @@ public final class ManagementNavigationTest {
         assertEquals(field, move(nodes, next, Direction.UP));
     }
 
-    @Test
-    public void scrollingTraversesOffscreenRowsBeforeFooter() {
+    @Test public void chatDestinationIsReachableWithAndWithoutPresetControl() {
+        Node message = node("message", 2, "", 0, 0, 140, true, 0);
+        Node data = node("data", 2, "", 146, 0, 90, true, 1);
+        Node destination = node("destination", 2, "", 242, 0, 54, true, 2);
+        Node preset = node("preset", 2, "", 302, 0, 54, true, 3);
+        List<Node> global = de.artemis.omniwheel.common.Java8.list(message, data, destination, preset);
+        assertEquals(data, move(global, message, Direction.RIGHT));
+        assertEquals(destination, move(global, data, Direction.RIGHT));
+        assertEquals(preset, move(global, destination, Direction.RIGHT));
+        assertEquals(destination, move(global, preset, Direction.LEFT));
+        assertEquals(destination, tab(global, data, false));
+
+        // Disabled Send / Preset is omitted from the local chat navigation graph.
+        List<Node> local = de.artemis.omniwheel.common.Java8.list(message, data, destination);
+        assertEquals(destination, move(local, data, Direction.RIGHT));
+        assertEquals(data, move(local, destination, Direction.LEFT));
+        assertEquals(message, tab(local, destination, false));
+    }
+
+    @Test public void scrollingTraversesOffscreenRowsBeforeFooter() {
         Node first = node("first", 0, "profiles", 0, 0, 140, true, 0);
         Node second = node("second", 0, "profiles", 0, 36, 140, false, 1);
         Node footer = node("footer", 0, "", 0, 25, 140, true, 2);
         assertEquals(second, move(de.artemis.omniwheel.common.Java8.list(first, second, footer), first, Direction.DOWN));
     }
 
-    @Test
-    public void verticalNavigationStaysInGridColumnAndHandlesShortLastRow() {
+    @Test public void verticalNavigationStaysInGridColumnAndHandlesShortLastRow() {
         Node a = node("a", 2, "icons", 0, 0, 22, true, 0);
         Node b = node("b", 2, "icons", 30, 0, 22, true, 1);
         Node c = node("c", 2, "icons", 0, 30, 22, false, 2);
@@ -43,8 +58,7 @@ public final class ManagementNavigationTest {
         assertEquals(b, move(nodes, b, Direction.RIGHT));
     }
 
-    @Test
-    public void horizontalEdgesSwitchOnlyToAdjacentPanel() {
+    @Test public void horizontalEdgesSwitchOnlyToAdjacentPanel() {
         Node left = node("left", 0, "profiles", 0, 0, 140, true, 0);
         Node middle = node("middle", 1, "entries", 170, 0, 140, true, 0);
         Node right = node("right", 2, "", 340, 0, 200, true, 0);
@@ -55,8 +69,7 @@ public final class ManagementNavigationTest {
         assertEquals(left, move(nodes, left, Direction.LEFT));
     }
 
-    @Test
-    public void tabTraversesEveryPanelAndWrapsIncludingOffscreenControls() {
+    @Test public void tabTraversesEveryPanelAndWrapsIncludingOffscreenControls() {
         Node first = node("first", 0, "", 0, 0, 22, true, 0);
         Node hiddenRow = node("offscreen", 1, "entries", 0, 900, 22, false, 0);
         Node last = node("last", 2, "", 0, 0, 22, true, 0);
@@ -68,15 +81,13 @@ public final class ManagementNavigationTest {
         assertNull(tab(de.artemis.omniwheel.common.Java8.list(), null, false));
     }
 
-    @Test
-    public void removedFocusRecoversInReadingOrder() {
+    @Test public void removedFocusRecoversInReadingOrder() {
         Node removed = node("removed", 1, "", 0, 0, 22, true, 0);
         Node remaining = node("remaining", 2, "", 0, 0, 22, true, 0);
         assertEquals(remaining, tab(de.artemis.omniwheel.common.Java8.list(remaining), removed, false));
     }
 
-    @Test
-    public void enteringGridStartsAtFirstOptionAndLeavingReturnsToSearch() {
+    @Test public void enteringGridStartsAtFirstOptionAndLeavingReturnsToSearch() {
         Node search = node("search", 2, "", 0, 0, 160, true, 0);
         Node back = node("back", 2, "", 170, 0, 22, true, 1);
         Node first = node("first", 2, "icons", 0, 40, 22, true, 2);
@@ -88,25 +99,32 @@ public final class ManagementNavigationTest {
         assertEquals(search, move(nodes, last, Direction.UP));
     }
 
-    @Test
-    public void entryListConnectsToEveryFooterButtonAndBack() {
+    @Test public void entryListConnectsToEveryFooterButtonAndBack() {
         Node entry = node("entry", 1, "entries", 0, 200, 145, true, 0);
         Node command = node("command", 1, "", 0, 240, 74, true, 1);
         Node chat = node("chat", 1, "", 82, 240, 74, true, 2);
         Node submenu = node("submenu", 1, "", 0, 270, 74, true, 3);
         Node function = node("function", 1, "", 82, 270, 74, true, 4);
         Node keybind = node("keybind", 1, "", 0, 300, 74, true, 5);
-        Node delete = node("delete", 1, "", 82, 300, 74, true, 6);
-        Node toggle = node("toggle", 1, "", 0, 330, 156, true, 7);
-        List<Node> nodes = de.artemis.omniwheel.common.Java8.list(entry, command, chat, submenu, function, keybind, delete, toggle);
+        Node clipboard = node("clipboard", 1, "", 82, 300, 74, true, 6);
+        Node toggle = node("toggle", 1, "", 0, 330, 74, true, 7);
+        Node delete = node("delete", 1, "", 82, 330, 74, true, 8);
+        List<Node> nodes = de.artemis.omniwheel.common.Java8.list(entry, command, chat, submenu, function, keybind, clipboard, toggle, delete);
         assertEquals(command, move(nodes, entry, Direction.DOWN));
         assertEquals(chat, move(nodes, command, Direction.RIGHT));
         assertEquals(function, move(nodes, chat, Direction.DOWN));
-        assertEquals(delete, move(nodes, function, Direction.DOWN));
-        assertEquals(keybind, move(nodes, delete, Direction.LEFT));
+        assertEquals(clipboard, move(nodes, function, Direction.DOWN));
+        assertEquals(keybind, move(nodes, clipboard, Direction.LEFT));
         assertEquals(submenu, move(nodes, keybind, Direction.UP));
         assertEquals(command, move(nodes, submenu, Direction.UP));
         assertEquals(entry, move(nodes, command, Direction.UP));
-        assertEquals(toggle, move(nodes, delete, Direction.DOWN));
+        assertEquals(delete, move(nodes, clipboard, Direction.DOWN));
+        assertEquals(clipboard, move(nodes, delete, Direction.UP));
+        assertEquals(toggle, move(nodes, keybind, Direction.DOWN));
+        assertEquals(delete, move(nodes, toggle, Direction.RIGHT));
+        assertEquals(toggle, move(nodes, delete, Direction.LEFT));
+        assertEquals(clipboard, tab(nodes, keybind, false));
+        assertEquals(toggle, tab(nodes, clipboard, false));
+        assertEquals(delete, tab(nodes, toggle, false));
     }
 }
