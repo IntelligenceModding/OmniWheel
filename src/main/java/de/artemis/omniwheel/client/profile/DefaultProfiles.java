@@ -59,7 +59,7 @@ public final class DefaultProfiles {
                 entry("location_info", "compass", new LocalMessageAction(key("text.location_info"))),
                 entry("copy_dimension", "obsidian", new CopyTextAction("{dimension}")),
                 entry("copy_biome", "grass_block", new CopyTextAction("{biome}")),
-                entry("copy_facing", "recovery_compass", new CopyTextAction("{facing}")));
+                entry("copy_facing", "compass", new CopyTextAction("{facing}")));
         wheel(wheels, "inspect", "inspect",
                 entry("block_info", "spyglass", new LocalMessageAction(key("text.block_info"))),
                 entry("copy_block_position", "map", new CopyTextAction("{target_block_position}")),

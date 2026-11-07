@@ -27,6 +27,7 @@ public class VanillaDefaultProfileTest {
             assertEquals(wheel.entries().stream().map(WheelEntry::id).toList(), wheel.radialOrder());
             for (var entry : wheel.entries()) {
                 assertTrue(entry.glyph().matches("minecraft:[a-z0-9_]+"));
+                assertNotEquals("Recovery compasses were added after 1.18.2", "minecraft:recovery_compass", entry.glyph());
                 assertTrue(entry.active());
                 assertTrue(entry.shortcut().isBlank());
                 assertTrue(entry.showIcon());
