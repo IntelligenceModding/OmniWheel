@@ -4,6 +4,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import de.artemis.omniwheel.client.input.OmniWheelKeyMappings;
 import de.artemis.omniwheel.client.render.EntryIconRenderer;
 import de.artemis.omniwheel.client.render.GeometryRenderer;
+import de.artemis.omniwheel.client.render.HighlightAnimation;
+import de.artemis.omniwheel.client.render.RadialAnimation;
 import de.artemis.omniwheel.client.render.CustomItemIcons;
 import de.artemis.omniwheel.client.render.CustomImageData;
 import de.artemis.omniwheel.client.render.LiftedRowRenderer;
@@ -336,8 +338,7 @@ public final class OmniWheelProfilesOverlay {
     private final de.artemis.omniwheel.client.render.ListRowAnimation<WheelProfile> profileRowsAnimation = new de.artemis.omniwheel.client.render.ListRowAnimation<>();
     private final de.artemis.omniwheel.client.render.ListRowAnimation<EntryListRow> entryRowsAnimation = new de.artemis.omniwheel.client.render.ListRowAnimation<>();
     private final Map<String, Bounds> profileRowHits = new HashMap<>(), entryRowHits = new HashMap<>();
-    private record ButtonHover(float amount, long frame) {}
-    private final Map<Bounds, ButtonHover> buttonHovers = new HashMap<>();
+    private final HighlightAnimation highlights = new HighlightAnimation();
     private long lastDragFrameNanos;
     private float dragMotionAlpha = 1;
     private String draggedWheelId;
@@ -360,6 +361,7 @@ public final class OmniWheelProfilesOverlay {
     private String entryValueDraft = "";
     private String entryKeybindDraft = "key.inventory";
     private boolean entryPresetDraft;
+    private boolean entryLocalChatDraft;
     private String iconPickerSearchDraft = "";
     private final List<String> commandValueDrafts = new ArrayList<>();
     private final List<TextFieldState> commandValueFields = new ArrayList<>();
@@ -1693,7 +1695,7 @@ public final class OmniWheelProfilesOverlay {
     private void drawProfileRow(GuiGraphics graphics, Minecraft minecraft, WheelProfile profile, int x, int y, int width, boolean dragged) {
         boolean selected = profile.id().equals(selectedProfileId);
         boolean activeProfile = profile.id().equals(runtime.activeProfile().id());
-        int rowColor = dragged ? DRAG_SURFACE : selected ? ROW_SELECTED : ROW;
+        int rowColor = dragged ? DRAG_SURFACE : highlightColor("profile:" + profile.id(), selected, ROW, ROW_SELECTED);
 
         if (dragged) {
             graphics.fill(x + 3, y + 4, x + width + 3, y + PROFILE_ROW_HEIGHT + 4, 0x58101820);
@@ -1701,8 +1703,8 @@ public final class OmniWheelProfilesOverlay {
         }
 
         graphics.fill(x, y, x + width, y + PROFILE_ROW_HEIGHT, rowColor);
-        if (dragged || selected) {
-            int edgeColor = dragged ? DRAG_EDGE : ACTION;
+        {
+            int edgeColor = dragged ? DRAG_EDGE : highlightColor("profile:" + profile.id(), selected, ACTION & 0x00FFFFFF, ACTION);
             graphics.fill(x, y, x + width, y + 1, edgeColor);
             graphics.fill(x, y + PROFILE_ROW_HEIGHT - 1, x + width, y + PROFILE_ROW_HEIGHT, edgeColor);
             graphics.fill(x, y, x + 1, y + PROFILE_ROW_HEIGHT, edgeColor);
@@ -1744,7 +1746,7 @@ public final class OmniWheelProfilesOverlay {
         boolean selected = wheel.id().equals(selectedWheelId);
         boolean root = wheel.id().equals(profile.rootWheelId());
         boolean active = wheel.active();
-        int rowColor = dragged ? DRAG_SURFACE : selected ? (active ? ROW_SELECTED : 0xC8323E4C) : active ? ROW : ROW_DISABLED;
+        int rowColor = dragged ? DRAG_SURFACE : highlightColor("wheel:" + profile.id() + ":" + wheel.id(), selected, active ? ROW : ROW_DISABLED, active ? ROW_SELECTED : 0xC8323E4C);
 
         if (dragged) {
             graphics.fill(x + 3, y + 4, x + width + 3, y + PROFILE_ROW_HEIGHT + 4, 0x58101820);
@@ -1752,8 +1754,9 @@ public final class OmniWheelProfilesOverlay {
         }
 
         graphics.fill(x, y, x + width, y + PROFILE_ROW_HEIGHT, rowColor);
-        if (dragged || selected) {
-            int accentColor = dragged ? DRAG_EDGE : active ? ACTION : ACTION_DISABLED;
+        {
+            int target = active ? ACTION : ACTION_DISABLED;
+            int accentColor = dragged ? DRAG_EDGE : highlightColor("wheel:" + profile.id() + ":" + wheel.id(), selected, target & 0x00FFFFFF, target);
             graphics.fill(x, y, x + width, y + 1, accentColor);
             graphics.fill(x, y + PROFILE_ROW_HEIGHT - 1, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
             graphics.fill(x, y, x + 1, y + PROFILE_ROW_HEIGHT, accentColor);
@@ -1943,15 +1946,16 @@ public final class OmniWheelProfilesOverlay {
     private void drawEntryListRow(GuiGraphics graphics, Minecraft minecraft, EntryListRow row, int x, int y, int width, boolean dragged) {
         WheelEntry entry = row.entry();
         boolean selected = isEntryRowSelected(row.ownerWheelId(), entry.id());
-        int rowColor = dragged ? DRAG_SURFACE : !entry.active() ? ROW_DISABLED : selected ? ROW_SELECTED : ROW;
+        int rowColor = dragged ? DRAG_SURFACE : highlightColor("entry:" + selectedProfileId + ":" + row.ownerWheelId() + ":" + entry.id(), selected, entry.active() ? ROW : ROW_DISABLED, entry.active() ? ROW_SELECTED : ROW_DISABLED);
         int indent = Math.min(row.depth() * 14, Math.max(0, width - 90));
         if (dragged) {
             graphics.fill(x + 3, y + 4, x + width + 3, y + PROFILE_ROW_HEIGHT + 4, 0x58101820);
             graphics.fill(x - 1, y - 1, x + width + 1, y + PROFILE_ROW_HEIGHT + 1, 0x90384E62);
         }
         graphics.fill(x, y, x + width, y + PROFILE_ROW_HEIGHT, rowColor);
-        if (dragged || selected) {
-            int accentColor = dragged ? DRAG_EDGE : entry.active() ? ACTION : ACTION_DISABLED;
+        {
+            int target = entry.active() ? ACTION : ACTION_DISABLED;
+            int accentColor = dragged ? DRAG_EDGE : highlightColor("entry:" + selectedProfileId + ":" + row.ownerWheelId() + ":" + entry.id(), selected, target & 0x00FFFFFF, target);
             graphics.fill(x, y, x + width, y + 1, accentColor);
             graphics.fill(x, y + PROFILE_ROW_HEIGHT - 1, x + width, y + PROFILE_ROW_HEIGHT, accentColor);
             graphics.fill(x, y, x + 1, y + PROFILE_ROW_HEIGHT, accentColor);
@@ -2098,8 +2102,9 @@ public final class OmniWheelProfilesOverlay {
         addButton(graphics, minecraft, x, actionY + 30, halfWidth, text("omniwheel.manager.new_submenu"), canCreateEntry(), this::createSubmenuEntry);
         addButton(graphics, minecraft, x + halfWidth + 8, actionY + 30, halfWidth, text("omniwheel.manager.new_function"), canCreateEntry(), this::createFunctionEntry);
         addButton(graphics, minecraft, x, actionY + 60, halfWidth, text("omniwheel.manager.new_keybind"), canCreateEntry(), () -> createEntry(DraftActionType.KEYBIND));
-        addButton(graphics, minecraft, x + halfWidth + 8, actionY + 60, halfWidth, text("omniwheel.common.delete"), canDeleteSelection(), this::deleteSelection);
-        addButton(graphics, minecraft, x, actionY + 90, width, selectedThingToggleLabel(), canToggleSelection(), this::toggleSelectionActive);
+        addButton(graphics, minecraft, x + halfWidth + 8, actionY + 60, halfWidth, text("omniwheel.manager.new_clipboard"), canCreateEntry(), () -> createEntry(DraftActionType.COPY_TEXT));
+        addButton(graphics, minecraft, x, actionY + 90, halfWidth, selectedThingToggleLabel(), canToggleSelection(), this::toggleSelectionActive);
+        addButton(graphics, minecraft, x + halfWidth + 8, actionY + 90, halfWidth, text("omniwheel.common.delete"), canDeleteSelection(), this::deleteSelection);
     }
 
     private void drawEditorPanel(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height) {
@@ -2231,6 +2236,7 @@ public final class OmniWheelProfilesOverlay {
             case COMMAND -> text("omniwheel.manager.field.commands");
             case FUNCTION -> text("omniwheel.manager.field.function");
             case CHAT -> text("omniwheel.manager.field.message");
+            case COPY_TEXT -> text("omniwheel.manager.field.clipboard_text");
             default -> text("omniwheel.manager.field.value");
         };
         String valueText = switch (entryActionTypeDraft) {
@@ -2262,7 +2268,7 @@ public final class OmniWheelProfilesOverlay {
                 textFields.get(EditorField.ENTRY_VALUE).visible = false;
             } else {
                 int dataWidth = dataButtonWidth(minecraft);
-                int modeWidth = entryActionTypeDraft == DraftActionType.CHAT ? sendModeButtonWidth + 6 : 0;
+                int modeWidth = entryActionTypeDraft == DraftActionType.CHAT ? 2 * (sendModeButtonWidth + 6) : 0;
                 int valueWidth = lowerSectionWidth - modeWidth - dataWidth - 6;
                 drawTextField(graphics, minecraft, EditorField.ENTRY_VALUE, x, lowerSectionY, valueWidth, valueLabel, true);
                 addDataButton(graphics, minecraft, x + valueWidth + 6, lowerSectionY + 12, dataWidth, -1, true);
@@ -2273,7 +2279,8 @@ public final class OmniWheelProfilesOverlay {
                     graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, preview, lowerSectionWidth), x, lowerSectionY + 40, missing == null ? TEXT_SECONDARY : WARNING, false);
                 }
                 if (entryActionTypeDraft == DraftActionType.CHAT) {
-                    drawSendModeButton(graphics, minecraft, x + lowerSectionWidth - sendModeButtonWidth, lowerSectionY + 12, true);
+                    drawChatDestinationButton(graphics, minecraft, x + lowerSectionWidth - 2 * sendModeButtonWidth - 6, lowerSectionY + 12);
+                    drawSendModeButton(graphics, minecraft, x + lowerSectionWidth - sendModeButtonWidth, lowerSectionY + 12, !entryLocalChatDraft);
                 }
             }
         }
@@ -2285,6 +2292,17 @@ public final class OmniWheelProfilesOverlay {
         return 24 + 6 + 24;
     }
 
+    private void drawChatDestinationButton(GuiGraphics graphics, Minecraft minecraft, int x, int y) {
+        int width = sendModeButtonWidth(minecraft);
+        addButton(graphics, minecraft, x, y, width,
+                text(entryLocalChatDraft ? "omniwheel.manager.button.chat_local" : "omniwheel.manager.button.chat_global"), 22, true, () -> {
+                    entryLocalChatDraft = !entryLocalChatDraft;
+                    autosaveCurrentEntryDraft();
+                }, "chat-destination");
+        tooltipRegions.add(new TooltipRegion(x, y, width, 22,
+                text(entryLocalChatDraft ? "omniwheel.manager.tooltip.chat_local" : "omniwheel.manager.tooltip.chat_global")));
+    }
+
     private void drawSendModeButton(GuiGraphics graphics, Minecraft minecraft, int x, int y, boolean enabled) {
         int width = sendModeButtonWidth(minecraft);
         addButton(graphics, minecraft, x, y, width,
@@ -2293,7 +2311,7 @@ public final class OmniWheelProfilesOverlay {
                     autosaveCurrentEntryDraft();
                 }, "send-mode");
         tooltipRegions.add(new TooltipRegion(x, y, width, 22, text(!enabled
-                ? "omniwheel.manager.tooltip.mode_multiple"
+                ? entryActionTypeDraft == DraftActionType.CHAT ? "omniwheel.manager.tooltip.mode_local" : "omniwheel.manager.tooltip.mode_multiple"
                 : entryPresetDraft ? "omniwheel.manager.tooltip.mode_preset" : "omniwheel.manager.tooltip.mode_send")));
     }
 
@@ -2360,11 +2378,8 @@ public final class OmniWheelProfilesOverlay {
             boolean selectedSwatch = customSwatch ? customSelected : defaultSwatch ? selectedColorValue == defaultColorValue : color == selectedColorValue;
             boolean focusedSwatch = !isReordering() && isNavigationActionFocused("palette:" + label + ":" + colorIndex);
             boolean hoveredSwatch = isButtonHighlighted(minecraft, swatchX, swatchY, swatchOuterSize, swatchOuterSize, false);
-            if (selectedSwatch) {
-                drawSelectedPaletteOutline(graphics, swatchX, swatchY, swatchOuterSize);
-            } else {
-                graphics.fill(swatchX + 1, swatchY + 1, swatchX + swatchOuterSize - 1, swatchY + swatchOuterSize - 1, FIELD_EDGE);
-            }
+            graphics.fill(swatchX + 1, swatchY + 1, swatchX + swatchOuterSize - 1, swatchY + swatchOuterSize - 1, FIELD_EDGE);
+            drawSelectedPaletteOutline(graphics, swatchX, swatchY, swatchOuterSize, "selection:" + label + ":" + colorIndex, selectedSwatch);
             if (customSwatch && !customSelected) {
                 for (int column = 0; column < swatchInnerSize; column++) {
                     graphics.fill(swatchX + swatchInnerInset + column, swatchY + swatchInnerInset,
@@ -2395,9 +2410,7 @@ public final class OmniWheelProfilesOverlay {
                         0x18FFFFFF
                 );
             }
-            if (focusedSwatch || hoveredSwatch) {
-                drawFocusedActionOutline(graphics, swatchX, swatchY, swatchOuterSize, swatchOuterSize);
-            }
+            drawFocusedActionOutline(graphics, swatchX, swatchY, swatchOuterSize, swatchOuterSize, "palette:" + label + ":" + colorIndex, focusedSwatch || hoveredSwatch);
             final int swatchColor = defaultSwatch ? defaultColorValue : color;
             actions.add(new ClickAction(swatchX, swatchY, swatchOuterSize, swatchOuterSize, true, () -> {
                 if (customSwatch) {
@@ -2420,9 +2433,9 @@ public final class OmniWheelProfilesOverlay {
         graphics.fill(x, y, x + size, y + size, 0xFF212831);
     }
 
-    private void drawSelectedPaletteOutline(GuiGraphics graphics, int x, int y, int size) {
-        graphics.fill(x, y, x + size, y + size, 0xFFD3DEE8);
-        graphics.fill(x + 1, y + 1, x + size - 1, y + size - 1, 0xFF162029);
+    private void drawSelectedPaletteOutline(GuiGraphics graphics, int x, int y, int size, Object key, boolean selected) {
+        graphics.fill(x, y, x + size, y + size, highlightColor(key, selected, 0x00D3DEE8, 0xFFD3DEE8));
+        graphics.fill(x + 1, y + 1, x + size - 1, y + size - 1, highlightColor(key, selected, FIELD_EDGE, 0xFF162029));
         graphics.fill(x + 2, y + 2, x + size - 2, y + size - 2, FIELD);
     }
 
@@ -3042,10 +3055,11 @@ public final class OmniWheelProfilesOverlay {
 
         graphics.drawString(minecraft.font, label, x, y, TEXT_SECONDARY, false);
         graphics.fill(x, y + 12, x + width, y + 34, FIELD);
-        graphics.fill(x, y + 12, x + width, y + 13, FIELD_FOCUSED);
-        graphics.fill(x, y + 33, x + width, y + 34, FIELD_FOCUSED);
-        graphics.fill(x, y + 12, x + 1, y + 34, FIELD_FOCUSED);
-        graphics.fill(x + width - 1, y + 12, x + width, y + 34, FIELD_FOCUSED);
+        int edgeColor = highlightColor(field, true, FIELD_EDGE, FIELD_FOCUSED);
+        graphics.fill(x, y + 12, x + width, y + 13, edgeColor);
+        graphics.fill(x, y + 33, x + width, y + 34, edgeColor);
+        graphics.fill(x, y + 12, x + 1, y + 34, edgeColor);
+        graphics.fill(x + width - 1, y + 12, x + width, y + 34, edgeColor);
 
         if (ensureCommandInput()) {
             commandInput.setX(x + 8);
@@ -3200,10 +3214,8 @@ public final class OmniWheelProfilesOverlay {
 
             boolean selected = function == entryFunctionDraft;
             boolean focusedRow = isActionFocused(optionAction);
-            graphics.fill(rowX, rowY, rowX + rowWidth, rowY + rowHeight, selected ? ROW_SELECTED : ROW);
-            if (selected || focusedRow) {
-                drawFocusedActionOutline(graphics, rowX, rowY, rowWidth, rowHeight);
-            }
+            graphics.fill(rowX, rowY, rowX + rowWidth, rowY + rowHeight, highlightColor("function:" + function.name(), selected || focusedRow, ROW, ROW_SELECTED));
+            drawFocusedActionOutline(graphics, rowX, rowY, rowWidth, rowHeight, "function:" + function.name(), selected || focusedRow);
 
             String title = ellipsizeToWidth(minecraft.font, function.displayName(), rowWidth - 16);
             String detail = ellipsizeToWidth(minecraft.font, function.category().label() + " | " + functionModeLabel(function.mode()), rowWidth - 16);
@@ -3249,11 +3261,11 @@ public final class OmniWheelProfilesOverlay {
             boolean selectedCategory = group.options().stream().anyMatch(option -> option.id().equals(entryKeybindDraft));
             if (headerY + KEYBIND_CATEGORY_HEIGHT >= functionListY && headerY < functionListY + functionListHeight) {
                 boolean highlighted = isButtonHighlighted(minecraft, rowX, headerY, rowWidth, KEYBIND_CATEGORY_HEIGHT, isActionFocused(header));
-                graphics.fill(rowX, headerY, rowX + rowWidth, headerY + KEYBIND_CATEGORY_HEIGHT, highlighted ? ROW_SELECTED : ROW);
+                graphics.fill(rowX, headerY, rowX + rowWidth, headerY + KEYBIND_CATEGORY_HEIGHT, highlightColor(header.navigationId(), highlighted, ROW, ROW_SELECTED));
                 GeometryRenderer.drawDisclosureChevron(graphics, rowX + 11, headerY + KEYBIND_CATEGORY_HEIGHT / 2F, layout.expansion(), ACTION);
                 graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, group.name() + " (" + group.options().size() + ")", rowWidth - 32),
                         rowX + 25, headerY + 8, selectedCategory ? ACTION : TEXT, false);
-                if (isActionFocused(header)) drawFocusedActionOutline(graphics, rowX, headerY, rowWidth, KEYBIND_CATEGORY_HEIGHT);
+                drawFocusedActionOutline(graphics, rowX, headerY, rowWidth, KEYBIND_CATEGORY_HEIGHT, header.navigationId(), isActionFocused(header));
             }
             if (layout.bodyHeight() <= 0) continue;
             int bodyTop = headerY + KEYBIND_CATEGORY_HEIGHT + SELECTOR_PADDING;
@@ -3274,8 +3286,8 @@ public final class OmniWheelProfilesOverlay {
                 boolean selected = keybind.id().equals(entryKeybindDraft);
                 boolean focused = accessible && isActionFocused(action);
                 boolean hovered = accessible && isButtonHighlighted(minecraft, optionX, rowY, optionWidth, SELECTOR_ROW_HEIGHT, false);
-                graphics.fill(optionX, rowY, optionX + optionWidth, rowY + SELECTOR_ROW_HEIGHT, selected || hovered ? ROW_SELECTED : ROW);
-                if (selected || focused) drawFocusedActionOutline(graphics, optionX, rowY, optionWidth, SELECTOR_ROW_HEIGHT);
+                graphics.fill(optionX, rowY, optionX + optionWidth, rowY + SELECTOR_ROW_HEIGHT, highlightColor("keybind:" + keybind.id(), selected || focused || hovered, ROW, ROW_SELECTED));
+                drawFocusedActionOutline(graphics, optionX, rowY, optionWidth, SELECTOR_ROW_HEIGHT, "keybind:" + keybind.id(), selected || focused || hovered);
                 graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, keybind.name(), optionWidth - 16), optionX + 8, rowY + 7, TEXT, false);
                 graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, keybind.id(), optionWidth - 16), optionX + 8, rowY + 19, selected ? ACTION : TEXT_SECONDARY, false);
             }
@@ -3417,14 +3429,14 @@ public final class OmniWheelProfilesOverlay {
             if (rowY + rowHeight < iconPickerGridY || rowY > iconPickerGridY + iconPickerGridHeight) continue;
             boolean focused = isActionFocused(action);
             boolean hovered = action.contains(mouseX, mouseY);
-            graphics.fill(rowX, rowY, rowX + rowWidth, rowY + rowHeight, hovered || focused ? ROW_SELECTED : ROW);
+            graphics.fill(rowX, rowY, rowX + rowWidth, rowY + rowHeight, highlightColor("data:" + value.id(), hovered || focused, ROW, ROW_SELECTED));
             graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, value.group() + " - " + value.name(), rowWidth - 12), rowX + 6, rowY + 5, TEXT, false);
             graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, value.description(), rowWidth - 12), rowX + 6, rowY + 18, TEXT_SECONDARY, false);
             String current = snapshot.values().get(value.token());
             String example = current == null ? "Example: " + value.example() + "  (" + value.missingMessage() + ")"
                     : current.isEmpty() ? "Not applicable to this item" : "Now: " + current;
             graphics.drawString(minecraft.font, ellipsizeToWidth(minecraft.font, example, rowWidth - 12), rowX + 6, rowY + 31, ACTION, false);
-            if (focused) drawFocusedActionOutline(graphics, rowX, rowY, rowWidth, rowHeight);
+            drawFocusedActionOutline(graphics, rowX, rowY, rowWidth, rowHeight, "data:" + value.id(), focused || hovered);
         }
         if (values.isEmpty()) graphics.drawCenteredString(minecraft.font, "No matching data. Try position, UUID, block, or item.", x + iconPickerGridWidth / 2, iconPickerGridY + 20, TEXT_SECONDARY);
         graphics.disableScissor();
@@ -3535,7 +3547,7 @@ public final class OmniWheelProfilesOverlay {
                 GeometryRenderer.drawDisclosureChevron(graphics, headerX + 10, headerY + ICON_CATEGORY_HEIGHT / 2.0F,
                         categoryExpansions.get(category.id()).amount(uiAnimationFrame), TEXT_SECONDARY);
                 graphics.drawString(Minecraft.getInstance().font, ellipsizeToWidth(Minecraft.getInstance().font, category.name() + " (" + category.options().size() + ")", headerWidth - 28), headerX + 24, headerY + 8, TEXT, false);
-                if (isActionFocused(header)) drawFocusedActionOutline(graphics, headerX, headerY, headerWidth, ICON_CATEGORY_HEIGHT);
+                drawFocusedActionOutline(graphics, headerX, headerY, headerWidth, ICON_CATEGORY_HEIGHT, header.navigationId(), isActionFocused(header));
             }
             int bodyHeight = categoryBodyHeights.getOrDefault(category.id(), 0);
             if (bodyHeight <= 0) continue;
@@ -3563,16 +3575,14 @@ public final class OmniWheelProfilesOverlay {
                 boolean hovered = category.expanded() && cellY + cellSize <= bodyBottom && mouseY < editorRevealBottom
                         && mouseX >= cellX && mouseX <= cellX + cellSize && mouseY >= cellY && mouseY <= cellY + cellSize;
                 boolean focused = isActionFocused(optionAction);
-                int fillColor = selected ? ROW_SELECTED : hovered ? ROW : FIELD;
-                int edgeColor = selected ? ACTION : FIELD_EDGE;
+                int fillColor = highlightColor("icon:" + option.id(), selected || hovered || focused, FIELD, ROW_SELECTED);
+                int edgeColor = highlightColor("icon:" + option.id(), selected || hovered || focused, FIELD_EDGE, FIELD_FOCUSED);
                 graphics.fill(cellX, cellY, cellX + cellSize, cellY + cellSize, fillColor);
                 graphics.fill(cellX, cellY, cellX + cellSize, cellY + 1, edgeColor);
                 graphics.fill(cellX, cellY + cellSize - 1, cellX + cellSize, cellY + cellSize, edgeColor);
                 graphics.fill(cellX, cellY, cellX + 1, cellY + cellSize, edgeColor);
                 graphics.fill(cellX + cellSize - 1, cellY, cellX + cellSize, cellY + cellSize, edgeColor);
-                if (focused) {
-                    drawFocusedActionOutline(graphics, cellX, cellY, cellSize, cellSize);
-                }
+
                 if (!EntryIconRenderer.drawIcon(graphics, minecraft, option.id(), cellX + (cellSize * 0.5F), cellY + (cellSize * 0.5F), 1.0F)) {
                     graphics.drawCenteredString(minecraft.font, "?", cellX + (cellSize / 2), cellY + 7, TEXT);
                 }
@@ -3665,7 +3675,7 @@ public final class OmniWheelProfilesOverlay {
         field.setBounds(x, y, width, height, 6);
 
         graphics.fill(x, y, x + width, y + height, FIELD);
-        int edgeColor = field.focused ? FIELD_FOCUSED : FIELD_EDGE;
+        int edgeColor = highlightColor(field, field.focused, FIELD_EDGE, FIELD_FOCUSED);
         graphics.fill(x, y, x + width, y + 1, edgeColor);
         graphics.fill(x, y + height - 1, x + width, y + height, edgeColor);
         graphics.fill(x, y, x + 1, y + height, edgeColor);
@@ -3688,7 +3698,7 @@ public final class OmniWheelProfilesOverlay {
         field.setBounds(x, y, width, height, 6);
 
         graphics.fill(x, y, x + width, y + height, FIELD);
-        int edgeColor = field.focused ? FIELD_FOCUSED : FIELD_EDGE;
+        int edgeColor = highlightColor(field, field.focused, FIELD_EDGE, FIELD_FOCUSED);
         graphics.fill(x, y, x + width, y + 1, edgeColor);
         graphics.fill(x, y + height - 1, x + width, y + height, edgeColor);
         graphics.fill(x, y, x + 1, y + height, edgeColor);
@@ -3716,7 +3726,7 @@ public final class OmniWheelProfilesOverlay {
 
         graphics.drawString(minecraft.font, label, x, y, TEXT_SECONDARY, false);
         graphics.fill(x, y + 12, x + width, y + 34, FIELD);
-        int edgeColor = field.focused ? FIELD_FOCUSED : FIELD_EDGE;
+        int edgeColor = highlightColor(field, field.focused, FIELD_EDGE, FIELD_FOCUSED);
         graphics.fill(x, y + 12, x + width, y + 13, edgeColor);
         graphics.fill(x, y + 33, x + width, y + 34, edgeColor);
         graphics.fill(x, y + 12, x + 1, y + 34, edgeColor);
@@ -3738,7 +3748,7 @@ public final class OmniWheelProfilesOverlay {
         field.setBounds(x, y, width, height, 8);
 
         graphics.fill(x, y, x + width, y + height, FIELD);
-        int edgeColor = field.focused ? FIELD_FOCUSED : FIELD_EDGE;
+        int edgeColor = highlightColor(field, field.focused, FIELD_EDGE, FIELD_FOCUSED);
         graphics.fill(x, y, x + width, y + 1, edgeColor);
         graphics.fill(x, y + height - 1, x + width, y + height, edgeColor);
         graphics.fill(x, y, x + 1, y + height, edgeColor);
@@ -3816,13 +3826,8 @@ public final class OmniWheelProfilesOverlay {
     private void drawButtonChrome(GuiGraphics graphics, int x, int y, int width, int height, int normalFill, int highlightedFill, boolean enabled, boolean highlighted, boolean tutorialControl) {
         long now = uiAnimationFrame;
         Bounds bounds = new Bounds(x, y, width, height);
-        ButtonHover previous = buttonHovers.get(bounds);
-        float amount = previous == null || now - previous.frame() > 250_000_000L ? 0 : previous.amount();
-        double seconds = previous == null ? 0 : Math.clamp((now - previous.frame()) / 1_000_000_000.0, 0, .1);
-        amount += ((enabled && highlighted ? 1 : 0) - amount) * (float) -Math.expm1(-24 * seconds);
+        float amount = highlights.amount(bounds, enabled && highlighted, now);
         if (!enabled || isReordering() || isManagerTutorialActive() && !tutorialControl) amount = 0;
-        if (buttonHovers.size() > 512) buttonHovers.clear();
-        buttonHovers.put(bounds, new ButtonHover(amount, now));
         int fillColor = enabled ? de.artemis.omniwheel.client.render.RadialAnimation.blendColor(normalFill, highlightedFill, amount) : ROW_DISABLED;
         int edgeColor = de.artemis.omniwheel.client.render.RadialAnimation.blendColor(FIELD_EDGE, FIELD_FOCUSED, amount);
         graphics.fill(x, y, x + width, y + height, fillColor);
@@ -3836,13 +3841,19 @@ public final class OmniWheelProfilesOverlay {
         }
     }
 
-    private void drawFocusedActionOutline(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.fill(x, y, x + width, y + 1, FIELD_FOCUSED);
-        graphics.fill(x, y + height - 1, x + width, y + height, FIELD_FOCUSED);
-        graphics.fill(x, y, x + 1, y + height, FIELD_FOCUSED);
-        graphics.fill(x + width - 1, y, x + width, y + height, FIELD_FOCUSED);
-        graphics.fill(x + 2, y + 2, x + width - 2, y + 3, 0x30000000);
-        graphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, 0x30000000);
+    private int highlightColor(Object key, boolean highlighted, int normal, int active) {
+        return RadialAnimation.blendColor(normal, active, highlights.amount(key, highlighted, uiAnimationFrame));
+    }
+
+    private void drawFocusedActionOutline(GuiGraphics graphics, int x, int y, int width, int height, Object key, boolean highlighted) {
+        int edge = highlightColor(key, highlighted, FIELD_FOCUSED & 0x00FFFFFF, FIELD_FOCUSED);
+        int shade = highlightColor(key, highlighted, 0, 0x30000000);
+        graphics.fill(x, y, x + width, y + 1, edge);
+        graphics.fill(x, y + height - 1, x + width, y + height, edge);
+        graphics.fill(x, y, x + 1, y + height, edge);
+        graphics.fill(x + width - 1, y, x + width, y + height, edge);
+        graphics.fill(x + 2, y + 2, x + width - 2, y + 3, shade);
+        graphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, shade);
     }
 
     private void runClickAction(float mouseX, float mouseY) {
@@ -3908,6 +3919,7 @@ public final class OmniWheelProfilesOverlay {
             entryGlyphDraft = "";
             entryValueDraft = "";
             entryPresetDraft = false;
+            entryLocalChatDraft = false;
             commandValueDrafts.clear();
             clearCommandDrag();
             commandValueFields.clear();
@@ -3930,6 +3942,7 @@ public final class OmniWheelProfilesOverlay {
         }
 
         entryLabelDraft = displayText(entry.label());
+        entryLocalChatDraft = entry.action() instanceof LocalMessageAction;
         entryDescriptionDraft = displayText(entry.description());
         entryShortcutDraft = entry.shortcut();
         entryGlyphDraft = entry.glyph();
@@ -4078,6 +4091,7 @@ public final class OmniWheelProfilesOverlay {
             case CHAT -> new ChatAction(text("omniwheel.manager.created.chat_value"), false);
             case KEYBIND -> new KeybindAction("key.inventory");
             case FUNCTION -> new FunctionAction(GameplayFunction.OPEN_INVENTORY);
+            case COPY_TEXT -> new CopyTextAction("{position}");
             default -> new CommandAction("/command", false);
         };
         WheelEntry entry = new WheelEntry(
@@ -4087,6 +4101,7 @@ public final class OmniWheelProfilesOverlay {
                     case CHAT -> text("omniwheel.manager.created.message_entry");
                     case KEYBIND -> text("omniwheel.manager.created.keybind_entry");
                     case FUNCTION -> text("omniwheel.manager.created.function_entry");
+                    case COPY_TEXT -> text("omniwheel.action.clipboard");
                     default -> text("omniwheel.manager.created.entry");
                 },
                 "",
@@ -4095,6 +4110,7 @@ public final class OmniWheelProfilesOverlay {
                     case CHAT -> "M";
                     case KEYBIND -> "K";
                     case FUNCTION -> "F";
+                    case COPY_TEXT -> "C";
                     default -> "E";
                 },
                 WheelEntry.DEFAULT_COLOR,
@@ -4168,12 +4184,19 @@ public final class OmniWheelProfilesOverlay {
     private WheelAction buildDraftAction(WheelAction currentAction) {
         return switch (entryActionTypeDraft) {
             case COMMAND -> new CommandAction(normalizedCommandDrafts(), false, entryPresetDraft);
-            case CHAT -> new ChatAction(preservedActionValue(currentAction, ChatAction.class, entryValueDraft, text("omniwheel.manager.created.chat_value")), false, entryPresetDraft);
+            case CHAT -> {
+                String stored = switch (currentAction) {
+                    case ChatAction chat -> chat.message();
+                    case LocalMessageAction local -> local.message();
+                    default -> text("omniwheel.manager.created.chat_value");
+                };
+                String message = preservedDraftText(entryValueDraft, stored);
+                yield entryLocalChatDraft ? new LocalMessageAction(message) : new ChatAction(message, false, entryPresetDraft);
+            }
             case KEYBIND -> new KeybindAction(entryKeybindDraft);
             case FUNCTION -> new FunctionAction(entryFunctionDraft);
-            case LOCAL_MESSAGE -> new LocalMessageAction(preservedActionValue(currentAction, LocalMessageAction.class, entryValueDraft, ""));
             case OPEN_CHAT -> new OpenChatAction(fallbackText(entryValueDraft, ""));
-            case COPY_TEXT -> new CopyTextAction(preservedActionValue(currentAction, CopyTextAction.class, entryValueDraft, ""));
+            case COPY_TEXT -> new CopyTextAction(preservedActionValue(currentAction, CopyTextAction.class, entryValueDraft, "{position}"));
             case OPEN_SCREEN -> new OpenScreenAction(entryScreenTargetDraft);
             case SUBMENU -> new OpenWheelAction(Objects.requireNonNullElse(entrySubmenuWheelId, selectedWheelId));
         };
@@ -4262,7 +4285,6 @@ public final class OmniWheelProfilesOverlay {
 
     private boolean canDeleteSelectedProfile() {
         return selectedProfileId != null
-                && !"default".equals(selectedProfileId)
                 && runtime.profileManager().getProfiles().size() > 1;
     }
 
@@ -5671,13 +5693,13 @@ public final class OmniWheelProfilesOverlay {
 
     private void drawPanel(GuiGraphics graphics, int x, int y, int width, int height, boolean active) {
         graphics.fill(x, y, x + width, y + height, PANEL);
-        int edgeColor = active ? PANEL_EDGE_ACTIVE : PANEL_EDGE;
+        int edgeColor = highlightColor("panel:" + x, active, PANEL_EDGE, PANEL_EDGE_ACTIVE);
         graphics.fill(x, y, x + width, y + 1, edgeColor);
         graphics.fill(x, y + height - 1, x + width, y + height, edgeColor);
         graphics.fill(x, y, x + 1, y + height, edgeColor);
         graphics.fill(x + width - 1, y, x + width, y + height, edgeColor);
-        if (active && width > 4 && height > 4) {
-            int innerEdge = 0x503F6178;
+        if (width > 4 && height > 4) {
+            int innerEdge = highlightColor("panel:" + x, active, 0x003F6178, 0x503F6178);
             graphics.fill(x + 1, y + 1, x + width - 1, y + 2, innerEdge);
             graphics.fill(x + 1, y + height - 2, x + width - 1, y + height - 1, innerEdge);
             graphics.fill(x + 1, y + 1, x + 2, y + height - 1, innerEdge);
@@ -7212,7 +7234,6 @@ public final class OmniWheelProfilesOverlay {
         CHAT,
         FUNCTION,
         KEYBIND,
-        LOCAL_MESSAGE,
         OPEN_CHAT,
         COPY_TEXT,
         OPEN_SCREEN,
@@ -7223,8 +7244,9 @@ public final class OmniWheelProfilesOverlay {
                 case COMMAND -> CHAT;
                 case CHAT -> FUNCTION;
                 case FUNCTION -> KEYBIND;
-                case KEYBIND -> SUBMENU;
-                case LOCAL_MESSAGE, OPEN_CHAT, COPY_TEXT, OPEN_SCREEN, SUBMENU -> COMMAND;
+                case KEYBIND -> COPY_TEXT;
+                case COPY_TEXT -> SUBMENU;
+                case OPEN_CHAT, OPEN_SCREEN, SUBMENU -> COMMAND;
             };
         }
 
@@ -7234,7 +7256,7 @@ public final class OmniWheelProfilesOverlay {
                 case ChatAction ignored -> CHAT;
                 case KeybindAction ignored -> KEYBIND;
                 case FunctionAction ignored -> FUNCTION;
-                case LocalMessageAction ignored -> LOCAL_MESSAGE;
+                case LocalMessageAction ignored -> CHAT;
                 case OpenChatAction ignored -> OPEN_CHAT;
                 case CopyTextAction ignored -> COPY_TEXT;
                 case OpenScreenAction ignored -> OPEN_SCREEN;
