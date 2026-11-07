@@ -21,6 +21,25 @@ public final class ManagementNavigationTest {
         assertEquals(field, move(nodes, next, Direction.UP));
     }
 
+    @Test public void chatDestinationIsReachableWithAndWithoutPresetControl() {
+        Node message = node("message", 2, "", 0, 0, 140, true, 0);
+        Node data = node("data", 2, "", 146, 0, 90, true, 1);
+        Node destination = node("destination", 2, "", 242, 0, 54, true, 2);
+        Node preset = node("preset", 2, "", 302, 0, 54, true, 3);
+        List<Node> global = List.of(message, data, destination, preset);
+        assertEquals(data, move(global, message, Direction.RIGHT));
+        assertEquals(destination, move(global, data, Direction.RIGHT));
+        assertEquals(preset, move(global, destination, Direction.RIGHT));
+        assertEquals(destination, move(global, preset, Direction.LEFT));
+        assertEquals(destination, tab(global, data, false));
+
+        // Disabled Send / Preset is omitted from the local chat navigation graph.
+        List<Node> local = List.of(message, data, destination);
+        assertEquals(destination, move(local, data, Direction.RIGHT));
+        assertEquals(data, move(local, destination, Direction.LEFT));
+        assertEquals(message, tab(local, destination, false));
+    }
+
     @Test public void scrollingTraversesOffscreenRowsBeforeFooter() {
         Node first = node("first", 0, "profiles", 0, 0, 140, true, 0);
         Node second = node("second", 0, "profiles", 0, 36, 140, false, 1);
@@ -87,17 +106,25 @@ public final class ManagementNavigationTest {
         Node submenu = node("submenu", 1, "", 0, 270, 74, true, 3);
         Node function = node("function", 1, "", 82, 270, 74, true, 4);
         Node keybind = node("keybind", 1, "", 0, 300, 74, true, 5);
-        Node delete = node("delete", 1, "", 82, 300, 74, true, 6);
-        Node toggle = node("toggle", 1, "", 0, 330, 156, true, 7);
-        List<Node> nodes = List.of(entry, command, chat, submenu, function, keybind, delete, toggle);
+        Node clipboard = node("clipboard", 1, "", 82, 300, 74, true, 6);
+        Node toggle = node("toggle", 1, "", 0, 330, 74, true, 7);
+        Node delete = node("delete", 1, "", 82, 330, 74, true, 8);
+        List<Node> nodes = List.of(entry, command, chat, submenu, function, keybind, clipboard, toggle, delete);
         assertEquals(command, move(nodes, entry, Direction.DOWN));
         assertEquals(chat, move(nodes, command, Direction.RIGHT));
         assertEquals(function, move(nodes, chat, Direction.DOWN));
-        assertEquals(delete, move(nodes, function, Direction.DOWN));
-        assertEquals(keybind, move(nodes, delete, Direction.LEFT));
+        assertEquals(clipboard, move(nodes, function, Direction.DOWN));
+        assertEquals(keybind, move(nodes, clipboard, Direction.LEFT));
         assertEquals(submenu, move(nodes, keybind, Direction.UP));
         assertEquals(command, move(nodes, submenu, Direction.UP));
         assertEquals(entry, move(nodes, command, Direction.UP));
-        assertEquals(toggle, move(nodes, delete, Direction.DOWN));
+        assertEquals(delete, move(nodes, clipboard, Direction.DOWN));
+        assertEquals(clipboard, move(nodes, delete, Direction.UP));
+        assertEquals(toggle, move(nodes, keybind, Direction.DOWN));
+        assertEquals(delete, move(nodes, toggle, Direction.RIGHT));
+        assertEquals(toggle, move(nodes, delete, Direction.LEFT));
+        assertEquals(clipboard, tab(nodes, keybind, false));
+        assertEquals(toggle, tab(nodes, clipboard, false));
+        assertEquals(delete, tab(nodes, toggle, false));
     }
 }
